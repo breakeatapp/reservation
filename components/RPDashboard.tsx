@@ -89,6 +89,14 @@ export default function RPDashboard({ profile }: Props) {
   const [clients, setClients] = useState<RPClientNote[]>([])
   const [loadingClients, setLoadingClients] = useState(false)
 
+  // Ajout client
+  const [addClientOpen, setAddClientOpen] = useState(false)
+  const [addClientEmail, setAddClientEmail] = useState('')
+  const [addClientName, setAddClientName] = useState('')
+  const [addClientLoading, setAddClientLoading] = useState(false)
+  const [addClientSuccess, setAddClientSuccess] = useState('')
+  const [addClientError, setAddClientError] = useState('')
+
   const fetchReservations = useCallback(async () => {
     setLoading(true)
     try {
@@ -479,6 +487,41 @@ export default function RPDashboard({ profile }: Props) {
     )
   }
 
+  // ── Ajouter un client ─────────────────────────────────────────
+  const handleAddClient = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!addClientEmail.trim()) return
+    setAddClientLoading(true)
+    setAddClientError('')
+    setAddClientSuccess('')
+    try {
+      const res = await fetch(`/api/rp/${profile.slug}/clients`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-rp-password': password },
+        body: JSON.stringify({
+          clientEmail: addClientEmail.trim().toLowerCase(),
+          clientName: addClientName.trim(),
+          vipTag: '',
+          internalNote: '',
+        }),
+      })
+      if (res.ok) {
+        setAddClientSuccess(`✓ ${addClientName || addClientEmail} ajouté avec succès`)
+        setAddClientEmail('')
+        setAddClientName('')
+        setAddClientOpen(false)
+        fetchClients()
+      } else {
+        const d = await res.json()
+        setAddClientError(d.error || 'Erreur lors de l\'ajout.')
+      }
+    } catch {
+      setAddClientError('Erreur réseau.')
+    } finally {
+      setAddClientLoading(false)
+    }
+  }
+
   // ── VUE CLIENTS ───────────────────────────────────────────────
   if (mainView === 'clients') {
     return (
@@ -488,22 +531,84 @@ export default function RPDashboard({ profile }: Props) {
             <p className="text-[9px] tracking-[0.4em] text-amber-400/30 uppercase">Fiches clients</p>
             <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
           </div>
-          <button
-            onClick={() => setMainView('list')}
-            className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/30 hover:text-[#5B3DF5]/60 transition-colors border border-white/5 hover:border-[#5B3DF5]/20 px-3 py-2"
-          >
-            ← Réservations
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setAddClientOpen(v => !v); setAddClientError(''); setAddClientSuccess('') }}
+              className="text-[10px] tracking-[0.2em] uppercase px-3 py-2 border border-amber-500/20 text-amber-400/60 hover:bg-amber-500/8 transition-colors"
+            >
+              + Ajouter
+            </button>
+            <button
+              onClick={() => setMainView('list')}
+              className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/30 hover:text-[#5B3DF5]/60 transition-colors border border-white/5 hover:border-[#5B3DF5]/20 px-3 py-2"
+            >
+              ← Retour
+            </button>
+          </div>
         </div>
 
         <div className="max-w-2xl mx-auto">
+
+          {/* Formulaire ajout client */}
+          {addClientOpen && (
+            <form onSubmit={handleAddClient} className="m-4 bg-[#141414] border border-amber-500/15 p-5">
+              <p className="text-[9px] tracking-[0.3em] text-amber-400/50 uppercase mb-4">Ajouter un client</p>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-[8px] tracking-wider text-[#F5F5F3]/25 uppercase mb-1.5">Prénom & Nom</label>
+                  <input
+                    type="text"
+                    value={addClientName}
+                    onChange={e => setAddClientName(e.target.value)}
+                    className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-amber-500/30"
+                    placeholder="Jean Dupont"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[8px] tracking-wider text-[#F5F5F3]/25 uppercase mb-1.5">Email *</label>
+                  <input
+                    type="email"
+                    value={addClientEmail}
+                    onChange={e => setAddClientEmail(e.target.value)}
+                    className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-amber-500/30"
+                    placeholder="jean@email.com"
+                    required
+                  />
+                </div>
+              </div>
+              {addClientError && <p className="text-red-400/60 text-xs mb-3">{addClientError}</p>}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAddClientOpen(false)}
+                  className="flex-1 border border-white/10 text-[#F5F5F3]/30 text-[10px] tracking-[0.2em] uppercase py-2.5 hover:border-white/20 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={addClientLoading}
+                  className="flex-1 border border-amber-500/30 text-amber-400/70 text-[10px] tracking-[0.2em] uppercase py-2.5 hover:bg-amber-500/8 transition-colors disabled:opacity-40"
+                >
+                  {addClientLoading ? 'Ajout...' : 'Confirmer'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {addClientSuccess && (
+            <div className="mx-4 my-2 border border-green-500/20 bg-green-500/8 text-green-400 text-sm px-4 py-3">
+              {addClientSuccess}
+            </div>
+          )}
+
           {loadingClients ? (
             <div className="flex items-center justify-center h-40 text-[#F5F5F3]/20 text-sm">Chargement...</div>
           ) : clients.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-60 gap-3 text-center px-8">
               <span className="text-4xl opacity-20">👤</span>
-              <p className="text-[#F5F5F3]/20 text-sm">Aucune fiche client encore.</p>
-              <p className="text-[#F5F5F3]/10 text-xs">Les fiches sont créées depuis le détail d'une réservation.</p>
+              <p className="text-[#F5F5F3]/20 text-sm">Aucun client inscrit.</p>
+              <p className="text-[#F5F5F3]/10 text-xs">Ajoutez des clients avec le bouton "+ Ajouter" ci-dessus.</p>
             </div>
           ) : (
             <div className="divide-y divide-white/5">
@@ -521,7 +626,7 @@ export default function RPDashboard({ profile }: Props) {
                     </div>
                     <p className="text-[#F5F5F3]/30 text-xs mb-1">{c.client_email}</p>
                     <div className="flex items-center gap-3 text-[#F5F5F3]/20 text-[10px]">
-                      <span>{c.total_resas} résa{c.total_resas > 1 ? 's' : ''}</span>
+                      <span>{c.total_resas ?? 0} résa{(c.total_resas ?? 0) > 1 ? 's' : ''}</span>
                       {c.internal_note && (
                         <>
                           <span>·</span>

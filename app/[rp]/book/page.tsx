@@ -50,6 +50,12 @@ export default async function RPBookPage({ params, searchParams }: Props) {
         estOptions={estOptions}
         defaultVenue={searchParams.venue || ''}
         rpSlug={params.rp}
+        rpProfile={{
+          display_name: profile.display_name,
+          whatsapp: profile.whatsapp,
+          email: profile.email,
+          accent_color: profile.accent_color,
+        }}
       />
     </div>
   )

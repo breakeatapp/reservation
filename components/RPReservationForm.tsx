@@ -22,11 +22,18 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 type Status = 'idle' | 'loading' | 'success' | 'error'
+type AccessStep = 'check' | 'form' | 'denied'
 
 type Props = {
   estOptions: { value: string; label: string }[]
   defaultVenue?: string
   rpSlug: string
+  rpProfile?: {
+    display_name: string
+    whatsapp?: string
+    email?: string
+    accent_color?: string
+  }
 }
 
 const inputClass = `w-full bg-[#141414] border border-white/8 text-[#F5F5F3] placeholder-[#F5F5F3]/15 px-4 py-3.5 text-sm focus:border-white/30 outline-none transition-colors duration-200`
@@ -57,7 +64,12 @@ const SERVICES = [
 const OCCASIONS = ['Anniversaire', 'Romantique', 'Dîner d\'affaires', 'Célébration', 'Soirée VIP', 'Fête', 'Autre']
 const SEATINGS = ['Terrasse', 'Table coucher de soleil', 'Premier rang', 'Table DJ', 'Vue mer', 'Privé / Semi-privé', 'Sans préférence']
 
-export default function RPReservationForm({ estOptions, defaultVenue, rpSlug }: Props) {
+export default function RPReservationForm({ estOptions, defaultVenue, rpSlug, rpProfile }: Props) {
+  const accent = rpProfile?.accent_color || '#5B3DF5'
+  const [accessStep, setAccessStep] = useState<AccessStep>('check')
+  const [accessEmail, setAccessEmail] = useState('')
+  const [accessEmailInput, setAccessEmailInput] = useState('')
+  const [checkLoading, setCheckLoading] = useState(false)
   const [status, setStatus] = useState<Status>('idle')
 
   const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<FormData>({
@@ -68,6 +80,37 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug }: 
   useEffect(() => {
     if (defaultVenue) setValue('establishment', defaultVenue)
   }, [defaultVenue, setValue])
+
+  // Quand email vérifié → pré-remplir le champ email du formulaire
+  useEffect(() => {
+    if (accessEmail) setValue('email', accessEmail)
+  }, [accessEmail, setValue])
+
+  // ── Vérification de l'accès ────────────────────────────────
+  const handleCheckAccess = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const trimmed = accessEmailInput.trim()
+    if (!trimmed) return
+    setCheckLoading(true)
+    try {
+      const res = await fetch(
+        `/api/client/check?email=${encodeURIComponent(trimmed)}&rp=${rpSlug}`
+      )
+      const data = await res.json()
+      if (data.registered) {
+        setAccessEmail(trimmed)
+        setAccessStep('form')
+      } else {
+        setAccessEmail(trimmed)
+        setAccessStep('denied')
+      }
+    } catch {
+      setAccessEmail(trimmed)
+      setAccessStep('denied')
+    } finally {
+      setCheckLoading(false)
+    }
+  }
 
   const onSubmit = async (data: FormData) => {
     setStatus('loading')
@@ -85,20 +128,138 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug }: 
     }
   }
 
+  // ── Écran : vérification email ────────────────────────────
+  if (accessStep === 'check') {
+    return (
+      <div className="max-w-md mx-auto">
+        <div className="bg-[#141414] border border-white/5 p-8">
+          <div className="text-center mb-8">
+            <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center border border-white/8"
+              style={{ background: accent + '12' }}>
+              <svg className="w-5 h-5 text-[#F5F5F3]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <p className="text-[9px] tracking-[0.4em] uppercase text-[#F5F5F3]/20 mb-2">Accès requis</p>
+            <h2 className="font-playfair text-2xl text-[#F5F5F3] mb-2">Identifiez-vous</h2>
+            <p className="text-[#F5F5F3]/25 text-sm leading-relaxed">
+              Ce service est réservé aux clients inscrits. Entrez votre email pour continuer.
+            </p>
+          </div>
+
+          <form onSubmit={handleCheckAccess} className="space-y-4">
+            <div>
+              <label className={labelClass}>Votre email</label>
+              <input
+                type="email"
+                value={accessEmailInput}
+                onChange={e => setAccessEmailInput(e.target.value)}
+                className={inputClass}
+                placeholder="votre@email.com"
+                autoFocus
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={checkLoading}
+              className="w-full text-white text-[11px] tracking-[0.3em] uppercase py-4 hover:opacity-90 transition-opacity disabled:opacity-40"
+              style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}
+            >
+              {checkLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Vérification...
+                </span>
+              ) : 'Accéder au formulaire →'}
+            </button>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Écran : accès refusé ──────────────────────────────────
+  if (accessStep === 'denied') {
+    return (
+      <div className="max-w-md mx-auto">
+        <div className="bg-[#141414] border border-white/8 p-8">
+          <div className="text-center mb-8">
+            <div className="w-14 h-14 mx-auto mb-5 flex items-center justify-center border border-white/10">
+              <svg className="w-6 h-6 text-[#F5F5F3]/25" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <p className="text-[9px] tracking-[0.4em] uppercase text-[#F5F5F3]/20 mb-3">Accès réservé</p>
+            <h2 className="font-playfair text-xl text-[#F5F5F3] mb-3">Service sur invitation</h2>
+            <p className="text-[#F5F5F3]/30 text-sm leading-relaxed">
+              <span className="text-[#F5F5F3]/50">{accessEmail}</span> n'est pas encore inscrit
+              à notre service de conciergerie.
+            </p>
+          </div>
+
+          <div className="space-y-2 mb-6">
+            <p className="text-[9px] tracking-[0.3em] uppercase text-[#F5F5F3]/20 text-center mb-4">
+              Contactez votre concierge
+            </p>
+            {rpProfile?.whatsapp && (
+              <a
+                href={`https://wa.me/${rpProfile.whatsapp}?text=${encodeURIComponent(`Bonjour, je souhaite accéder au service de conciergerie. Mon email : ${accessEmail}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 border border-white/8 hover:border-white/20 p-4 transition-all group"
+              >
+                <span className="text-xl">💬</span>
+                <div className="flex-1">
+                  <p className="text-[#F5F5F3]/70 text-sm group-hover:text-[#F5F5F3] transition-colors">WhatsApp</p>
+                  <p className="text-[#F5F5F3]/20 text-xs">Demander un accès</p>
+                </div>
+                <span className="text-[#F5F5F3]/15 group-hover:text-[#F5F5F3]/40">›</span>
+              </a>
+            )}
+            {rpProfile?.email && (
+              <a
+                href={`mailto:${rpProfile.email}?subject=Demande%20d%27acc%C3%A8s&body=Bonjour%2C%20je%20souhaite%20acc%C3%A9der%20au%20service.%20Mon%20email%20%3A%20${accessEmail}`}
+                className="flex items-center gap-3 border border-white/8 hover:border-white/20 p-4 transition-all group"
+              >
+                <span className="text-xl">✉️</span>
+                <div className="flex-1">
+                  <p className="text-[#F5F5F3]/70 text-sm group-hover:text-[#F5F5F3] transition-colors">Email</p>
+                  <p className="text-[#F5F5F3]/20 text-xs">Demander un accès</p>
+                </div>
+                <span className="text-[#F5F5F3]/15 group-hover:text-[#F5F5F3]/40">›</span>
+              </a>
+            )}
+          </div>
+
+          <button
+            onClick={() => { setAccessStep('check'); setAccessEmailInput('') }}
+            className="w-full text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/20 hover:text-[#F5F5F3]/40 transition-colors py-2 text-center"
+          >
+            ← Essayer un autre email
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Écran : succès ────────────────────────────────────────
   if (status === 'success') {
     return (
       <div className="max-w-xl mx-auto text-center py-20">
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#5B3DF5] to-[#8B5CF6] flex items-center justify-center mx-auto mb-6">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
+          style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}>
           <span className="text-white text-2xl">✦</span>
         </div>
         <h2 className="font-playfair text-3xl text-[#F5F5F3] mb-4">Demande envoyée</h2>
-        <p className="text-[#F5F5F3]/40 leading-relaxed mb-2">
-          Votre demande a bien été transmise.
-        </p>
-        <p className="text-[#F5F5F3]/30 text-sm mb-10">
-          Confirmation sous 24h — Vérifiez votre email.
-        </p>
-        <div className="h-px bg-gradient-to-r from-transparent via-[#5B3DF5]/30 to-transparent mb-8" />
+        <p className="text-[#F5F5F3]/40 leading-relaxed mb-2">Votre demande a bien été transmise.</p>
+        <p className="text-[#F5F5F3]/30 text-sm mb-10">Confirmation sous 24h — Vérifiez votre email.</p>
+        <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent mb-8" />
         <div className="flex gap-4 justify-center">
           <button
             onClick={() => setStatus('idle')}
@@ -106,7 +267,9 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug }: 
           >
             Nouvelle demande
           </button>
-          <Link href={`/${rpSlug}`} className="bg-gradient-to-r from-[#5B3DF5] to-[#8B5CF6] text-white text-[11px] tracking-[0.2em] uppercase px-8 py-3 hover:opacity-90 transition-opacity">
+          <Link href={`/${rpSlug}`}
+            className="text-white text-[11px] tracking-[0.2em] uppercase px-8 py-3 hover:opacity-90 transition-opacity"
+            style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}>
             Accueil
           </Link>
         </div>
@@ -114,14 +277,28 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug }: 
     )
   }
 
+  // ── Formulaire complet ────────────────────────────────────
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl mx-auto">
+      {/* Email vérifié — badge */}
+      <div className="mb-4 flex items-center gap-2 justify-center">
+        <span className="text-green-400 text-xs">✓</span>
+        <span className="text-[#F5F5F3]/30 text-xs">{accessEmail}</span>
+        <button
+          type="button"
+          onClick={() => setAccessStep('check')}
+          className="text-[9px] tracking-wider text-[#F5F5F3]/15 hover:text-[#F5F5F3]/35 uppercase transition-colors ml-1"
+        >
+          changer
+        </button>
+      </div>
+
       <div className="bg-[#141414] border border-white/5 p-8 md:p-12 space-y-8">
 
         {/* 01 — Établissement */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/50 uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/30" />
+          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent + '50' }}>
+            <span className="w-px h-3" style={{ background: accent + '30' }} />
             01 — Établissement
           </p>
           <label className={labelClass}>Choisissez votre établissement *</label>
@@ -138,19 +315,15 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug }: 
 
         {/* 02 — Date & Service */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/50 uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/30" />
+          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent + '50' }}>
+            <span className="w-px h-3" style={{ background: accent + '30' }} />
             02 — Date & Service
           </p>
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className={labelClass}>Date *</label>
-              <input
-                type="date"
-                {...register('date')}
-                min={new Date().toISOString().split('T')[0]}
-                className={`${inputClass} [color-scheme:dark]`}
-              />
+              <input type="date" {...register('date')} min={new Date().toISOString().split('T')[0]}
+                className={`${inputClass} [color-scheme:dark]`} />
               {errors.date && <p className={errorClass}>{errors.date.message}</p>}
             </div>
             <div>
@@ -183,10 +356,10 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug }: 
 
         <div className="h-px bg-white/5" />
 
-        {/* 03 — Préférences (occasion + placement uniquement) */}
+        {/* 03 — Préférences */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/50 uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/30" />
+          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent + '50' }}>
+            <span className="w-px h-3" style={{ background: accent + '30' }} />
             03 — Préférences
           </p>
           <div className="grid grid-cols-2 gap-4">
@@ -211,8 +384,8 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug }: 
 
         {/* 04 — Coordonnées */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/50 uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/30" />
+          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent + '50' }}>
+            <span className="w-px h-3" style={{ background: accent + '30' }} />
             04 — Vos coordonnées
           </p>
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -230,7 +403,12 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug }: 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Email *</label>
-              <input type="email" placeholder="jean@email.com" {...register('email')} className={inputClass} />
+              <input
+                type="email"
+                {...register('email')}
+                readOnly
+                className={`${inputClass} opacity-50 cursor-not-allowed`}
+              />
               {errors.email && <p className={errorClass}>{errors.email.message}</p>}
             </div>
             <div>
@@ -245,16 +423,12 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug }: 
 
         {/* 05 — Notes */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/50 uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/30" />
+          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent + '50' }}>
+            <span className="w-px h-3" style={{ background: accent + '30' }} />
             05 — Notes
           </p>
-          <textarea
-            rows={2}
-            placeholder="Informations complémentaires..."
-            {...register('specialRequests')}
-            className={`${inputClass} resize-none`}
-          />
+          <textarea rows={2} placeholder="Informations complémentaires..."
+            {...register('specialRequests')} className={`${inputClass} resize-none`} />
         </div>
 
         {status === 'error' && (
@@ -266,7 +440,8 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug }: 
         <button
           type="submit"
           disabled={status === 'loading'}
-          className="w-full bg-gradient-to-r from-[#5B3DF5] to-[#8B5CF6] text-white text-[11px] tracking-[0.3em] uppercase py-4 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full text-white text-[11px] tracking-[0.3em] uppercase py-4 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}
         >
           {status === 'loading' ? (
             <span className="flex items-center justify-center gap-2">

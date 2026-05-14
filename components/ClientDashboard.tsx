@@ -95,6 +95,8 @@ const STATUS_CONFIG = {
 type Screen = 'home' | 'reservations'
 
 export default function ClientDashboard({ profile }: Props) {
+  const accent = profile.accent_color || '#5B3DF5'
+
   // Identité client
   const [email, setEmail] = useState('')
   const [emailInput, setEmailInput] = useState('')
@@ -102,6 +104,7 @@ export default function ClientDashboard({ profile }: Props) {
   const [rpList, setRpList] = useState<RPSummary[]>([])
   const [identifyLoading, setIdentifyLoading] = useState(false)
   const [identifyError, setIdentifyError] = useState('')
+  const [notRegistered, setNotRegistered] = useState(false)
 
   // Navigation
   const [screen, setScreen] = useState<Screen>('home')
@@ -130,19 +133,38 @@ export default function ClientDashboard({ profile }: Props) {
     if (!trimmed) return
     setIdentifyLoading(true)
     setIdentifyError('')
+    setNotRegistered(false)
     try {
+      // 1. Vérifier si le client est inscrit chez ce RP
+      const checkRes = await fetch(
+        `/api/client/check?email=${encodeURIComponent(trimmed)}&rp=${profile.slug}`
+      )
+      const check = await checkRes.json()
+
+      if (!check.registered) {
+        // Email non inscrit → accès refusé
+        setEmail(trimmed)
+        setNotRegistered(true)
+        return
+      }
+
+      // 2. Récupérer tous ses RPs + prénom
       const res = await fetch(`/api/client/rps?email=${encodeURIComponent(trimmed)}`)
       const data = await res.json()
       setEmail(trimmed)
-      setClientFirstName(data.firstName || '')
-      // S'assurer que le RP actuel apparaît toujours dans la liste
+
+      // Prénom : depuis la DB reservations ou depuis client_name
+      const firstName = data.firstName || check.clientName?.split(' ')[0] || ''
+      setClientFirstName(firstName)
+
+      // S'assurer que le RP actuel apparaît toujours
       const rps: RPSummary[] = data.rps ?? []
       const currentInList = rps.some(r => r.slug === profile.slug)
       if (!currentInList) {
         rps.unshift({
           slug: profile.slug,
           displayName: profile.display_name,
-          accentColor: profile.accent_color,
+          accentColor: accent,
           logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
           totalCount: 0,
           pendingCount: 0,
@@ -151,10 +173,19 @@ export default function ClientDashboard({ profile }: Props) {
       }
       setRpList(rps)
     } catch {
-      setIdentifyError('Une erreur est survenue.')
+      setIdentifyError('Une erreur est survenue. Réessayez.')
     } finally {
       setIdentifyLoading(false)
     }
+  }
+
+  const resetIdentity = () => {
+    setEmail('')
+    setClientFirstName('')
+    setRpList([])
+    setEmailInput('')
+    setNotRegistered(false)
+    setError('')
   }
 
   // ── Sélection d'un RP → charger ses réservations ─────────────
@@ -241,7 +272,6 @@ export default function ClientDashboard({ profile }: Props) {
       setReservations(prev => prev.map(item =>
         item.id === r.id ? { ...item, status: 'cancelled' as const } : item
       ))
-      // Mettre à jour le compteur dans la liste RP
       setRpList(prev => prev.map(rp =>
         rp.slug === viewingRp?.slug
           ? { ...rp, totalCount: Math.max(0, rp.totalCount - 1) }
@@ -259,7 +289,7 @@ export default function ClientDashboard({ profile }: Props) {
   // ── ÉCRAN ACCUEIL ────────────────────────────────────────────
   // ════════════════════════════════════════════════════════════════
   if (screen === 'home') {
-    const isIdentified = !!clientFirstName || (!!email && rpList.length > 0)
+    const isIdentified = !notRegistered && (!!clientFirstName || (!!email && rpList.length > 0))
 
     return (
       <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
@@ -273,16 +303,15 @@ export default function ClientDashboard({ profile }: Props) {
             ← {profile.display_name}
           </Link>
 
-          {/* Message d'accueil */}
           {isIdentified ? (
             <div className="mb-8">
-              <p className="text-[10px] tracking-[0.5em] uppercase mb-2" style={{ color: profile.accent_color + '70' }}>
+              <p className="text-[10px] tracking-[0.5em] uppercase mb-2" style={{ color: accent + '70' }}>
                 Mon espace
               </p>
               <h1 className="font-playfair text-4xl text-[#F5F5F3] leading-tight">
-                Bienvenue{clientFirstName ? `,` : ''}<br />
+                Bienvenue{clientFirstName ? ',' : ''}<br />
                 {clientFirstName && (
-                  <span style={{ color: profile.accent_color }}>{clientFirstName}</span>
+                  <span style={{ color: accent }}>{clientFirstName}</span>
                 )}
                 {clientFirstName && <span className="text-[#F5F5F3]/20 text-3xl"> ✦</span>}
               </h1>
@@ -290,7 +319,7 @@ export default function ClientDashboard({ profile }: Props) {
             </div>
           ) : (
             <div className="mb-8">
-              <p className="text-[10px] tracking-[0.5em] uppercase mb-2" style={{ color: profile.accent_color + '70' }}>
+              <p className="text-[10px] tracking-[0.5em] uppercase mb-2" style={{ color: accent + '70' }}>
                 Mon espace
               </p>
               <h1 className="font-playfair text-4xl text-[#F5F5F3] leading-tight mb-2">
@@ -305,8 +334,70 @@ export default function ClientDashboard({ profile }: Props) {
 
         <div className="px-5 max-w-md mx-auto space-y-6 pb-20">
 
+          {/* ── Accès refusé (email non inscrit) ── */}
+          {notRegistered && (
+            <div className="bg-[#141414] border border-white/8 p-6">
+              <div className="text-center mb-6">
+                <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center border border-white/10"
+                  style={{ background: accent + '10' }}>
+                  <svg className="w-6 h-6 text-[#F5F5F3]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <p className="text-[9px] tracking-[0.4em] uppercase text-[#F5F5F3]/20 mb-3">Accès réservé</p>
+                <h2 className="font-playfair text-xl text-[#F5F5F3] mb-2">Service sur invitation</h2>
+                <p className="text-[#F5F5F3]/30 text-sm leading-relaxed">
+                  <span className="text-[#F5F5F3]/50">{email}</span> n'est pas encore inscrit
+                  à notre service de conciergerie.
+                </p>
+              </div>
+
+              <div className="border-t border-white/5 pt-5 space-y-2">
+                <p className="text-[9px] tracking-[0.3em] uppercase text-[#F5F5F3]/20 mb-3 text-center">
+                  Contactez {profile.display_name}
+                </p>
+                {profile.whatsapp && (
+                  <a
+                    href={`https://wa.me/${profile.whatsapp}?text=${encodeURIComponent(`Bonjour, je souhaite accéder au service de conciergerie. Mon email : ${email}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 border border-white/8 hover:border-white/20 p-4 transition-all group"
+                  >
+                    <span className="text-xl">💬</span>
+                    <div className="flex-1">
+                      <p className="text-[#F5F5F3]/70 text-sm group-hover:text-[#F5F5F3] transition-colors">WhatsApp</p>
+                      <p className="text-[#F5F5F3]/20 text-xs">Demander un accès</p>
+                    </div>
+                    <span className="text-[#F5F5F3]/15 group-hover:text-[#F5F5F3]/40">›</span>
+                  </a>
+                )}
+                {profile.email && (
+                  <a
+                    href={`mailto:${profile.email}?subject=Demande%20d%27acc%C3%A8s%20conciergerie&body=Bonjour%2C%20je%20souhaite%20acc%C3%A9der%20au%20service.%20Mon%20email%20%3A%20${email}`}
+                    className="flex items-center gap-3 border border-white/8 hover:border-white/20 p-4 transition-all group"
+                  >
+                    <span className="text-xl">✉️</span>
+                    <div className="flex-1">
+                      <p className="text-[#F5F5F3]/70 text-sm group-hover:text-[#F5F5F3] transition-colors">Email</p>
+                      <p className="text-[#F5F5F3]/20 text-xs">Demander un accès</p>
+                    </div>
+                    <span className="text-[#F5F5F3]/15 group-hover:text-[#F5F5F3]/40">›</span>
+                  </a>
+                )}
+              </div>
+
+              <button
+                onClick={resetIdentity}
+                className="mt-4 w-full text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/20 hover:text-[#F5F5F3]/40 transition-colors py-2 text-center"
+              >
+                ← Essayer un autre email
+              </button>
+            </div>
+          )}
+
           {/* ── Identification ── */}
-          {!isIdentified ? (
+          {!isIdentified && !notRegistered && (
             <form onSubmit={handleIdentify} className="bg-[#141414] border border-white/5 p-6">
               <label className="block text-[9px] tracking-[0.3em] text-[#F5F5F3]/30 uppercase mb-2">
                 Votre email
@@ -323,7 +414,7 @@ export default function ClientDashboard({ profile }: Props) {
                 <button
                   type="submit" disabled={identifyLoading}
                   className="px-5 py-3 text-white text-[11px] tracking-[0.2em] uppercase hover:opacity-90 transition-opacity disabled:opacity-40 flex-shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${profile.accent_color}, ${profile.accent_color}cc)` }}
+                  style={{ background: `linear-gradient(135deg, ${accent}, ${accent}cc)` }}
                 >
                   {identifyLoading ? '...' : '→'}
                 </button>
@@ -331,12 +422,14 @@ export default function ClientDashboard({ profile }: Props) {
               {identifyError && (
                 <p className="text-red-400/60 text-xs mt-2">{identifyError}</p>
               )}
-              <p className="text-[#F5F5F3]/15 text-[10px] mt-2">
-                Utilisez l'email de vos réservations.
+              <p className="text-[#F5F5F3]/15 text-[10px] mt-3 leading-relaxed">
+                Service réservé aux clients inscrits.
               </p>
             </form>
-          ) : (
-            /* ── Sélection du RP ── */
+          )}
+
+          {/* ── Sélection du RP ── */}
+          {isIdentified && (
             <div>
               <p className="text-[9px] tracking-[0.3em] text-[#F5F5F3]/20 uppercase mb-3">
                 Votre{rpList.length > 1 ? 's' : ''} RP
@@ -349,49 +442,31 @@ export default function ClientDashboard({ profile }: Props) {
                     disabled={resaLoading}
                     className="w-full flex items-center gap-4 bg-[#141414] border border-white/5 hover:border-white/12 p-4 text-left transition-all group disabled:opacity-40"
                   >
-                    {/* Avatar RP */}
                     <div
                       className="w-11 h-11 flex items-center justify-center flex-shrink-0 text-white text-[10px] tracking-wider font-medium"
                       style={{ background: `${rp.accentColor}25`, border: `1px solid ${rp.accentColor}40` }}
                     >
                       {rp.logoText?.slice(0, 2) ?? rp.slug.slice(0, 2).toUpperCase()}
                     </div>
-
-                    {/* Infos */}
                     <div className="flex-1 min-w-0">
                       <p className="text-[#F5F5F3] text-sm font-medium mb-1">{rp.displayName}</p>
                       {rp.totalCount > 0 ? (
                         <div className="flex items-center gap-3 text-[10px]">
-                          <span className="text-[#F5F5F3]/30">
-                            {rp.totalCount} résa{rp.totalCount > 1 ? 's' : ''}
-                          </span>
-                          {rp.pendingCount > 0 && (
-                            <span className="text-amber-400/70">
-                              · {rp.pendingCount} en attente
-                            </span>
-                          )}
-                          {rp.confirmedCount > 0 && (
-                            <span className="text-green-400/60">
-                              · {rp.confirmedCount} confirmée{rp.confirmedCount > 1 ? 's' : ''}
-                            </span>
-                          )}
+                          <span className="text-[#F5F5F3]/30">{rp.totalCount} résa{rp.totalCount > 1 ? 's' : ''}</span>
+                          {rp.pendingCount > 0 && <span className="text-amber-400/70">· {rp.pendingCount} en attente</span>}
+                          {rp.confirmedCount > 0 && <span className="text-green-400/60">· {rp.confirmedCount} confirmée{rp.confirmedCount > 1 ? 's' : ''}</span>}
                         </div>
                       ) : (
                         <p className="text-[#F5F5F3]/20 text-[10px]">Aucune réservation</p>
                       )}
                     </div>
-
                     <span className="text-[#F5F5F3]/10 group-hover:text-[#F5F5F3]/30 transition-colors flex-shrink-0">›</span>
                   </button>
                 ))}
               </div>
 
-              {/* Changer de compte */}
               <button
-                onClick={() => {
-                  setEmail(''); setClientFirstName(''); setRpList([])
-                  setEmailInput('')
-                }}
+                onClick={resetIdentity}
                 className="mt-3 text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/15 hover:text-[#F5F5F3]/35 transition-colors w-full text-center py-2"
               >
                 Changer d'email
@@ -400,42 +475,42 @@ export default function ClientDashboard({ profile }: Props) {
           )}
 
           {/* ── Actions rapides ── */}
-          <div>
-            <p className="text-[9px] tracking-[0.3em] text-[#F5F5F3]/20 uppercase mb-3">
-              Actions rapides
-            </p>
-            <div className="space-y-2">
-              <Link
-                href={`/${profile.slug}/book`}
-                className="w-full flex items-center gap-4 bg-[#141414] border border-white/5 hover:border-white/10 p-4 transition-all group"
-              >
-                <div className="w-9 h-9 flex items-center justify-center flex-shrink-0 text-base"
-                  style={{ background: `${profile.accent_color}15`, border: `1px solid ${profile.accent_color}25` }}>
-                  🍽️
-                </div>
-                <div className="flex-1">
-                  <p className="text-[#F5F5F3] text-sm font-medium">Réserver une table</p>
-                  <p className="text-[#F5F5F3]/25 text-xs">Confirmation sous 24h</p>
-                </div>
-                <span className="text-[#F5F5F3]/10 group-hover:text-[#F5F5F3]/30 transition-colors">›</span>
-              </Link>
+          {isIdentified && (
+            <div>
+              <p className="text-[9px] tracking-[0.3em] text-[#F5F5F3]/20 uppercase mb-3">Actions rapides</p>
+              <div className="space-y-2">
+                <Link
+                  href={`/${profile.slug}/book`}
+                  className="w-full flex items-center gap-4 bg-[#141414] border border-white/5 hover:border-white/10 p-4 transition-all group"
+                >
+                  <div className="w-9 h-9 flex items-center justify-center flex-shrink-0 text-base"
+                    style={{ background: `${accent}15`, border: `1px solid ${accent}25` }}>
+                    🍽️
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[#F5F5F3] text-sm font-medium">Réserver une table</p>
+                    <p className="text-[#F5F5F3]/25 text-xs">Confirmation sous 24h</p>
+                  </div>
+                  <span className="text-[#F5F5F3]/10 group-hover:text-[#F5F5F3]/30 transition-colors">›</span>
+                </Link>
 
-              <Link
-                href={`/${profile.slug}/trip`}
-                className="w-full flex items-center gap-4 bg-[#141414] border border-white/5 hover:border-white/10 p-4 transition-all group"
-              >
-                <div className="w-9 h-9 flex items-center justify-center flex-shrink-0 text-base"
-                  style={{ background: `${profile.accent_color}15`, border: `1px solid ${profile.accent_color}25` }}>
-                  🗺️
-                </div>
-                <div className="flex-1">
-                  <p className="text-[#F5F5F3] text-sm font-medium">Planifier mon voyage</p>
-                  <p className="text-[#F5F5F3]/25 text-xs">Itinéraire multi-jours</p>
-                </div>
-                <span className="text-[#F5F5F3]/10 group-hover:text-[#F5F5F3]/30 transition-colors">›</span>
-              </Link>
+                <Link
+                  href={`/${profile.slug}/trip`}
+                  className="w-full flex items-center gap-4 bg-[#141414] border border-white/5 hover:border-white/10 p-4 transition-all group"
+                >
+                  <div className="w-9 h-9 flex items-center justify-center flex-shrink-0 text-base"
+                    style={{ background: `${accent}15`, border: `1px solid ${accent}25` }}>
+                    🗺️
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[#F5F5F3] text-sm font-medium">Planifier mon voyage</p>
+                    <p className="text-[#F5F5F3]/25 text-xs">Itinéraire multi-jours</p>
+                  </div>
+                  <span className="text-[#F5F5F3]/10 group-hover:text-[#F5F5F3]/30 transition-colors">›</span>
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     )
@@ -447,7 +522,6 @@ export default function ClientDashboard({ profile }: Props) {
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
 
-      {/* Header */}
       <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4 flex items-center gap-3">
         <button
           onClick={() => { setScreen('home'); setError('') }}
@@ -456,12 +530,11 @@ export default function ClientDashboard({ profile }: Props) {
           ←
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-[9px] tracking-[0.3em] uppercase truncate" style={{ color: (viewingRp?.accentColor ?? profile.accent_color) + '60' }}>
+          <p className="text-[9px] tracking-[0.3em] uppercase truncate" style={{ color: (viewingRp?.accentColor ?? accent) + '60' }}>
             {viewingRp?.displayName ?? profile.display_name}
           </p>
           <p className="text-sm text-[#F5F5F3]/40 truncate">{clientFirstName || email}</p>
         </div>
-        {/* Indicateur de chargement */}
         {resaLoading && (
           <svg className="animate-spin w-4 h-4 text-[#F5F5F3]/20 flex-shrink-0" viewBox="0 0 24 24" fill="none">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -484,9 +557,7 @@ export default function ClientDashboard({ profile }: Props) {
         )}
 
         {resaLoading ? (
-          <div className="flex items-center justify-center h-40 text-[#F5F5F3]/20 text-sm">
-            Chargement…
-          </div>
+          <div className="flex items-center justify-center h-40 text-[#F5F5F3]/20 text-sm">Chargement…</div>
         ) : reservations.length === 0 ? (
           <div className="text-center py-20">
             <span className="text-5xl block mb-6 opacity-20">✦</span>
@@ -497,7 +568,7 @@ export default function ClientDashboard({ profile }: Props) {
             <Link
               href={`/${profile.slug}/book`}
               className="inline-block text-white text-[11px] tracking-[0.2em] uppercase py-4 px-8 hover:opacity-90 transition-opacity"
-              style={{ background: `linear-gradient(135deg, ${profile.accent_color}, ${profile.accent_color}bb)` }}
+              style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}
             >
               Faire une réservation
             </Link>
@@ -517,7 +588,6 @@ export default function ClientDashboard({ profile }: Props) {
                 return (
                   <div key={r.id} className={`border ${cfg.border} ${cfg.bg}`}>
 
-                    {/* Status */}
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5">
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
                       <div className="flex-1">
@@ -526,7 +596,6 @@ export default function ClientDashboard({ profile }: Props) {
                       </div>
                     </div>
 
-                    {/* Détails */}
                     <div className="px-5 py-4">
                       <p className="font-playfair text-lg text-[#F5F5F3] mb-0.5">{r.establishment}</p>
                       <p className="text-[#F5F5F3]/25 text-[10px] uppercase tracking-wider mb-4">{r.destination}</p>
@@ -557,7 +626,7 @@ export default function ClientDashboard({ profile }: Props) {
                                 <button
                                   onClick={() => startEdit(r)}
                                   className="border text-[9px] tracking-[0.2em] uppercase py-2.5 hover:opacity-80 transition-all"
-                                  style={{ borderColor: (viewingRp?.accentColor ?? profile.accent_color) + '30', color: (viewingRp?.accentColor ?? profile.accent_color) + '90' }}
+                                  style={{ borderColor: (viewingRp?.accentColor ?? accent) + '30', color: (viewingRp?.accentColor ?? accent) + '90' }}
                                 >
                                   ✎ Modifier
                                 </button>
@@ -580,60 +649,43 @@ export default function ClientDashboard({ profile }: Props) {
                             <p className="text-[#F5F5F3]/30 text-xs">Votre RP sera notifié. Action irréversible.</p>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
-                            <button
-                              onClick={() => setCancelConfirmId(null)}
-                              disabled={saveLoading}
-                              className="border border-white/10 text-[#F5F5F3]/30 text-[10px] tracking-[0.2em] uppercase py-3 hover:border-white/20 transition-colors disabled:opacity-40"
-                            >
+                            <button onClick={() => setCancelConfirmId(null)} disabled={saveLoading}
+                              className="border border-white/10 text-[#F5F5F3]/30 text-[10px] tracking-[0.2em] uppercase py-3 hover:border-white/20 transition-colors disabled:opacity-40">
                               Retour
                             </button>
-                            <button
-                              onClick={() => handleCancel(r)}
-                              disabled={saveLoading}
-                              className="bg-red-500/80 hover:bg-red-500 text-white text-[10px] tracking-[0.2em] uppercase py-3 transition-colors disabled:opacity-40"
-                            >
+                            <button onClick={() => handleCancel(r)} disabled={saveLoading}
+                              className="bg-red-500/80 hover:bg-red-500 text-white text-[10px] tracking-[0.2em] uppercase py-3 transition-colors disabled:opacity-40">
                               {saveLoading ? 'En cours...' : 'Annuler la résa'}
                             </button>
                           </div>
                         </div>
                       ) : (
-                        /* ── Formulaire modification ── */
                         <div className="space-y-4">
-                          <p className="text-[9px] tracking-[0.3em] uppercase" style={{ color: (viewingRp?.accentColor ?? profile.accent_color) + '70' }}>
+                          <p className="text-[9px] tracking-[0.3em] uppercase" style={{ color: (viewingRp?.accentColor ?? accent) + '70' }}>
                             Modifier la réservation
                           </p>
-
                           <div className="grid grid-cols-2 gap-3">
                             <div>
                               <label className="block text-[8px] tracking-wider text-[#F5F5F3]/25 uppercase mb-1.5">Nouvelle date</label>
-                              <input
-                                type="date" value={editDate}
-                                onChange={e => setEditDate(e.target.value)}
+                              <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
                                 min={new Date().toISOString().split('T')[0]}
-                                className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-xs outline-none [color-scheme:dark]"
-                                style={{ ['--tw-ring-color' as string]: profile.accent_color }}
-                              />
+                                className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-xs outline-none [color-scheme:dark]" />
                               <p className="text-[8px] text-[#F5F5F3]/15 mt-1">Actuelle : {r.date}</p>
                             </div>
                             <div>
                               <label className="block text-[8px] tracking-wider text-[#F5F5F3]/25 uppercase mb-1.5">Personnes</label>
-                              <select
-                                value={editGuests} onChange={e => setEditGuests(e.target.value)}
-                                className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-xs outline-none cursor-pointer"
-                              >
+                              <select value={editGuests} onChange={e => setEditGuests(e.target.value)}
+                                className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-xs outline-none cursor-pointer">
                                 {[1,2,3,4,5,6,7,8,10,12,15,20].map(n => (
                                   <option key={n} value={n} className="bg-[#0B0B0B]">{n} personne{n > 1 ? 's' : ''}</option>
                                 ))}
                               </select>
                             </div>
                           </div>
-
                           <div>
                             <label className="block text-[8px] tracking-wider text-[#F5F5F3]/25 uppercase mb-1.5">Service</label>
-                            <select
-                              value={editTime} onChange={e => setEditTime(e.target.value)}
-                              className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-xs outline-none cursor-pointer"
-                            >
+                            <select value={editTime} onChange={e => setEditTime(e.target.value)}
+                              className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-xs outline-none cursor-pointer">
                               {SERVICES.map(g => (
                                 <optgroup key={g.group} label={`─ ${g.group}`}>
                                   {g.options.map(o => (
@@ -643,28 +695,20 @@ export default function ClientDashboard({ profile }: Props) {
                               ))}
                             </select>
                           </div>
-
                           <div>
                             <label className="block text-[8px] tracking-wider text-[#F5F5F3]/25 uppercase mb-1.5">Notes</label>
-                            <textarea
-                              rows={2} value={editNotes} onChange={e => setEditNotes(e.target.value)}
+                            <textarea rows={2} value={editNotes} onChange={e => setEditNotes(e.target.value)}
                               className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-xs outline-none resize-none placeholder-[#F5F5F3]/15"
-                              placeholder="Informations complémentaires..."
-                            />
+                              placeholder="Informations complémentaires..." />
                           </div>
-
                           <div className="grid grid-cols-2 gap-2">
-                            <button
-                              onClick={cancelEdit} disabled={saveLoading}
-                              className="border border-white/10 text-[#F5F5F3]/30 text-[10px] tracking-[0.2em] uppercase py-3 hover:border-white/20 transition-colors disabled:opacity-40"
-                            >
+                            <button onClick={cancelEdit} disabled={saveLoading}
+                              className="border border-white/10 text-[#F5F5F3]/30 text-[10px] tracking-[0.2em] uppercase py-3 hover:border-white/20 transition-colors disabled:opacity-40">
                               Retour
                             </button>
-                            <button
-                              onClick={() => handleSaveEdit(r)} disabled={saveLoading}
+                            <button onClick={() => handleSaveEdit(r)} disabled={saveLoading}
                               className="text-white text-[10px] tracking-[0.2em] uppercase py-3 hover:opacity-90 transition-opacity disabled:opacity-40"
-                              style={{ background: `linear-gradient(135deg, ${profile.accent_color}, ${profile.accent_color}bb)` }}
-                            >
+                              style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}>
                               {saveLoading ? 'Envoi...' : 'Confirmer'}
                             </button>
                           </div>
@@ -676,22 +720,17 @@ export default function ClientDashboard({ profile }: Props) {
               })}
             </div>
 
-            {/* Bas de page */}
             <div className="mt-8 pt-6 border-t border-white/5 grid grid-cols-2 gap-3">
-              <Link
-                href={`/${profile.slug}/book`}
-                className="flex flex-col items-center gap-1.5 border border-white/8 py-4 hover:border-white/15 transition-colors text-center"
-              >
+              <Link href={`/${profile.slug}/book`}
+                className="flex flex-col items-center gap-1.5 border border-white/8 py-4 hover:border-white/15 transition-colors text-center">
                 <span className="text-xl">🍽️</span>
                 <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/30">Réserver</span>
               </Link>
-              <Link
-                href={`/${profile.slug}/trip`}
+              <Link href={`/${profile.slug}/trip`}
                 className="flex flex-col items-center gap-1.5 border py-4 transition-colors text-center"
-                style={{ borderColor: profile.accent_color + '30' }}
-              >
+                style={{ borderColor: accent + '30' }}>
                 <span className="text-xl">🗺️</span>
-                <span className="text-[9px] tracking-[0.2em] uppercase" style={{ color: profile.accent_color + '70' }}>Planifier</span>
+                <span className="text-[9px] tracking-[0.2em] uppercase" style={{ color: accent + '70' }}>Planifier</span>
               </Link>
             </div>
           </>
