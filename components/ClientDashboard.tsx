@@ -106,6 +106,9 @@ export default function ClientDashboard({ profile }: Props) {
   const [identifyError, setIdentifyError] = useState('')
   const [notRegistered, setNotRegistered] = useState(false)
   const [autoLoginDone, setAutoLoginDone] = useState(false)
+  const [showAccountMenu, setShowAccountMenu] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   // Navigation
   const [screen, setScreen] = useState<Screen>('home')
@@ -234,9 +237,24 @@ export default function ClientDashboard({ profile }: Props) {
     setEmailInput('')
     setNotRegistered(false)
     setError('')
+    setShowAccountMenu(false)
+    setDeleteConfirm(false)
     localStorage.removeItem('elite_client_email')
     localStorage.removeItem('elite_client_name')
     localStorage.removeItem('elite_client_rp')
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true)
+    try {
+      await fetch('/api/client/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, rpSlug: profile.slug }),
+      })
+    } catch { /* non-bloquant */ }
+    finally { setDeleteLoading(false) }
+    resetIdentity()
   }
 
   // ── Sélection d'un RP → charger ses réservations ─────────────
@@ -531,12 +549,60 @@ export default function ClientDashboard({ profile }: Props) {
                 ))}
               </div>
 
-              <button
-                onClick={resetIdentity}
-                className="mt-3 text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/15 hover:text-[#F5F5F3]/35 transition-colors w-full text-center py-2"
-              >
-                Changer d'email
-              </button>
+              {/* Menu compte */}
+              <div className="mt-4">
+                <button
+                  onClick={() => { setShowAccountMenu(v => !v); setDeleteConfirm(false) }}
+                  className="w-full text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/15 hover:text-[#F5F5F3]/35 transition-colors py-2 text-center"
+                >
+                  ··· Options du compte
+                </button>
+
+                {showAccountMenu && (
+                  <div className="mt-2 bg-[#141414] border border-white/5 overflow-hidden">
+                    <button
+                      onClick={resetIdentity}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-[#F5F5F3]/40 hover:text-[#F5F5F3]/70 hover:bg-white/3 transition-all text-sm border-b border-white/5"
+                    >
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      <span>Se déconnecter</span>
+                    </button>
+
+                    {!deleteConfirm ? (
+                      <button
+                        onClick={() => setDeleteConfirm(true)}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-red-400/30 hover:text-red-400/60 hover:bg-red-500/5 transition-all text-sm"
+                      >
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>Supprimer mon compte</span>
+                      </button>
+                    ) : (
+                      <div className="px-4 py-4 bg-red-500/5 border-t border-red-500/10">
+                        <p className="text-red-400/70 text-xs mb-3">Confirmer la suppression ? Votre historique de réservations sera conservé.</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => setDeleteConfirm(false)}
+                            className="border border-white/10 text-[#F5F5F3]/30 text-[10px] tracking-[0.15em] uppercase py-2.5 hover:border-white/20 transition-colors"
+                          >
+                            Annuler
+                          </button>
+                          <button
+                            onClick={handleDeleteAccount}
+                            disabled={deleteLoading}
+                            className="bg-red-500/80 hover:bg-red-500 text-white text-[10px] tracking-[0.15em] uppercase py-2.5 transition-colors disabled:opacity-40"
+                          >
+                            {deleteLoading ? '...' : 'Confirmer'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

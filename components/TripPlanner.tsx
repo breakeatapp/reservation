@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 
 type DestOption = { slug: string; name: string; emoji: string }
@@ -85,7 +85,7 @@ function newBooking(): BookingSlot {
   }
 }
 
-type Step = 'info' | 'dates' | 'planner' | 'review' | 'success'
+type Step = 'access' | 'info' | 'dates' | 'planner' | 'review' | 'success'
 
 export default function TripPlanner({
   destinations,
@@ -94,11 +94,50 @@ export default function TripPlanner({
 }: {
   destinations: DestOption[]
   establishments: EstOption[]
-  rpSlug?: string   // si présent, on est dans le contexte d'un RP
+  rpSlug?: string
 }) {
-  const [step, setStep] = useState<Step>('info')
+  const [step, setStep] = useState<Step>('access')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  // ── Accès ─────────────────────────────────────────────────────
+  const [accessEmailInput, setAccessEmailInput] = useState('')
+  const [accessEmail, setAccessEmail] = useState('')
+  const [checkLoading, setCheckLoading] = useState(false)
+  const [accessDenied, setAccessDenied] = useState(false)
+
+  // Auto-login depuis localStorage
+  useEffect(() => {
+    if (!rpSlug) { setStep('info'); return }
+    const saved = localStorage.getItem('elite_client_email')
+    const savedRp = localStorage.getItem('elite_client_rp')
+    if (saved && savedRp === rpSlug) {
+      setAccessEmail(saved)
+      setStep('info')
+    }
+  }, [rpSlug])
+
+  const handleCheckAccess = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const trimmed = accessEmailInput.trim()
+    if (!trimmed || !rpSlug) { setAccessEmail(trimmed); setStep('info'); return }
+    setCheckLoading(true)
+    setAccessDenied(false)
+    try {
+      const res = await fetch(`/api/client/check?email=${encodeURIComponent(trimmed)}&rp=${rpSlug}`)
+      const data = await res.json()
+      if (data.registered) {
+        setAccessEmail(trimmed)
+        setStep('info')
+      } else {
+        setAccessDenied(true)
+      }
+    } catch {
+      setAccessDenied(true)
+    } finally {
+      setCheckLoading(false)
+    }
+  }
 
   const [trip, setTrip] = useState<TripInfo>({
     destination: '',
@@ -223,6 +262,75 @@ export default function TripPlanner({
   }
 
   // ── Render ────────────────────────────────────────────────────────
+
+  // ── Écran accès ───────────────────────────────────────────────
+  if (step === 'access') {
+    return (
+      <div className="max-w-md mx-auto">
+        <div className="bg-[#141414] border border-white/5 p-8">
+          <div className="text-center mb-8">
+            <div className="w-12 h-12 mx-auto mb-4 flex items-center justify-center border border-white/8 bg-[#5B3DF5]/10">
+              <svg className="w-5 h-5 text-[#F5F5F3]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <p className="text-[9px] tracking-[0.4em] uppercase text-[#F5F5F3]/20 mb-2">Accès requis</p>
+            <h2 className="font-playfair text-2xl text-[#F5F5F3] mb-2">Identifiez-vous</h2>
+            <p className="text-[#F5F5F3]/25 text-sm leading-relaxed">
+              Ce service est réservé aux clients inscrits.
+            </p>
+          </div>
+
+          {!accessDenied ? (
+            <form onSubmit={handleCheckAccess} className="space-y-4">
+              <div>
+                <label className="block text-[9px] tracking-[0.3em] text-[#F5F5F3]/30 uppercase mb-2">Votre email</label>
+                <input
+                  type="email"
+                  value={accessEmailInput}
+                  onChange={e => setAccessEmailInput(e.target.value)}
+                  className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm focus:border-white/30 outline-none placeholder-[#F5F5F3]/15"
+                  placeholder="votre@email.com"
+                  autoFocus required
+                />
+              </div>
+              <button
+                type="submit" disabled={checkLoading}
+                className="w-full bg-gradient-to-r from-[#5B3DF5] to-[#8B5CF6] text-white text-[11px] tracking-[0.3em] uppercase py-4 hover:opacity-90 transition-opacity disabled:opacity-40"
+              >
+                {checkLoading ? 'Vérification...' : 'Accéder au planificateur →'}
+              </button>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <div className="border border-white/8 p-5 text-center">
+                <p className="text-[9px] tracking-[0.4em] uppercase text-[#F5F5F3]/20 mb-3">Accès réservé</p>
+                <p className="text-[#F5F5F3]/40 text-sm leading-relaxed mb-1">
+                  <span className="text-[#F5F5F3]/60">{accessEmailInput}</span>
+                </p>
+                <p className="text-[#F5F5F3]/25 text-sm">n'est pas encore client de ce service.</p>
+              </div>
+              {rpSlug && (
+                <Link
+                  href={`/${rpSlug}/mon-espace`}
+                  className="block w-full text-center border border-[#5B3DF5]/30 text-[#8B5CF6]/70 text-[11px] tracking-[0.2em] uppercase py-3 hover:bg-[#5B3DF5]/8 transition-colors"
+                >
+                  Contacter mon concierge →
+                </Link>
+              )}
+              <button
+                onClick={() => { setAccessDenied(false); setAccessEmailInput('') }}
+                className="w-full text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/20 hover:text-[#F5F5F3]/40 transition-colors py-2"
+              >
+                ← Essayer un autre email
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   if (step === 'success') {
     return (
