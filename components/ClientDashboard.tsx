@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import type { RPProfile } from '@/lib/supabase'
 import Link from 'next/link'
 
@@ -96,14 +97,13 @@ type Screen = 'home' | 'reservations'
 
 export default function ClientDashboard({ profile }: Props) {
   const accent = profile.accent_color || '#5B3DF5'
+  const router = useRouter()
 
   // Identité client
   const [email, setEmail] = useState('')
-  const [emailInput, setEmailInput] = useState('')
   const [clientFirstName, setClientFirstName] = useState('')
   const [rpList, setRpList] = useState<RPSummary[]>([])
   const [identifyLoading, setIdentifyLoading] = useState(false)
-  const [identifyError, setIdentifyError] = useState('')
   const [notRegistered, setNotRegistered] = useState(false)
   const [autoLoginDone, setAutoLoginDone] = useState(false)
   const [showAccountMenu, setShowAccountMenu] = useState(false)
@@ -135,7 +135,11 @@ export default function ClientDashboard({ profile }: Props) {
     const saved = localStorage.getItem('elite_client_email')
     const savedName = localStorage.getItem('elite_client_name')
     const savedRp = localStorage.getItem('elite_client_rp')
-    if (!saved || savedRp !== profile.slug) { setAutoLoginDone(true); return }
+    if (!saved || savedRp !== profile.slug) {
+      // Pas de session → retour à la landing page
+      router.replace('/')
+      return
+    }
 
     // Vérifier que l'email est toujours inscrit
     setIdentifyLoading(true)
@@ -146,6 +150,7 @@ export default function ClientDashboard({ profile }: Props) {
           localStorage.removeItem('elite_client_email')
           localStorage.removeItem('elite_client_name')
           localStorage.removeItem('elite_client_rp')
+          router.replace('/')
           return
         }
         // Charger les RPs
@@ -172,76 +177,18 @@ export default function ClientDashboard({ profile }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── Identification par email ──────────────────────────────────
-  const handleIdentify = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const trimmed = emailInput.trim()
-    if (!trimmed) return
-    setIdentifyLoading(true)
-    setIdentifyError('')
-    setNotRegistered(false)
-    try {
-      // 1. Vérifier si le client est inscrit chez ce RP
-      const checkRes = await fetch(
-        `/api/client/check?email=${encodeURIComponent(trimmed)}&rp=${profile.slug}`
-      )
-      const check = await checkRes.json()
-
-      if (!check.registered) {
-        // Email non inscrit → accès refusé
-        setEmail(trimmed)
-        setNotRegistered(true)
-        return
-      }
-
-      // 2. Récupérer tous ses RPs + prénom
-      const res = await fetch(`/api/client/rps?email=${encodeURIComponent(trimmed)}`)
-      const data = await res.json()
-      setEmail(trimmed)
-
-      // Prénom : depuis la DB reservations ou depuis client_name
-      const firstName = data.firstName || check.clientName?.split(' ')[0] || ''
-      setClientFirstName(firstName)
-
-      // Sauvegarder dans localStorage pour reconnexion automatique
-      localStorage.setItem('elite_client_email', trimmed)
-      localStorage.setItem('elite_client_rp', profile.slug)
-      if (firstName) localStorage.setItem('elite_client_name', firstName)
-
-      // S'assurer que le RP actuel apparaît toujours
-      const rps: RPSummary[] = data.rps ?? []
-      const currentInList = rps.some(r => r.slug === profile.slug)
-      if (!currentInList) {
-        rps.unshift({
-          slug: profile.slug,
-          displayName: profile.display_name,
-          accentColor: accent,
-          logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
-          totalCount: 0,
-          pendingCount: 0,
-          confirmedCount: 0,
-        })
-      }
-      setRpList(rps)
-    } catch {
-      setIdentifyError('Une erreur est survenue. Réessayez.')
-    } finally {
-      setIdentifyLoading(false)
-    }
-  }
-
   const resetIdentity = () => {
+    localStorage.removeItem('elite_client_email')
+    localStorage.removeItem('elite_client_name')
+    localStorage.removeItem('elite_client_rp')
     setEmail('')
     setClientFirstName('')
     setRpList([])
-    setEmailInput('')
     setNotRegistered(false)
     setError('')
     setShowAccountMenu(false)
     setDeleteConfirm(false)
-    localStorage.removeItem('elite_client_email')
-    localStorage.removeItem('elite_client_name')
-    localStorage.removeItem('elite_client_rp')
+    router.replace('/')
   }
 
   const handleDeleteAccount = async () => {
@@ -478,38 +425,6 @@ export default function ClientDashboard({ profile }: Props) {
                 ← Essayer un autre email
               </button>
             </div>
-          )}
-
-          {/* ── Identification ── */}
-          {!isIdentified && !notRegistered && (
-            <form onSubmit={handleIdentify} className="bg-[#141414] border border-white/5 p-6">
-              <label className="block text-[9px] tracking-[0.3em] text-[#F5F5F3]/30 uppercase mb-2">
-                Votre email
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  value={emailInput}
-                  onChange={e => setEmailInput(e.target.value)}
-                  className="flex-1 bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-4 py-3 text-sm focus:border-white/25 outline-none transition-colors placeholder-[#F5F5F3]/15"
-                  placeholder="votre@email.com"
-                  autoFocus required
-                />
-                <button
-                  type="submit" disabled={identifyLoading}
-                  className="px-5 py-3 text-white text-[11px] tracking-[0.2em] uppercase hover:opacity-90 transition-opacity disabled:opacity-40 flex-shrink-0"
-                  style={{ background: `linear-gradient(135deg, ${accent}, ${accent}cc)` }}
-                >
-                  {identifyLoading ? '...' : '→'}
-                </button>
-              </div>
-              {identifyError && (
-                <p className="text-red-400/60 text-xs mt-2">{identifyError}</p>
-              )}
-              <p className="text-[#F5F5F3]/15 text-[10px] mt-3 leading-relaxed">
-                Service réservé aux clients inscrits.
-              </p>
-            </form>
           )}
 
           {/* ── Sélection du RP ── */}

@@ -22,10 +22,15 @@ export default function LandingPage() {
       const data = await res.json()
 
       if (data.rps && data.rps.length > 0) {
-        // Rediriger vers l'espace du premier RP
-        router.push(`/${data.rps[0].slug}/mon-espace`)
+        const rp = data.rps[0]
+        // Sauvegarder en localStorage → le dashboard se connecte sans redemander
+        localStorage.setItem('elite_client_email', trimmed)
+        localStorage.setItem('elite_client_rp', rp.slug)
+        if (data.firstName) localStorage.setItem('elite_client_name', data.firstName)
+        router.push(`/${rp.slug}/mon-espace`)
       } else {
-        setError('Aucun espace trouvé pour cet email. Contactez votre concierge.')
+        // Peut-être inscrit mais sans réservations → vérifier directement
+        setError('Aucun espace trouvé. Vérifiez votre email ou contactez votre concierge.')
       }
     } catch {
       setError('Une erreur est survenue. Réessayez.')
