@@ -767,3 +767,88 @@ export async function sendStatusUpdateEmailToClient(data: StatusUpdateData) {
     ...(replyToAddress ? { reply_to: replyToAddress } : {}),
   })
 }
+
+// ── Email de bienvenue lors de l'ajout d'un client ────────────
+export type ClientWelcomeData = {
+  clientEmail: string
+  clientName?: string
+  rpDisplayName: string
+  rpEmail?: string
+  rpWhatsapp?: string
+  rpSlug: string
+  siteUrl: string
+}
+
+export async function sendClientWelcomeEmail(data: ClientWelcomeData) {
+  const rpName = data.rpDisplayName
+  const firstName = data.clientName?.split(' ')[0] || ''
+  const loginUrl = `${data.siteUrl}/${data.rpSlug}/mon-espace`
+  const whatsappLink = data.rpWhatsapp
+    ? `https://wa.me/${data.rpWhatsapp}`
+    : null
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <div style="max-width:580px;margin:0 auto;background:#111;border:1px solid #1e1e1e;">
+
+    <!-- Header -->
+    <div style="padding:40px 40px 32px;border-bottom:1px solid #1e1e1e;text-align:center;">
+      <p style="color:#555;font-size:9px;letter-spacing:4px;text-transform:uppercase;margin:0 0 8px;">Accès Privé</p>
+      <p style="color:#f5f0e8;font-size:22px;font-style:italic;font-family:Georgia,serif;margin:0;">${rpName}</p>
+    </div>
+
+    <!-- Corps -->
+    <div style="padding:40px;">
+      <p style="color:#C9A84C;font-size:9px;letter-spacing:3px;text-transform:uppercase;margin:0 0 20px;">✦ Votre accès est activé</p>
+
+      <h1 style="color:#f5f0e8;font-size:26px;font-weight:300;font-family:Georgia,serif;margin:0 0 20px;line-height:1.3;">
+        Bienvenue${firstName ? `, ${firstName}` : ''}
+      </h1>
+
+      <p style="color:#888;font-size:14px;line-height:1.8;margin:0 0 28px;">
+        Votre accès au service de conciergerie privée <strong style="color:#f5f0e8;">${rpName}</strong> vient d'être activé.
+        Vous pouvez dès maintenant accéder à votre espace personnel, suivre vos réservations et faire de nouvelles demandes.
+      </p>
+
+      <!-- CTA -->
+      <div style="text-align:center;margin:36px 0;">
+        <a href="${loginUrl}" style="display:inline-block;background:linear-gradient(135deg,#5B3DF5,#8B5CF6);color:#fff;text-decoration:none;font-size:11px;letter-spacing:3px;text-transform:uppercase;padding:16px 36px;">
+          Accéder à mon espace →
+        </a>
+      </div>
+
+      <!-- Info connexion -->
+      <div style="background:#0f0f0f;border:1px solid #1e1e1e;padding:20px;margin-bottom:28px;">
+        <p style="color:#555;font-size:9px;letter-spacing:2px;text-transform:uppercase;margin:0 0 12px;">Votre identifiant</p>
+        <p style="color:#f5f0e8;font-size:14px;font-family:monospace;margin:0;">${data.clientEmail}</p>
+        <p style="color:#444;font-size:11px;margin:8px 0 0;">Entrez cet email sur votre espace pour vous connecter</p>
+      </div>
+
+      ${whatsappLink || data.rpEmail ? `
+      <!-- Contact RP -->
+      <div style="border-top:1px solid #1e1e1e;padding-top:24px;">
+        <p style="color:#555;font-size:9px;letter-spacing:2px;text-transform:uppercase;margin:0 0 12px;">Votre concierge</p>
+        ${data.rpEmail ? `<p style="color:#888;font-size:13px;margin:0 0 6px;">✉️ <a href="mailto:${data.rpEmail}" style="color:#888;text-decoration:none;">${data.rpEmail}</a></p>` : ''}
+        ${whatsappLink ? `<p style="color:#888;font-size:13px;margin:0;">💬 <a href="${whatsappLink}" style="color:#888;text-decoration:none;">WhatsApp</a></p>` : ''}
+      </div>
+      ` : ''}
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:20px 40px;text-align:center;border-top:1px solid #1e1e1e;">
+      <p style="color:#333;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin:0;">${rpName} · Service de conciergerie privée</p>
+    </div>
+  </div>
+</body>
+</html>`
+
+  await resend.emails.send({
+    from: `${rpName} <onboarding@resend.dev>`,
+    to: [data.clientEmail],
+    subject: `✦ Votre accès ${rpName} est activé`,
+    html,
+    ...(data.rpEmail ? { reply_to: data.rpEmail } : {}),
+  })
+}

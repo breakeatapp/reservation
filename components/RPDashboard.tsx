@@ -503,10 +503,13 @@ export default function RPDashboard({ profile }: Props) {
           clientName: addClientName.trim(),
           vipTag: '',
           internalNote: '',
+          sendWelcome: true,
         }),
       })
       if (res.ok) {
-        setAddClientSuccess(`✓ ${addClientName || addClientEmail} ajouté avec succès`)
+        const d = await res.json()
+        const emailSent = d.welcomeEmailSent ? ' · Email de bienvenue envoyé' : ''
+        setAddClientSuccess(`✓ ${addClientName || addClientEmail} ajouté${emailSent}`)
         setAddClientEmail('')
         setAddClientName('')
         setAddClientOpen(false)

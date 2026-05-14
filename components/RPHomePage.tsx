@@ -15,12 +15,24 @@ type Props = {
 export default function RPHomePage({ profile, destinations, establishments }: Props) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [connectedName, setConnectedName] = useState('')
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // Lire le nom du client connecté depuis localStorage
+  useEffect(() => {
+    const rpSlug = profile.slug
+    const savedRp = localStorage.getItem('elite_client_rp')
+    const savedName = localStorage.getItem('elite_client_name')
+    const savedEmail = localStorage.getItem('elite_client_email')
+    if (savedRp === rpSlug && (savedName || savedEmail)) {
+      setConnectedName(savedName || savedEmail || '')
+    }
+  }, [profile.slug])
 
   const slug = profile.slug
   const accent = profile.accent_color || '#5B3DF5'
@@ -57,8 +69,17 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
             <Link href={`/${slug}/trip`} className="text-[11px] tracking-[0.2em] uppercase text-[#F5F5F3]/50 hover:text-[#F5F5F3] transition-colors">
               Mon Voyage
             </Link>
-            <Link href={`/${slug}/mon-espace`} className="text-[11px] tracking-[0.2em] uppercase text-[#F5F5F3]/50 hover:text-[#F5F5F3] transition-colors">
-              Mon Compte
+            <Link href={`/${slug}/mon-espace`} className="flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase hover:text-[#F5F5F3] transition-colors"
+              style={{ color: connectedName ? accent + 'cc' : undefined }}
+            >
+              {connectedName ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                  {connectedName.split(' ')[0]}
+                </>
+              ) : (
+                <span className="text-[#F5F5F3]/50">Mon Compte</span>
+              )}
             </Link>
             <Link
               href={`/${slug}/book`}
@@ -72,12 +93,25 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
           <div className="md:hidden flex items-center gap-2">
             <Link
               href={`/${slug}/mon-espace`}
-              className="flex items-center gap-1.5 text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/60 border border-white/10 px-3 py-2 hover:border-white/25 transition-colors"
+              className="flex items-center gap-1.5 text-[9px] tracking-[0.2em] uppercase border px-3 py-2 transition-colors"
+              style={connectedName
+                ? { borderColor: accent + '40', color: accent + 'cc' }
+                : { borderColor: 'rgba(245,245,243,0.10)', color: 'rgba(245,245,243,0.60)' }
+              }
             >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Mon compte
+              {connectedName ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
+                  {connectedName.split(' ')[0]}
+                </>
+              ) : (
+                <>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Mon compte
+                </>
+              )}
             </Link>
             <button className="text-[#F5F5F3]/50 p-2" onClick={() => setMenuOpen(!menuOpen)}>
               <div className="w-5 space-y-1.5">
@@ -128,9 +162,19 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
         </div>
 
         <div className="relative z-10 text-center px-5 max-w-4xl mx-auto">
-          <p className="text-[9px] tracking-[0.6em] text-[#F5F5F3]/25 uppercase mb-6">
-            ✦ Accès Privé · {profile.display_name} ✦
-          </p>
+          {connectedName ? (
+            <div className="inline-flex items-center gap-2 border border-white/10 px-4 py-2 mb-6 backdrop-blur-sm"
+              style={{ background: accent + '12' }}>
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-[9px] tracking-[0.3em] uppercase" style={{ color: accent + 'cc' }}>
+                Bienvenue, {connectedName.split(' ')[0]} ✦
+              </span>
+            </div>
+          ) : (
+            <p className="text-[9px] tracking-[0.6em] text-[#F5F5F3]/25 uppercase mb-6">
+              ✦ Accès Privé · {profile.display_name} ✦
+            </p>
+          )}
           <h1 className="font-playfair text-4xl md:text-7xl text-[#F5F5F3] mb-6 leading-tight">
             {profile.tagline.split(' ').slice(0, 3).join(' ')}
             <span className="block italic text-[#F5F5F3]/50">

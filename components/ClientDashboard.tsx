@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { RPProfile } from '@/lib/supabase'
 import Link from 'next/link'
 
@@ -105,6 +105,7 @@ export default function ClientDashboard({ profile }: Props) {
   const [identifyLoading, setIdentifyLoading] = useState(false)
   const [identifyError, setIdentifyError] = useState('')
   const [notRegistered, setNotRegistered] = useState(false)
+  const [autoLoginDone, setAutoLoginDone] = useState(false)
 
   // Navigation
   const [screen, setScreen] = useState<Screen>('home')
@@ -125,6 +126,48 @@ export default function ClientDashboard({ profile }: Props) {
   const [editTime, setEditTime] = useState('')
   const [editGuests, setEditGuests] = useState('')
   const [editNotes, setEditNotes] = useState('')
+
+  // ── Auto-login depuis localStorage ───────────────────────────
+  useEffect(() => {
+    const saved = localStorage.getItem('elite_client_email')
+    const savedName = localStorage.getItem('elite_client_name')
+    const savedRp = localStorage.getItem('elite_client_rp')
+    if (!saved || savedRp !== profile.slug) { setAutoLoginDone(true); return }
+
+    // Vérifier que l'email est toujours inscrit
+    setIdentifyLoading(true)
+    fetch(`/api/client/check?email=${encodeURIComponent(saved)}&rp=${profile.slug}`)
+      .then(r => r.json())
+      .then(async check => {
+        if (!check.registered) {
+          localStorage.removeItem('elite_client_email')
+          localStorage.removeItem('elite_client_name')
+          localStorage.removeItem('elite_client_rp')
+          return
+        }
+        // Charger les RPs
+        const res = await fetch(`/api/client/rps?email=${encodeURIComponent(saved)}`)
+        const data = await res.json()
+        setEmail(saved)
+        const firstName = data.firstName || savedName || check.clientName?.split(' ')[0] || ''
+        setClientFirstName(firstName)
+        if (firstName) localStorage.setItem('elite_client_name', firstName)
+        const rps: RPSummary[] = data.rps ?? []
+        if (!rps.some(r => r.slug === profile.slug)) {
+          rps.unshift({
+            slug: profile.slug,
+            displayName: profile.display_name,
+            accentColor: accent,
+            logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
+            totalCount: 0, pendingCount: 0, confirmedCount: 0,
+          })
+        }
+        setRpList(rps)
+      })
+      .catch(() => {})
+      .finally(() => { setIdentifyLoading(false); setAutoLoginDone(true) })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Identification par email ──────────────────────────────────
   const handleIdentify = async (e: React.FormEvent) => {
@@ -157,6 +200,11 @@ export default function ClientDashboard({ profile }: Props) {
       const firstName = data.firstName || check.clientName?.split(' ')[0] || ''
       setClientFirstName(firstName)
 
+      // Sauvegarder dans localStorage pour reconnexion automatique
+      localStorage.setItem('elite_client_email', trimmed)
+      localStorage.setItem('elite_client_rp', profile.slug)
+      if (firstName) localStorage.setItem('elite_client_name', firstName)
+
       // S'assurer que le RP actuel apparaît toujours
       const rps: RPSummary[] = data.rps ?? []
       const currentInList = rps.some(r => r.slug === profile.slug)
@@ -186,6 +234,9 @@ export default function ClientDashboard({ profile }: Props) {
     setEmailInput('')
     setNotRegistered(false)
     setError('')
+    localStorage.removeItem('elite_client_email')
+    localStorage.removeItem('elite_client_name')
+    localStorage.removeItem('elite_client_rp')
   }
 
   // ── Sélection d'un RP → charger ses réservations ─────────────
@@ -290,6 +341,21 @@ export default function ClientDashboard({ profile }: Props) {
   // ════════════════════════════════════════════════════════════════
   if (screen === 'home') {
     const isIdentified = !notRegistered && (!!clientFirstName || (!!email && rpList.length > 0))
+
+    // Chargement auto-login
+    if (!autoLoginDone && identifyLoading) {
+      return (
+        <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center">
+          <div className="text-center">
+            <svg className="animate-spin w-6 h-6 text-[#F5F5F3]/20 mx-auto mb-3" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            <p className="text-[#F5F5F3]/20 text-xs tracking-wider">Reconnexion...</p>
+          </div>
+        </div>
+      )
+    }
 
     return (
       <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
