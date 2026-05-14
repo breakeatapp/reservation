@@ -1,0 +1,702 @@
+'use client'
+
+import { useState } from 'react'
+import type { RPProfile } from '@/lib/supabase'
+import Link from 'next/link'
+
+type Props = { profile: RPProfile }
+
+type ClientReservation = {
+  id: string
+  created_at: string
+  establishment: string
+  destination: string
+  date: string
+  time: string
+  guests: number
+  occasion?: string
+  seating?: string
+  special_requests?: string
+  status: 'pending' | 'confirmed' | 'declined' | 'cancelled'
+  rp_slug?: string
+}
+
+type RPSummary = {
+  slug: string
+  displayName: string
+  accentColor: string
+  logoText: string
+  totalCount: number
+  pendingCount: number
+  confirmedCount: number
+}
+
+const SERVICES = [
+  { group: 'Restaurant', options: [
+    'Premier service — Déjeuner (12h30)',
+    'Deuxième service — Déjeuner (14h30)',
+    'Premier service — Dîner (19h30)',
+    'Deuxième service — Dîner (21h30)',
+  ]},
+  { group: 'Beach Club', options: [
+    'Beach Club — Ouverture (11h00)',
+    'Beach Club — Sunset (17h00)',
+  ]},
+  { group: 'Club / Soirée', options: [
+    'Club — Entrée early (22h00)',
+    'Club — Entrée late night (00h00)',
+  ]},
+  { group: 'Autre', options: ['Brunch (11h00)', 'Cocktails (18h00)'] },
+]
+
+const STATUS_CONFIG = {
+  pending: {
+    label: 'En attente',
+    sublabel: 'Notre équipe revient vers vous sous 24h',
+    color: 'text-amber-400',
+    bg: 'bg-amber-500/8',
+    border: 'border-amber-500/20',
+    dot: 'bg-amber-400 animate-pulse',
+    canModify: true,
+    canCancel: true,
+  },
+  confirmed: {
+    label: 'Confirmée ✦',
+    sublabel: 'Votre table est réservée',
+    color: 'text-green-400',
+    bg: 'bg-green-500/8',
+    border: 'border-green-500/20',
+    dot: 'bg-green-400',
+    canModify: true,
+    canCancel: true,
+  },
+  declined: {
+    label: 'Non disponible',
+    sublabel: 'Contactez-nous pour une alternative',
+    color: 'text-red-400',
+    bg: 'bg-red-500/8',
+    border: 'border-red-500/20',
+    dot: 'bg-red-400',
+    canModify: false,
+    canCancel: false,
+  },
+  cancelled: {
+    label: 'Annulée',
+    sublabel: 'Cette réservation a été annulée',
+    color: 'text-[#F5F5F3]/25',
+    bg: 'bg-white/3',
+    border: 'border-white/8',
+    dot: 'bg-[#F5F5F3]/20',
+    canModify: false,
+    canCancel: false,
+  },
+}
+
+type Screen = 'home' | 'reservations'
+
+export default function ClientDashboard({ profile }: Props) {
+  // Identité client
+  const [email, setEmail] = useState('')
+  const [emailInput, setEmailInput] = useState('')
+  const [clientFirstName, setClientFirstName] = useState('')
+  const [rpList, setRpList] = useState<RPSummary[]>([])
+  const [identifyLoading, setIdentifyLoading] = useState(false)
+  const [identifyError, setIdentifyError] = useState('')
+
+  // Navigation
+  const [screen, setScreen] = useState<Screen>('home')
+  const [viewingRp, setViewingRp] = useState<RPSummary | null>(null)
+
+  // Réservations
+  const [reservations, setReservations] = useState<ClientReservation[]>([])
+  const [resaLoading, setResaLoading] = useState(false)
+
+  // Édition
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null)
+  const [saveLoading, setSaveLoading] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
+  const [successMsg, setSuccessMsg] = useState('')
+  const [error, setError] = useState('')
+  const [editDate, setEditDate] = useState('')
+  const [editTime, setEditTime] = useState('')
+  const [editGuests, setEditGuests] = useState('')
+  const [editNotes, setEditNotes] = useState('')
+
+  // ── Identification par email ──────────────────────────────────
+  const handleIdentify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const trimmed = emailInput.trim()
+    if (!trimmed) return
+    setIdentifyLoading(true)
+    setIdentifyError('')
+    try {
+      const res = await fetch(`/api/client/rps?email=${encodeURIComponent(trimmed)}`)
+      const data = await res.json()
+      setEmail(trimmed)
+      setClientFirstName(data.firstName || '')
+      // S'assurer que le RP actuel apparaît toujours dans la liste
+      const rps: RPSummary[] = data.rps ?? []
+      const currentInList = rps.some(r => r.slug === profile.slug)
+      if (!currentInList) {
+        rps.unshift({
+          slug: profile.slug,
+          displayName: profile.display_name,
+          accentColor: profile.accent_color,
+          logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
+          totalCount: 0,
+          pendingCount: 0,
+          confirmedCount: 0,
+        })
+      }
+      setRpList(rps)
+    } catch {
+      setIdentifyError('Une erreur est survenue.')
+    } finally {
+      setIdentifyLoading(false)
+    }
+  }
+
+  // ── Sélection d'un RP → charger ses réservations ─────────────
+  const selectRP = async (rp: RPSummary) => {
+    setViewingRp(rp)
+    setResaLoading(true)
+    setError('')
+    setEditingId(null)
+    setCancelConfirmId(null)
+    try {
+      const res = await fetch(
+        `/api/client/reservations?email=${encodeURIComponent(email)}&rpSlug=${rp.slug}`
+      )
+      const data = await res.json()
+      setReservations(Array.isArray(data) ? data : [])
+      setScreen('reservations')
+    } catch {
+      setError('Erreur lors du chargement.')
+    } finally {
+      setResaLoading(false)
+    }
+  }
+
+  // ── Édition ───────────────────────────────────────────────────
+  const startEdit = (r: ClientReservation) => {
+    setCancelConfirmId(null)
+    setEditingId(r.id)
+    setEditDate('')
+    setEditTime(r.time)
+    setEditGuests(String(r.guests))
+    setEditNotes(r.special_requests ?? '')
+    setError('')
+  }
+
+  const cancelEdit = () => { setEditingId(null); setError('') }
+
+  const handleSaveEdit = async (r: ClientReservation) => {
+    setSaveLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/client/modify', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: r.id, email, action: 'modify',
+          date: editDate || undefined,
+          time: editTime !== r.time ? editTime : undefined,
+          guests: editGuests !== String(r.guests) ? editGuests : undefined,
+          specialRequests: editNotes,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'Erreur.'); return }
+      setReservations(prev => prev.map(item =>
+        item.id === r.id ? {
+          ...item, time: editTime, guests: parseInt(editGuests),
+          special_requests: editNotes,
+          ...(editDate ? {
+            date: new Date(editDate).toLocaleDateString('fr-FR', {
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+            })
+          } : {}),
+        } : item
+      ))
+      setSuccessMsg('Modification enregistrée. Votre RP a été notifié.')
+      setSaveSuccess(r.id)
+      setEditingId(null)
+      setTimeout(() => { setSaveSuccess(null); setSuccessMsg('') }, 4000)
+    } catch { setError('Erreur réseau.') }
+    finally { setSaveLoading(false) }
+  }
+
+  const handleCancel = async (r: ClientReservation) => {
+    setSaveLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/client/modify', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: r.id, email, action: 'cancel' }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error || 'Erreur.'); return }
+      setReservations(prev => prev.map(item =>
+        item.id === r.id ? { ...item, status: 'cancelled' as const } : item
+      ))
+      // Mettre à jour le compteur dans la liste RP
+      setRpList(prev => prev.map(rp =>
+        rp.slug === viewingRp?.slug
+          ? { ...rp, totalCount: Math.max(0, rp.totalCount - 1) }
+          : rp
+      ))
+      setCancelConfirmId(null)
+      setSuccessMsg('Réservation annulée. Votre RP a été notifié.')
+      setSaveSuccess(r.id)
+      setTimeout(() => { setSaveSuccess(null); setSuccessMsg('') }, 4000)
+    } catch { setError('Erreur réseau.') }
+    finally { setSaveLoading(false) }
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // ── ÉCRAN ACCUEIL ────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════
+  if (screen === 'home') {
+    const isIdentified = !!clientFirstName || (!!email && rpList.length > 0)
+
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
+
+        {/* Header */}
+        <div className="px-5 pt-10 pb-6 max-w-md mx-auto">
+          <Link
+            href={`/${profile.slug}`}
+            className="text-[9px] tracking-[0.3em] text-[#F5F5F3]/15 uppercase hover:text-[#F5F5F3]/35 transition-colors block mb-8"
+          >
+            ← {profile.display_name}
+          </Link>
+
+          {/* Message d'accueil */}
+          {isIdentified ? (
+            <div className="mb-8">
+              <p className="text-[10px] tracking-[0.5em] uppercase mb-2" style={{ color: profile.accent_color + '70' }}>
+                Mon espace
+              </p>
+              <h1 className="font-playfair text-4xl text-[#F5F5F3] leading-tight">
+                Bienvenue{clientFirstName ? `,` : ''}<br />
+                {clientFirstName && (
+                  <span style={{ color: profile.accent_color }}>{clientFirstName}</span>
+                )}
+                {clientFirstName && <span className="text-[#F5F5F3]/20 text-3xl"> ✦</span>}
+              </h1>
+              <p className="text-[#F5F5F3]/25 text-sm mt-2">{email}</p>
+            </div>
+          ) : (
+            <div className="mb-8">
+              <p className="text-[10px] tracking-[0.5em] uppercase mb-2" style={{ color: profile.accent_color + '70' }}>
+                Mon espace
+              </p>
+              <h1 className="font-playfair text-4xl text-[#F5F5F3] leading-tight mb-2">
+                Bienvenue
+              </h1>
+              <p className="text-[#F5F5F3]/25 text-sm leading-relaxed">
+                Identifiez-vous pour accéder à vos réservations.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 max-w-md mx-auto space-y-6 pb-20">
+
+          {/* ── Identification ── */}
+          {!isIdentified ? (
+            <form onSubmit={handleIdentify} className="bg-[#141414] border border-white/5 p-6">
+              <label className="block text-[9px] tracking-[0.3em] text-[#F5F5F3]/30 uppercase mb-2">
+                Votre email
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={e => setEmailInput(e.target.value)}
+                  className="flex-1 bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-4 py-3 text-sm focus:border-white/25 outline-none transition-colors placeholder-[#F5F5F3]/15"
+                  placeholder="votre@email.com"
+                  autoFocus required
+                />
+                <button
+                  type="submit" disabled={identifyLoading}
+                  className="px-5 py-3 text-white text-[11px] tracking-[0.2em] uppercase hover:opacity-90 transition-opacity disabled:opacity-40 flex-shrink-0"
+                  style={{ background: `linear-gradient(135deg, ${profile.accent_color}, ${profile.accent_color}cc)` }}
+                >
+                  {identifyLoading ? '...' : '→'}
+                </button>
+              </div>
+              {identifyError && (
+                <p className="text-red-400/60 text-xs mt-2">{identifyError}</p>
+              )}
+              <p className="text-[#F5F5F3]/15 text-[10px] mt-2">
+                Utilisez l'email de vos réservations.
+              </p>
+            </form>
+          ) : (
+            /* ── Sélection du RP ── */
+            <div>
+              <p className="text-[9px] tracking-[0.3em] text-[#F5F5F3]/20 uppercase mb-3">
+                Votre{rpList.length > 1 ? 's' : ''} RP
+              </p>
+              <div className="space-y-2">
+                {rpList.map(rp => (
+                  <button
+                    key={rp.slug}
+                    onClick={() => selectRP(rp)}
+                    disabled={resaLoading}
+                    className="w-full flex items-center gap-4 bg-[#141414] border border-white/5 hover:border-white/12 p-4 text-left transition-all group disabled:opacity-40"
+                  >
+                    {/* Avatar RP */}
+                    <div
+                      className="w-11 h-11 flex items-center justify-center flex-shrink-0 text-white text-[10px] tracking-wider font-medium"
+                      style={{ background: `${rp.accentColor}25`, border: `1px solid ${rp.accentColor}40` }}
+                    >
+                      {rp.logoText?.slice(0, 2) ?? rp.slug.slice(0, 2).toUpperCase()}
+                    </div>
+
+                    {/* Infos */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[#F5F5F3] text-sm font-medium mb-1">{rp.displayName}</p>
+                      {rp.totalCount > 0 ? (
+                        <div className="flex items-center gap-3 text-[10px]">
+                          <span className="text-[#F5F5F3]/30">
+                            {rp.totalCount} résa{rp.totalCount > 1 ? 's' : ''}
+                          </span>
+                          {rp.pendingCount > 0 && (
+                            <span className="text-amber-400/70">
+                              · {rp.pendingCount} en attente
+                            </span>
+                          )}
+                          {rp.confirmedCount > 0 && (
+                            <span className="text-green-400/60">
+                              · {rp.confirmedCount} confirmée{rp.confirmedCount > 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-[#F5F5F3]/20 text-[10px]">Aucune réservation</p>
+                      )}
+                    </div>
+
+                    <span className="text-[#F5F5F3]/10 group-hover:text-[#F5F5F3]/30 transition-colors flex-shrink-0">›</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Changer de compte */}
+              <button
+                onClick={() => {
+                  setEmail(''); setClientFirstName(''); setRpList([])
+                  setEmailInput('')
+                }}
+                className="mt-3 text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/15 hover:text-[#F5F5F3]/35 transition-colors w-full text-center py-2"
+              >
+                Changer d'email
+              </button>
+            </div>
+          )}
+
+          {/* ── Actions rapides ── */}
+          <div>
+            <p className="text-[9px] tracking-[0.3em] text-[#F5F5F3]/20 uppercase mb-3">
+              Actions rapides
+            </p>
+            <div className="space-y-2">
+              <Link
+                href={`/${profile.slug}/book`}
+                className="w-full flex items-center gap-4 bg-[#141414] border border-white/5 hover:border-white/10 p-4 transition-all group"
+              >
+                <div className="w-9 h-9 flex items-center justify-center flex-shrink-0 text-base"
+                  style={{ background: `${profile.accent_color}15`, border: `1px solid ${profile.accent_color}25` }}>
+                  🍽️
+                </div>
+                <div className="flex-1">
+                  <p className="text-[#F5F5F3] text-sm font-medium">Réserver une table</p>
+                  <p className="text-[#F5F5F3]/25 text-xs">Confirmation sous 24h</p>
+                </div>
+                <span className="text-[#F5F5F3]/10 group-hover:text-[#F5F5F3]/30 transition-colors">›</span>
+              </Link>
+
+              <Link
+                href={`/${profile.slug}/trip`}
+                className="w-full flex items-center gap-4 bg-[#141414] border border-white/5 hover:border-white/10 p-4 transition-all group"
+              >
+                <div className="w-9 h-9 flex items-center justify-center flex-shrink-0 text-base"
+                  style={{ background: `${profile.accent_color}15`, border: `1px solid ${profile.accent_color}25` }}>
+                  🗺️
+                </div>
+                <div className="flex-1">
+                  <p className="text-[#F5F5F3] text-sm font-medium">Planifier mon voyage</p>
+                  <p className="text-[#F5F5F3]/25 text-xs">Itinéraire multi-jours</p>
+                </div>
+                <span className="text-[#F5F5F3]/10 group-hover:text-[#F5F5F3]/30 transition-colors">›</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // ── ÉCRAN RÉSERVATIONS ───────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════
+  return (
+    <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
+
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4 flex items-center gap-3">
+        <button
+          onClick={() => { setScreen('home'); setError('') }}
+          className="text-[#F5F5F3]/25 hover:text-[#F5F5F3]/60 transition-colors text-lg flex-shrink-0"
+        >
+          ←
+        </button>
+        <div className="flex-1 min-w-0">
+          <p className="text-[9px] tracking-[0.3em] uppercase truncate" style={{ color: (viewingRp?.accentColor ?? profile.accent_color) + '60' }}>
+            {viewingRp?.displayName ?? profile.display_name}
+          </p>
+          <p className="text-sm text-[#F5F5F3]/40 truncate">{clientFirstName || email}</p>
+        </div>
+        {/* Indicateur de chargement */}
+        {resaLoading && (
+          <svg className="animate-spin w-4 h-4 text-[#F5F5F3]/20 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+        )}
+      </div>
+
+      <div className="px-4 py-6 max-w-xl mx-auto pb-24">
+
+        {saveSuccess && successMsg && (
+          <div className="border border-green-500/20 bg-green-500/8 text-green-400 text-sm px-4 py-3 mb-4 flex items-center gap-2">
+            <span>✓</span><span>{successMsg}</span>
+          </div>
+        )}
+        {error && (
+          <div className="border border-red-400/20 bg-red-400/5 text-red-400/70 text-sm px-4 py-3 mb-4">
+            {error}
+          </div>
+        )}
+
+        {resaLoading ? (
+          <div className="flex items-center justify-center h-40 text-[#F5F5F3]/20 text-sm">
+            Chargement…
+          </div>
+        ) : reservations.length === 0 ? (
+          <div className="text-center py-20">
+            <span className="text-5xl block mb-6 opacity-20">✦</span>
+            <h2 className="font-playfair text-2xl text-[#F5F5F3]/30 mb-3">Aucune réservation</h2>
+            <p className="text-[#F5F5F3]/15 text-sm mb-8">
+              Aucune réservation avec {viewingRp?.displayName ?? profile.display_name}.
+            </p>
+            <Link
+              href={`/${profile.slug}/book`}
+              className="inline-block text-white text-[11px] tracking-[0.2em] uppercase py-4 px-8 hover:opacity-90 transition-opacity"
+              style={{ background: `linear-gradient(135deg, ${profile.accent_color}, ${profile.accent_color}bb)` }}
+            >
+              Faire une réservation
+            </Link>
+          </div>
+        ) : (
+          <>
+            <p className="text-[#F5F5F3]/20 text-sm mb-5">
+              {reservations.length} réservation{reservations.length > 1 ? 's' : ''}
+            </p>
+
+            <div className="space-y-4">
+              {reservations.map(r => {
+                const cfg = STATUS_CONFIG[r.status] ?? STATUS_CONFIG.declined
+                const isEditing = editingId === r.id
+                const isConfirmingCancel = cancelConfirmId === r.id
+
+                return (
+                  <div key={r.id} className={`border ${cfg.border} ${cfg.bg}`}>
+
+                    {/* Status */}
+                    <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
+                      <div className="flex-1">
+                        <p className={`text-xs font-medium ${cfg.color}`}>{cfg.label}</p>
+                        <p className="text-[#F5F5F3]/20 text-[10px]">{cfg.sublabel}</p>
+                      </div>
+                    </div>
+
+                    {/* Détails */}
+                    <div className="px-5 py-4">
+                      <p className="font-playfair text-lg text-[#F5F5F3] mb-0.5">{r.establishment}</p>
+                      <p className="text-[#F5F5F3]/25 text-[10px] uppercase tracking-wider mb-4">{r.destination}</p>
+
+                      {!isEditing && !isConfirmingCancel ? (
+                        <>
+                          <div className="grid grid-cols-3 gap-3 mb-3">
+                            {[
+                              { label: 'Date', value: r.date },
+                              { label: 'Service', value: r.time },
+                              { label: 'Personnes', value: `${r.guests}` },
+                            ].map(item => (
+                              <div key={item.label}>
+                                <p className="text-[8px] tracking-wider text-[#F5F5F3]/20 uppercase mb-1">{item.label}</p>
+                                <p className="text-[#F5F5F3]/70 text-xs leading-tight">{item.value}</p>
+                              </div>
+                            ))}
+                          </div>
+                          {r.special_requests && (
+                            <div className="border-l-2 border-white/10 pl-3 mb-3">
+                              <p className="text-[#F5F5F3]/30 text-xs italic">"{r.special_requests}"</p>
+                            </div>
+                          )}
+
+                          {(cfg.canModify || cfg.canCancel) && (
+                            <div className="grid grid-cols-2 gap-2 mt-3">
+                              {cfg.canModify && (
+                                <button
+                                  onClick={() => startEdit(r)}
+                                  className="border text-[9px] tracking-[0.2em] uppercase py-2.5 hover:opacity-80 transition-all"
+                                  style={{ borderColor: (viewingRp?.accentColor ?? profile.accent_color) + '30', color: (viewingRp?.accentColor ?? profile.accent_color) + '90' }}
+                                >
+                                  ✎ Modifier
+                                </button>
+                              )}
+                              {cfg.canCancel && (
+                                <button
+                                  onClick={() => { setCancelConfirmId(r.id); setEditingId(null) }}
+                                  className="border border-red-500/15 text-red-400/40 text-[9px] tracking-[0.2em] uppercase py-2.5 hover:bg-red-500/5 hover:border-red-500/30 hover:text-red-400/60 transition-all"
+                                >
+                                  ✕ Annuler
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      ) : isConfirmingCancel ? (
+                        <div className="space-y-4">
+                          <div className="border border-red-500/20 bg-red-500/5 p-4 text-center">
+                            <p className="text-red-400/80 text-sm font-medium mb-1">Confirmer l'annulation ?</p>
+                            <p className="text-[#F5F5F3]/30 text-xs">Votre RP sera notifié. Action irréversible.</p>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => setCancelConfirmId(null)}
+                              disabled={saveLoading}
+                              className="border border-white/10 text-[#F5F5F3]/30 text-[10px] tracking-[0.2em] uppercase py-3 hover:border-white/20 transition-colors disabled:opacity-40"
+                            >
+                              Retour
+                            </button>
+                            <button
+                              onClick={() => handleCancel(r)}
+                              disabled={saveLoading}
+                              className="bg-red-500/80 hover:bg-red-500 text-white text-[10px] tracking-[0.2em] uppercase py-3 transition-colors disabled:opacity-40"
+                            >
+                              {saveLoading ? 'En cours...' : 'Annuler la résa'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        /* ── Formulaire modification ── */
+                        <div className="space-y-4">
+                          <p className="text-[9px] tracking-[0.3em] uppercase" style={{ color: (viewingRp?.accentColor ?? profile.accent_color) + '70' }}>
+                            Modifier la réservation
+                          </p>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[8px] tracking-wider text-[#F5F5F3]/25 uppercase mb-1.5">Nouvelle date</label>
+                              <input
+                                type="date" value={editDate}
+                                onChange={e => setEditDate(e.target.value)}
+                                min={new Date().toISOString().split('T')[0]}
+                                className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-xs outline-none [color-scheme:dark]"
+                                style={{ ['--tw-ring-color' as string]: profile.accent_color }}
+                              />
+                              <p className="text-[8px] text-[#F5F5F3]/15 mt-1">Actuelle : {r.date}</p>
+                            </div>
+                            <div>
+                              <label className="block text-[8px] tracking-wider text-[#F5F5F3]/25 uppercase mb-1.5">Personnes</label>
+                              <select
+                                value={editGuests} onChange={e => setEditGuests(e.target.value)}
+                                className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-xs outline-none cursor-pointer"
+                              >
+                                {[1,2,3,4,5,6,7,8,10,12,15,20].map(n => (
+                                  <option key={n} value={n} className="bg-[#0B0B0B]">{n} personne{n > 1 ? 's' : ''}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[8px] tracking-wider text-[#F5F5F3]/25 uppercase mb-1.5">Service</label>
+                            <select
+                              value={editTime} onChange={e => setEditTime(e.target.value)}
+                              className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-xs outline-none cursor-pointer"
+                            >
+                              {SERVICES.map(g => (
+                                <optgroup key={g.group} label={`─ ${g.group}`}>
+                                  {g.options.map(o => (
+                                    <option key={o} value={o} className="bg-[#0B0B0B]">{o}</option>
+                                  ))}
+                                </optgroup>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[8px] tracking-wider text-[#F5F5F3]/25 uppercase mb-1.5">Notes</label>
+                            <textarea
+                              rows={2} value={editNotes} onChange={e => setEditNotes(e.target.value)}
+                              className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-xs outline-none resize-none placeholder-[#F5F5F3]/15"
+                              placeholder="Informations complémentaires..."
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={cancelEdit} disabled={saveLoading}
+                              className="border border-white/10 text-[#F5F5F3]/30 text-[10px] tracking-[0.2em] uppercase py-3 hover:border-white/20 transition-colors disabled:opacity-40"
+                            >
+                              Retour
+                            </button>
+                            <button
+                              onClick={() => handleSaveEdit(r)} disabled={saveLoading}
+                              className="text-white text-[10px] tracking-[0.2em] uppercase py-3 hover:opacity-90 transition-opacity disabled:opacity-40"
+                              style={{ background: `linear-gradient(135deg, ${profile.accent_color}, ${profile.accent_color}bb)` }}
+                            >
+                              {saveLoading ? 'Envoi...' : 'Confirmer'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Bas de page */}
+            <div className="mt-8 pt-6 border-t border-white/5 grid grid-cols-2 gap-3">
+              <Link
+                href={`/${profile.slug}/book`}
+                className="flex flex-col items-center gap-1.5 border border-white/8 py-4 hover:border-white/15 transition-colors text-center"
+              >
+                <span className="text-xl">🍽️</span>
+                <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/30">Réserver</span>
+              </Link>
+              <Link
+                href={`/${profile.slug}/trip`}
+                className="flex flex-col items-center gap-1.5 border py-4 transition-colors text-center"
+                style={{ borderColor: profile.accent_color + '30' }}
+              >
+                <span className="text-xl">🗺️</span>
+                <span className="text-[9px] tracking-[0.2em] uppercase" style={{ color: profile.accent_color + '70' }}>Planifier</span>
+              </Link>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "PowerShell($env:PATH -split \";\")",
+      "Bash(npx tsc *)",
+      "Bash(mkdir \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\\\\[rp]\")",
+      "Bash(mkdir \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\\\\[rp]\\\\book\")",
+      "Bash(mkdir \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\\\\[rp]\\\\trip\")",
+      "Bash(mkdir \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\\\\[rp]\\\\dashboard\")",
+      "Bash(mkdir \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\\\\api\\\\rp\\\\[slug]\")",
+      "Bash(mkdir \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\\\\api\\\\rp\\\\[slug]\\\\reservations\")",
+      "Bash(findstr \"next\")",
+      "Bash(mkdir \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\\\\api\\\\client\" 2>/dev/null; mkdir \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\\\\[rp]\\\\mon-espace\" 2>/dev/null; echo done)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git config *)"
+    ]
+  }
+}
