@@ -66,11 +66,33 @@ export async function getRPProfile(slug: string): Promise<RPProfile | null> {
 }
 
 // ── Destinations accessibles pour un RP ───────────────────
+// Supporte les slugs prédéfinis ET les destinations personnalisées (JSON)
 export function getRPDestinations(rp: RPProfile): Destination[] {
   if (!rp.activated_destinations || rp.activated_destinations.length === 0) {
     return destinations
   }
-  return destinations.filter(d => rp.activated_destinations.includes(d.slug))
+  const result: Destination[] = []
+  for (const raw of rp.activated_destinations) {
+    // Tenter de parser en tant que destination personnalisée JSON
+    try {
+      const parsed = JSON.parse(raw)
+      if (parsed?.slug && parsed?.name) {
+        result.push({
+          slug: parsed.slug,
+          name: parsed.name,
+          country: parsed.country || '',
+          description: parsed.description || '',
+          image: parsed.image || 'https://images.unsplash.com/photo-1518684079-3c830dcef090?w=1200&q=80',
+          emoji: parsed.emoji || '📍',
+        })
+        continue
+      }
+    } catch { /* pas du JSON → slug prédéfini */ }
+    // Destination prédéfinie
+    const found = destinations.find(d => d.slug === raw)
+    if (found) result.push(found)
+  }
+  return result
 }
 
 // ── Établissements accessibles pour un RP ─────────────────

@@ -125,6 +125,9 @@ export default function RPDashboard({ profile }: Props) {
   const [newVenueDest, setNewVenueDest] = useState('')
   const [newVenueServices, setNewVenueServices] = useState<string[]>([])
   const [showServicePicker, setShowServicePicker] = useState(false)
+  // Villes personnalisées
+  const [newCityName, setNewCityName] = useState('')
+  const [newCityCountry, setNewCityCountry] = useState('')
 
   const fetchReservations = useCallback(async () => {
     setLoading(true)
@@ -590,6 +593,24 @@ export default function RPDashboard({ profile }: Props) {
     )
   }
 
+  const addCustomCity = () => {
+    const name = newCityName.trim()
+    if (!name) return
+    const slug = name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+    // Vérifier que ce slug n'existe pas déjà
+    if (configDests.includes(slug)) return
+    const isExisting = configDests.some(raw => { try { return JSON.parse(raw).slug === slug } catch { return false } })
+    if (isExisting) return
+    const entry = JSON.stringify({ slug, name, country: newCityCountry.trim() || '', emoji: '📍' })
+    setConfigDests(prev => [...prev, entry])
+    setNewCityName('')
+    setNewCityCountry('')
+  }
+
+  const removeCustomCity = (entry: string) => {
+    setConfigDests(prev => prev.filter(d => d !== entry))
+  }
+
   const addCustomVenue = () => {
     const name = newVenueName.trim()
     if (!name) return
@@ -735,6 +756,56 @@ export default function RPDashboard({ profile }: Props) {
             <p className="text-[#F5F5F3]/20 text-[10px] mt-3">
               Si aucune destination n'est sélectionnée, toutes sont accessibles.
             </p>
+
+            {/* ── Villes personnalisées (JSON dans configDests) ── */}
+            {(() => {
+              const customEntries = configDests.filter(raw => { try { const p = JSON.parse(raw); return !!(p?.slug && p?.name) } catch { return false } })
+              return customEntries.length > 0 ? (
+                <div className="mt-3 space-y-1">
+                  <p className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/20 mb-2">Villes personnalisées actives</p>
+                  {customEntries.map(raw => {
+                    const city = JSON.parse(raw)
+                    return (
+                      <div key={raw} className="flex items-center gap-2 bg-[#0B0B0B] border border-[#5B3DF5]/20 px-3 py-2">
+                        <span>📍</span>
+                        <span className="text-[#F5F5F3]/80 text-sm flex-1">{city.name}</span>
+                        {city.country && <span className="text-[#F5F5F3]/30 text-xs">{city.country}</span>}
+                        <button onClick={() => removeCustomCity(raw)} className="text-[#F5F5F3]/20 hover:text-red-400/60 transition-colors text-lg">×</button>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : null
+            })()}
+
+            {/* ── Ajouter une ville ── */}
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <p className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/30 mb-3">Ajouter une ville non listée</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newCityName}
+                  onChange={e => setNewCityName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomCity() } }}
+                  placeholder="Nom de la ville…"
+                  className="flex-1 bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2 text-sm outline-none focus:border-white/25 placeholder-[#F5F5F3]/20 transition-colors"
+                />
+                <input
+                  type="text"
+                  value={newCityCountry}
+                  onChange={e => setNewCityCountry(e.target.value)}
+                  placeholder="Pays"
+                  className="w-28 bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2 text-sm outline-none focus:border-white/25 placeholder-[#F5F5F3]/20 transition-colors"
+                />
+                <button
+                  onClick={addCustomCity}
+                  disabled={!newCityName.trim()}
+                  className="px-4 py-2 border border-[#5B3DF5]/40 text-[#5B3DF5]/70 text-[11px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/8 transition-colors disabled:opacity-30 flex-shrink-0"
+                >
+                  + Ajouter
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* ── Restaurants & Venues ── */}
@@ -755,12 +826,14 @@ export default function RPDashboard({ profile }: Props) {
                 >
                   <option value="" className="bg-[#141414]">Ville…</option>
                   {configDests.length > 0
-                    ? configDests.map(slug => {
-                        const d = (['saint-tropez','dubai','miami','cannes','monaco','courchevel','saint-barth','ibiza','mykonos','maldives'] as const)
+                    ? configDests.map(raw => {
+                        let slug = raw, label = raw
+                        try {
+                          const p = JSON.parse(raw)
+                          if (p?.slug && p?.name) { slug = p.slug; label = p.name }
+                        } catch { label = raw.charAt(0).toUpperCase() + raw.slice(1).replace(/-/g, ' ') }
                         return (
-                          <option key={slug} value={slug} className="bg-[#141414]">
-                            {slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' ')}
-                          </option>
+                          <option key={slug} value={slug} className="bg-[#141414]">{label}</option>
                         )
                       })
                     : <option value="" disabled className="bg-[#141414]">Activez d'abord des destinations</option>
@@ -1022,19 +1095,19 @@ export default function RPDashboard({ profile }: Props) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setMainView('config')}
-            className="text-[10px] tracking-[0.2em] uppercase text-[#5B3DF5]/50 hover:text-[#5B3DF5]/80 transition-colors border border-[#5B3DF5]/15 hover:border-[#5B3DF5]/40 px-3 py-2"
+            className="text-[10px] tracking-[0.2em] uppercase text-white/80 hover:text-white transition-colors border border-white/20 hover:border-white/50 px-3 py-2"
           >
             ⚙ Config
           </button>
           <button
             onClick={() => setMainView('clients')}
-            className="text-[10px] tracking-[0.2em] uppercase text-amber-400/40 hover:text-amber-400/70 transition-colors border border-amber-500/10 hover:border-amber-500/30 px-3 py-2"
+            className="text-[10px] tracking-[0.2em] uppercase text-white/80 hover:text-white transition-colors border border-white/20 hover:border-white/50 px-3 py-2"
           >
             👤 Clients
           </button>
           <button
             onClick={fetchReservations}
-            className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/30 hover:text-[#5B3DF5]/70 transition-colors border border-white/5 hover:border-[#5B3DF5]/20 px-3 py-2"
+            className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-white/70 hover:text-white transition-colors border border-white/20 hover:border-white/50 px-3 py-2"
           >
             {loading
               ? <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
@@ -1051,12 +1124,24 @@ export default function RPDashboard({ profile }: Props) {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`py-4 text-center transition-colors border-b-2 ${filter === s ? 'border-[#5B3DF5]' : 'border-transparent'}`}
+            className={`py-4 text-center transition-all border-b-2 ${filter === s ? 'border-[#5B3DF5] bg-[#5B3DF5]/5' : 'border-transparent hover:bg-white/3'}`}
           >
-            <div className={`text-xl font-light ${filter === s ? 'text-[#8B5CF6]' : 'text-[#F5F5F3]/25'}`}>
+            <div className={`text-2xl font-light ${
+              filter === s ? 'text-white' :
+              s === 'pending' ? 'text-amber-300/80' :
+              s === 'confirmed' ? 'text-green-300/80' :
+              s === 'declined' ? 'text-red-300/60' :
+              'text-white/70'
+            }`}>
               {counts[s]}
             </div>
-            <div className="text-[8px] tracking-wider uppercase text-[#F5F5F3]/20 mt-0.5">
+            <div className={`text-[8px] tracking-wider uppercase mt-0.5 ${
+              filter === s ? 'text-white/70' :
+              s === 'pending' ? 'text-amber-300/50' :
+              s === 'confirmed' ? 'text-green-300/50' :
+              s === 'declined' ? 'text-red-300/40' :
+              'text-white/40'
+            }`}>
               {s === 'all' ? 'Total' : STATUS_LABELS[s as ReservationStatus]}
             </div>
           </button>

@@ -191,12 +191,9 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
               ✦ {profile.display_name} · Private Access ✦
             </p>
           )}
-          <h1 className="font-playfair text-4xl md:text-7xl text-[#F5F5F3] mb-6 leading-tight">
+          <h1 className="font-playfair text-4xl md:text-7xl text-[#F5F5F3] mb-10 leading-tight">
             {profile.tagline}
           </h1>
-          <p className="text-[#F5F5F3]/55 text-sm max-w-lg mx-auto mb-10 leading-relaxed">
-            {destinations.length} destination{destinations.length > 1 ? 's' : ''} · {establishments.length} établissement{establishments.length > 1 ? 's' : ''} sélectionné{establishments.length > 1 ? 's' : ''}
-          </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
@@ -219,10 +216,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
               href={`/${slug}/mon-espace`}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-white/12 text-[#F5F5F3]/45 text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:border-white/30 hover:text-[#F5F5F3]/70 transition-all"
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Mon compte
+              Mes réservations
             </Link>
           </div>
 
