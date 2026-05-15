@@ -29,13 +29,14 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
     try {
       const stored = localStorage.getItem('itinera_guest_rps')
       const rps = stored ? JSON.parse(stored) : []
-      if (rps.length > 1) {
+      if (rps.length >= 1) {
         setRpPickerList(rps)
         setRpPickerOpen(true)
         return
       }
     } catch { /* ignore */ }
-    router.push(`/${slug}/${target === 'book' ? 'book' : 'trip'}`)
+    // Pas connecté → accès direct à la page de réservation du RP courant
+    router.push(`/${slug}/${target}`)
   }
 
   useEffect(() => {
@@ -220,7 +221,9 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
               {rpPickerTarget === 'book' ? 'Réservation unique' : 'Planification de séjour'}
             </p>
             <h3 className="font-playfair text-xl text-[#F5F5F3] mb-6">
-              Avec quel concierge souhaitez-vous {rpPickerTarget === 'book' ? 'réserver' : 'planifier'} ?
+              {rpPickerList.length === 1
+                ? `Continuer avec ${rpPickerList[0].displayName} ?`
+                : `Avec quel concierge souhaitez-vous ${rpPickerTarget === 'book' ? 'réserver' : 'planifier'} ?`}
             </h3>
             <div className="space-y-2 mb-6">
               {rpPickerList.map(rp => (
