@@ -725,9 +725,12 @@ export default function RPDashboard({ profile }: Props) {
           <div className="bg-[#141414] border border-white/5 p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">Destinations actives</p>
-              <span className="text-[10px] text-[#F5F5F3]/30">{configDests.length} sélectionnée{configDests.length > 1 ? 's' : ''}</span>
+              <span className="text-[10px] text-[#F5F5F3]/40">{configDests.length} active{configDests.length > 1 ? 's' : ''}</span>
             </div>
+
+            {/* Grille unifiée : prédéfinies + personnalisées */}
             <div className="grid grid-cols-2 gap-2">
+              {/* Destinations prédéfinies */}
               {ALL_DESTINATIONS.map(dest => {
                 const active = configDests.includes(dest.slug)
                 return (
@@ -752,35 +755,41 @@ export default function RPDashboard({ profile }: Props) {
                   </button>
                 )
               })}
+
+              {/* Villes personnalisées intégrées dans la même grille */}
+              {configDests.map(raw => {
+                let city: { slug: string; name: string; country?: string; emoji?: string } | null = null
+                try { const p = JSON.parse(raw); if (p?.slug && p?.name) city = p } catch {}
+                if (!city) return null
+                return (
+                  <div
+                    key={raw}
+                    className="flex items-center gap-3 p-3 border border-[#5B3DF5]/40 bg-[#5B3DF5]/8 text-[#F5F5F3]"
+                  >
+                    <span className="text-lg">{city.emoji || '📍'}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{city.name}</p>
+                      {city.country && <p className="text-[9px] text-[#F5F5F3]/30 truncate">{city.country}</p>}
+                    </div>
+                    <button
+                      onClick={() => removeCustomCity(raw)}
+                      className="text-[#F5F5F3]/25 hover:text-red-400/70 transition-colors text-base leading-none flex-shrink-0"
+                      title="Supprimer cette ville"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )
+              })}
             </div>
+
             <p className="text-[#F5F5F3]/20 text-[10px] mt-3">
               Si aucune destination n'est sélectionnée, toutes sont accessibles.
             </p>
 
-            {/* ── Villes personnalisées (JSON dans configDests) ── */}
-            {(() => {
-              const customEntries = configDests.filter(raw => { try { const p = JSON.parse(raw); return !!(p?.slug && p?.name) } catch { return false } })
-              return customEntries.length > 0 ? (
-                <div className="mt-3 space-y-1">
-                  <p className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/20 mb-2">Villes personnalisées actives</p>
-                  {customEntries.map(raw => {
-                    const city = JSON.parse(raw)
-                    return (
-                      <div key={raw} className="flex items-center gap-2 bg-[#0B0B0B] border border-[#5B3DF5]/20 px-3 py-2">
-                        <span>📍</span>
-                        <span className="text-[#F5F5F3]/80 text-sm flex-1">{city.name}</span>
-                        {city.country && <span className="text-[#F5F5F3]/30 text-xs">{city.country}</span>}
-                        <button onClick={() => removeCustomCity(raw)} className="text-[#F5F5F3]/20 hover:text-red-400/60 transition-colors text-lg">×</button>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : null
-            })()}
-
             {/* ── Ajouter une ville ── */}
             <div className="mt-4 pt-4 border-t border-white/5">
-              <p className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/30 mb-3">Ajouter une ville non listée</p>
+              <p className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/30 mb-3">+ Ajouter une ville non listée</p>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -802,7 +811,7 @@ export default function RPDashboard({ profile }: Props) {
                   disabled={!newCityName.trim()}
                   className="px-4 py-2 border border-[#5B3DF5]/40 text-[#5B3DF5]/70 text-[11px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/8 transition-colors disabled:opacity-30 flex-shrink-0"
                 >
-                  + Ajouter
+                  Ajouter
                 </button>
               </div>
             </div>
@@ -810,10 +819,16 @@ export default function RPDashboard({ profile }: Props) {
 
           {/* ── Restaurants & Venues ── */}
           <div className="bg-[#141414] border border-white/5 p-5">
-            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-1">Restaurants & venues personnalisés</p>
-            <p className="text-[#F5F5F3]/30 text-xs mb-5 leading-relaxed">
-              Ajoutez des adresses de votre choix avec leurs créneaux. Si vide, tous les établissements de vos destinations sont proposés.
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-1">Restaurants & venues</p>
+            <p className="text-[#F5F5F3]/40 text-xs mb-2 leading-relaxed">
+              Ajoutez des adresses avec leurs créneaux. Si vide, tous les établissements de vos destinations actives sont proposés.
             </p>
+            <div className="flex items-center gap-2 bg-green-500/5 border border-green-500/15 px-3 py-2 mb-5">
+              <span className="text-green-400 text-sm">✓</span>
+              <p className="text-green-400/70 text-[11px]">
+                Chaque restaurant ajouté ici apparaît automatiquement dans le formulaire de réservation du client.
+              </p>
+            </div>
 
             {/* ── Formulaire ajout venue ── */}
             <div className="bg-[#0B0B0B] border border-white/8 p-4 mb-4 space-y-3">
