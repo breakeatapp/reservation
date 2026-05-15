@@ -180,8 +180,14 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
               Faire une réservation unique
             </Link>
             <Link
+              href={`/${slug}/trip`}
+              className="w-full sm:w-auto inline-flex items-center justify-center border border-white/25 text-[#F5F5F3]/70 text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:border-white/50 hover:text-[#F5F5F3] transition-all"
+            >
+              Planifier mon séjour
+            </Link>
+            <Link
               href={`/${slug}/mon-espace`}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-white/25 text-[#F5F5F3]/70 text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:border-white/50 hover:text-[#F5F5F3] transition-all"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-white/12 text-[#F5F5F3]/45 text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:border-white/30 hover:text-[#F5F5F3]/70 transition-all"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />

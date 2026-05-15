@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
@@ -9,6 +9,17 @@ export default function LandingPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [savedSession, setSavedSession] = useState<{ email: string; rp: string; name: string } | null>(null)
+
+  // Vérifier si le client est déjà connecté
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('itinera_guest_email')
+    const savedRp = localStorage.getItem('itinera_guest_rp')
+    const savedName = localStorage.getItem('itinera_guest_name')
+    if (savedEmail && savedRp) {
+      setSavedSession({ email: savedEmail, rp: savedRp, name: savedName || savedEmail })
+    }
+  }, [])
 
   const handleAccess = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,11 +75,11 @@ export default function LandingPage() {
 
         <div className="relative z-10 w-full max-w-lg mx-auto text-center">
 
-          {/* Headline — big title */}
-          <h1 className="font-playfair text-3xl md:text-5xl text-[#F5F7FA] mb-6 leading-tight">
+          {/* Headline — big title centré */}
+          <h1 className="font-playfair text-3xl md:text-5xl text-[#F5F7FA] mb-6 leading-tight text-center">
             ✦ Private access to the<br />
-            <span className="italic">Hospitality Planning</span><br />
-            <span>Between RPs & Guests ✦</span>
+            <em>Hospitality Planning</em><br />
+            Between RPs &amp; Guests ✦
           </h1>
 
           {/* Sub */}
@@ -76,43 +87,76 @@ export default function LandingPage() {
             From WhatsApp chaos to structured hospitality management.
           </p>
 
-          {/* ── Accès guest ── */}
-          <div className="bg-[#181C23]/90 backdrop-blur-sm border border-white/10 p-6 mb-4">
-            <p className="text-[10px] tracking-[0.4em] uppercase text-[#F5F7FA]/45 mb-4">
-              Access my space
-            </p>
-            <form onSubmit={handleAccess} className="flex gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="flex-1 bg-[#0F1115] border border-white/12 text-[#F5F7FA] px-4 py-3 text-sm focus:border-white/30 outline-none placeholder-[#F5F7FA]/30 transition-colors"
-                required
-              />
+          {/* ── Session active → Mon compte ── */}
+          {savedSession ? (
+            <div className="bg-[#181C23]/90 backdrop-blur-sm border border-white/10 p-6 mb-4">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <p className="text-[11px] tracking-[0.3em] uppercase text-[#6E5BFF]/80">
+                  Connecté
+                </p>
+              </div>
+              <p className="text-[#F5F7FA]/70 text-sm mb-1 font-medium">{savedSession.name}</p>
+              <p className="text-[#F5F7FA]/35 text-xs mb-5">{savedSession.email}</p>
               <button
-                type="submit"
-                disabled={loading}
-                className="px-5 py-3 text-white text-[11px] tracking-[0.2em] uppercase bg-[#6E5BFF] hover:bg-[#5B3DF5] transition-colors disabled:opacity-40 flex-shrink-0"
+                onClick={() => router.push(`/${savedSession.rp}/mon-espace`)}
+                className="w-full py-3.5 text-white text-[11px] tracking-[0.2em] uppercase bg-[#6E5BFF] hover:bg-[#5B3DF5] transition-colors mb-3"
               >
-                {loading ? '...' : '→'}
+                Mon compte →
               </button>
-            </form>
-            {error && (
-              <p className="text-red-400/70 text-xs mt-3 leading-relaxed">{error}</p>
-            )}
-            <p className="text-[#F5F7FA]/35 text-[11px] mt-3">
-              Enter the email used when your RP invited you
-            </p>
-          </div>
+              <button
+                onClick={() => {
+                  localStorage.removeItem('itinera_guest_email')
+                  localStorage.removeItem('itinera_guest_name')
+                  localStorage.removeItem('itinera_guest_rp')
+                  setSavedSession(null)
+                }}
+                className="text-[#F5F7FA]/25 text-[10px] hover:text-[#F5F7FA]/50 transition-colors"
+              >
+                Se déconnecter
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* ── Accès guest ── */}
+              <div className="bg-[#181C23]/90 backdrop-blur-sm border border-white/10 p-6 mb-4">
+                <p className="text-[10px] tracking-[0.4em] uppercase text-[#F5F7FA]/45 mb-4">
+                  Accéder à mon espace
+                </p>
+                <form onSubmit={handleAccess} className="flex gap-2">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="flex-1 bg-[#0F1115] border border-white/12 text-[#F5F7FA] px-4 py-3 text-sm focus:border-white/30 outline-none placeholder-[#F5F7FA]/30 transition-colors"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-5 py-3 text-white text-[11px] tracking-[0.2em] uppercase bg-[#6E5BFF] hover:bg-[#5B3DF5] transition-colors disabled:opacity-40 flex-shrink-0"
+                  >
+                    {loading ? '...' : '→'}
+                  </button>
+                </form>
+                {error && (
+                  <p className="text-red-400/70 text-xs mt-3 leading-relaxed">{error}</p>
+                )}
+                <p className="text-[#F5F7FA]/35 text-[11px] mt-3">
+                  Entrez l'email avec lequel votre RP vous a invité
+                </p>
+              </div>
 
-          {/* Message nouveaux guests */}
-          <div className="border border-white/8 p-5">
-            <p className="text-[#F5F7FA]/40 text-xs leading-relaxed">
-              Access is by invitation only.<br />
-              <span className="text-[#F5F7FA]/55">Contact your RP to request access to the network.</span>
-            </p>
-          </div>
+              {/* Message nouveaux guests */}
+              <div className="border border-white/8 p-5">
+                <p className="text-[#F5F7FA]/40 text-xs leading-relaxed">
+                  Accès sur invitation uniquement.<br />
+                  <span className="text-[#F5F7FA]/55">Contactez votre RP pour rejoindre le réseau.</span>
+                </p>
+              </div>
+            </>
+          )}
 
         </div>
       </section>

@@ -54,7 +54,7 @@ export function getRPDestinations(rp: RPProfile): Destination[] {
 
 // ── Établissements accessibles pour un RP ─────────────────
 // Si activated_venues est vide → tous les venues de ses destinations
-// Si activated_venues est renseigné → seulement ceux-là
+// Si activated_venues est renseigné → ceux-là + venues personnalisées (non dans data.ts)
 export function getRPEstablishments(rp: RPProfile): Establishment[] {
   const rpDests = rp.activated_destinations ?? []
   const rpVenues = rp.activated_venues ?? []
@@ -64,9 +64,26 @@ export function getRPEstablishments(rp: RPProfile): Establishment[] {
     ? establishments.filter(e => rpDests.includes(e.destination))
     : establishments
 
-  // Si le RP a spécifié des venues précises, on filtre encore
   if (rpVenues.length > 0) {
-    return byDest.filter(e => rpVenues.includes(e.name))
+    // Venues qui existent dans les données globales
+    const globalMatches = byDest.filter(e => rpVenues.includes(e.name))
+    // Venues personnalisées : noms dans activated_venues mais absents de data.ts
+    const globalNames = new Set(establishments.map(e => e.name))
+    const customNames = rpVenues.filter(name => !globalNames.has(name))
+    const primaryDest = rpDests[0] || 'custom'
+    const customEsts: Establishment[] = customNames.map(name => ({
+      slug: name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'),
+      destination: primaryDest,
+      name,
+      type: 'Restaurant' as const,
+      description: '',
+      shortDesc: name,
+      image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80',
+      priceRange: '€€€€' as const,
+      phone: '', email: '', address: '', openTime: '', closeTime: '',
+      tags: [],
+    }))
+    return [...globalMatches, ...customEsts]
   }
 
   return byDest
@@ -79,7 +96,9 @@ export function getRPEstablishmentOptions(rp: RPProfile) {
 
   return ests.map(e => ({
     value: e.name,
-    label: `${e.name} — ${rpDests.find(d => d.slug === e.destination)?.name ?? e.destination}`,
+    label: rpDests.find(d => d.slug === e.destination)
+      ? `${e.name} — ${rpDests.find(d => d.slug === e.destination)!.name}`
+      : e.name,
   }))
 }
 

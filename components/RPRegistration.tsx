@@ -179,7 +179,7 @@ export default function RPRegistration({ inviteCode }: { inviteCode: string }) {
           inviteCode: code || inviteCode,
           slug,
           displayName,
-          tagline: tagline || 'Votre accès privé aux meilleures tables',
+          tagline: tagline || 'Hospitality, Organized.',
           email,
           whatsapp,
           password,
@@ -345,7 +345,7 @@ export default function RPRegistration({ inviteCode }: { inviteCode: string }) {
                 value={tagline}
                 onChange={e => setTagline(e.target.value)}
                 className={inputClass}
-                placeholder="Votre accès privé aux meilleures tables"
+                placeholder="Hospitality, Organized."
               />
             </div>
 

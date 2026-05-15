@@ -24,12 +24,9 @@ export default async function RPBookPage({ params, searchParams }: Props) {
   return (
     <div className="min-h-screen bg-[#0B0B0B] pt-8 pb-20 px-6">
       {/* Mini nav */}
-      <div className="max-w-2xl mx-auto mb-10 flex items-center justify-between">
-        <Link href={`/${params.rp}`} className="text-[10px] tracking-[0.3em] text-[#F5F5F3]/30 uppercase hover:text-[#F5F5F3]/60 transition-colors">
+      <div className="max-w-2xl mx-auto mb-10">
+        <Link href={`/${params.rp}`} className="inline-flex items-center gap-2 text-[11px] tracking-[0.2em] text-[#F5F5F3]/55 uppercase hover:text-[#F5F5F3]/85 transition-colors border border-white/12 hover:border-white/25 px-4 py-2.5">
           ← {profile.display_name}
-        </Link>
-        <Link href={`/${params.rp}/trip`} className="text-[10px] tracking-[0.2em] uppercase text-[#5B3DF5]/60 hover:text-[#8B5CF6] transition-colors">
-          Planifier un voyage →
         </Link>
       </div>
 

@@ -61,7 +61,21 @@ function buildWhatsAppMessage(r: Reservation, profile: RPProfile): string {
   ].filter(l => l !== undefined).join('\n')
 }
 
-type MainView = 'list' | 'clients'
+type MainView = 'list' | 'clients' | 'config'
+
+// Toutes les destinations disponibles dans la plateforme
+const ALL_DESTINATIONS = [
+  { slug: 'saint-tropez', name: 'Saint-Tropez', emoji: '⛵' },
+  { slug: 'dubai', name: 'Dubai', emoji: '🏙️' },
+  { slug: 'miami', name: 'Miami', emoji: '🌴' },
+  { slug: 'cannes', name: 'Cannes', emoji: '🎬' },
+  { slug: 'monaco', name: 'Monaco', emoji: '🎰' },
+  { slug: 'courchevel', name: 'Courchevel', emoji: '⛷️' },
+  { slug: 'saint-barth', name: 'Saint-Barthélemy', emoji: '🌊' },
+  { slug: 'ibiza', name: 'Ibiza', emoji: '🎶' },
+  { slug: 'mykonos', name: 'Mykonos', emoji: '🏛️' },
+  { slug: 'maldives', name: 'Maldives', emoji: '🌺' },
+]
 
 export default function RPDashboard({ profile }: Props) {
   const [password, setPassword] = useState('')
@@ -96,6 +110,18 @@ export default function RPDashboard({ profile }: Props) {
   const [addClientLoading, setAddClientLoading] = useState(false)
   const [addClientSuccess, setAddClientSuccess] = useState('')
   const [addClientError, setAddClientError] = useState('')
+
+  // Configuration
+  const [configDests, setConfigDests] = useState<string[]>(profile.activated_destinations ?? [])
+  const [configVenues, setConfigVenues] = useState<string[]>(profile.activated_venues ?? [])
+  const [configTagline, setConfigTagline] = useState(profile.tagline || 'Hospitality, Organized.')
+  const [configAccent, setConfigAccent] = useState(profile.accent_color || '#5B3DF5')
+  const [configLogoText, setConfigLogoText] = useState(profile.logo_text || '')
+  const [configSaving, setConfigSaving] = useState(false)
+  const [configSaved, setConfigSaved] = useState(false)
+  const [configError, setConfigError] = useState('')
+  const [newVenueName, setNewVenueName] = useState('')
+  const [newVenueDest, setNewVenueDest] = useState('')
 
   const fetchReservations = useCallback(async () => {
     setLoading(true)
@@ -525,6 +551,236 @@ export default function RPDashboard({ profile }: Props) {
     }
   }
 
+  // ── SAVE CONFIG ───────────────────────────────────────────────
+  const saveConfig = async () => {
+    setConfigSaving(true)
+    setConfigError('')
+    try {
+      const res = await fetch(`/api/rp/${profile.slug}/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-rp-password': password },
+        body: JSON.stringify({
+          activated_destinations: configDests,
+          activated_venues: configVenues,
+          tagline: configTagline,
+          accent_color: configAccent,
+          logo_text: configLogoText,
+        }),
+      })
+      if (res.ok) {
+        setConfigSaved(true)
+        setTimeout(() => setConfigSaved(false), 3000)
+      } else {
+        const d = await res.json()
+        setConfigError(d.error || 'Erreur lors de la sauvegarde.')
+      }
+    } catch {
+      setConfigError('Erreur réseau.')
+    } finally {
+      setConfigSaving(false)
+    }
+  }
+
+  const toggleDest = (slug: string) => {
+    setConfigDests(prev =>
+      prev.includes(slug) ? prev.filter(d => d !== slug) : [...prev, slug]
+    )
+  }
+
+  const addCustomVenue = () => {
+    const name = newVenueName.trim()
+    if (!name || configVenues.includes(name)) return
+    setConfigVenues(prev => [...prev, name])
+    setNewVenueName('')
+  }
+
+  const removeVenue = (name: string) => {
+    setConfigVenues(prev => prev.filter(v => v !== name))
+  }
+
+  // ── VUE CONFIGURATION ─────────────────────────────────────────
+  if (mainView === 'config') {
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
+        <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4 flex items-center justify-between">
+          <div>
+            <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/40 uppercase">Configuration</p>
+            <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={saveConfig}
+              disabled={configSaving}
+              className="text-[10px] tracking-[0.2em] uppercase px-4 py-2 transition-colors disabled:opacity-40"
+              style={{ background: `linear-gradient(135deg, ${configAccent}, ${configAccent}bb)`, color: 'white' }}
+            >
+              {configSaving ? '...' : configSaved ? '✓ Sauvegardé' : 'Sauvegarder'}
+            </button>
+            <button
+              onClick={() => setMainView('list')}
+              className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/30 hover:text-[#F5F5F3]/60 transition-colors border border-white/5 hover:border-white/15 px-3 py-2"
+            >
+              ← Retour
+            </button>
+          </div>
+        </div>
+
+        {configError && (
+          <div className="mx-4 mt-4 border border-red-500/20 bg-red-500/5 text-red-400 text-sm px-4 py-3">
+            {configError}
+          </div>
+        )}
+
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-24">
+
+          {/* ── Profil ── */}
+          <div className="bg-[#141414] border border-white/5 p-5">
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-4">Profil public</p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[8px] tracking-wider text-[#F5F5F3]/30 uppercase mb-1.5">Tagline</label>
+                <input
+                  type="text"
+                  value={configTagline}
+                  onChange={e => setConfigTagline(e.target.value)}
+                  className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 transition-colors"
+                  placeholder="Hospitality, Organized."
+                />
+              </div>
+              <div>
+                <label className="block text-[8px] tracking-wider text-[#F5F5F3]/30 uppercase mb-1.5">Texte logo</label>
+                <input
+                  type="text"
+                  value={configLogoText}
+                  onChange={e => setConfigLogoText(e.target.value)}
+                  className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 transition-colors"
+                  placeholder="ÉLITE"
+                />
+              </div>
+              <div>
+                <label className="block text-[8px] tracking-wider text-[#F5F5F3]/30 uppercase mb-1.5">Couleur accent</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={configAccent}
+                    onChange={e => setConfigAccent(e.target.value)}
+                    className="w-12 h-10 cursor-pointer bg-transparent border-0 outline-none"
+                  />
+                  <span className="text-[#F5F5F3]/40 text-sm font-mono">{configAccent}</span>
+                  <div className="flex gap-2 ml-auto">
+                    {['#5B3DF5', '#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#C77DFF'].map(c => (
+                      <button key={c} onClick={() => setConfigAccent(c)}
+                        className="w-6 h-6 rounded-full border-2 transition-all"
+                        style={{ background: c, borderColor: configAccent === c ? 'white' : 'transparent' }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Destinations ── */}
+          <div className="bg-[#141414] border border-white/5 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">Destinations actives</p>
+              <span className="text-[10px] text-[#F5F5F3]/30">{configDests.length} sélectionnée{configDests.length > 1 ? 's' : ''}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {ALL_DESTINATIONS.map(dest => {
+                const active = configDests.includes(dest.slug)
+                return (
+                  <button
+                    key={dest.slug}
+                    onClick={() => toggleDest(dest.slug)}
+                    className={`flex items-center gap-3 p-3 border text-left transition-all ${
+                      active
+                        ? 'border-[#5B3DF5]/50 bg-[#5B3DF5]/8 text-[#F5F5F3]'
+                        : 'border-white/5 text-[#F5F5F3]/30 hover:border-white/15'
+                    }`}
+                  >
+                    <span className="text-lg">{dest.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{dest.name}</p>
+                    </div>
+                    <div className={`w-4 h-4 flex-shrink-0 border flex items-center justify-center ${
+                      active ? 'border-[#5B3DF5] bg-[#5B3DF5]' : 'border-white/15'
+                    }`}>
+                      {active && <span className="text-white text-[10px]">✓</span>}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-[#F5F5F3]/20 text-[10px] mt-3">
+              Si aucune destination n'est sélectionnée, toutes sont accessibles.
+            </p>
+          </div>
+
+          {/* ── Restaurants & Venues ── */}
+          <div className="bg-[#141414] border border-white/5 p-5">
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-1">Restaurants & venues personnalisés</p>
+            <p className="text-[#F5F5F3]/30 text-xs mb-4 leading-relaxed">
+              Ajoutez des adresses de votre choix. Si vide, tous les établissements de vos destinations sont proposés.
+            </p>
+
+            {/* Ajouter un venue */}
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={newVenueName}
+                onChange={e => setNewVenueName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomVenue() } }}
+                placeholder="Nom du restaurant ou venue…"
+                className="flex-1 bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 placeholder-[#F5F5F3]/20 transition-colors"
+              />
+              <button
+                onClick={addCustomVenue}
+                disabled={!newVenueName.trim()}
+                className="px-4 py-2.5 border border-[#5B3DF5]/40 text-[#5B3DF5]/70 text-[11px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/8 transition-colors disabled:opacity-30"
+              >
+                + Ajouter
+              </button>
+            </div>
+
+            {/* Liste venues actifs */}
+            {configVenues.length > 0 ? (
+              <div className="space-y-1.5">
+                {configVenues.map(name => (
+                  <div key={name} className="flex items-center gap-3 bg-[#0B0B0B] border border-white/5 px-3 py-2.5">
+                    <span className="text-[#F5F5F3]/70 text-sm flex-1 truncate">{name}</span>
+                    <button
+                      onClick={() => removeVenue(name)}
+                      className="text-[#F5F5F3]/20 hover:text-red-400/60 transition-colors text-lg flex-shrink-0"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[#F5F5F3]/20 text-xs italic text-center py-4">
+                Aucune venue spécifique — tous les établissements de vos destinations sont affichés.
+              </p>
+            )}
+          </div>
+
+          {/* Save button */}
+          <button
+            onClick={saveConfig}
+            disabled={configSaving}
+            className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase hover:opacity-90 transition-opacity disabled:opacity-40"
+            style={{ background: `linear-gradient(135deg, ${configAccent}, ${configAccent}bb)` }}
+          >
+            {configSaving ? 'Sauvegarde en cours...' : configSaved ? '✓ Configuration sauvegardée' : 'Sauvegarder la configuration'}
+          </button>
+
+        </div>
+      </div>
+    )
+  }
+
   // ── VUE CLIENTS ───────────────────────────────────────────────
   if (mainView === 'clients') {
     return (
@@ -658,6 +914,12 @@ export default function RPDashboard({ profile }: Props) {
           <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setMainView('config')}
+            className="text-[10px] tracking-[0.2em] uppercase text-[#5B3DF5]/50 hover:text-[#5B3DF5]/80 transition-colors border border-[#5B3DF5]/15 hover:border-[#5B3DF5]/40 px-3 py-2"
+          >
+            ⚙ Config
+          </button>
           <button
             onClick={() => setMainView('clients')}
             className="text-[10px] tracking-[0.2em] uppercase text-amber-400/40 hover:text-amber-400/70 transition-colors border border-amber-500/10 hover:border-amber-500/30 px-3 py-2"

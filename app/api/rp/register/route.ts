@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
       .insert({
         slug,
         display_name: displayName,
-        tagline: tagline || 'Votre accès privé aux meilleures tables',
+        tagline: tagline || 'Hospitality, Organized.',
         email,
         whatsapp: whatsapp?.replace(/[^0-9]/g, '') || '',
         dashboard_password: password,
