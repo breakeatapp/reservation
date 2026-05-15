@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { RPProfile, Reservation, ReservationStatus, RPClientNote } from '@/lib/supabase'
+import { parseVenueEntry, serializeVenueEntry, ALL_SERVICES } from '@/lib/venue-utils'
 
 type Props = { profile: RPProfile }
 
@@ -122,6 +123,8 @@ export default function RPDashboard({ profile }: Props) {
   const [configError, setConfigError] = useState('')
   const [newVenueName, setNewVenueName] = useState('')
   const [newVenueDest, setNewVenueDest] = useState('')
+  const [newVenueServices, setNewVenueServices] = useState<string[]>([])
+  const [showServicePicker, setShowServicePicker] = useState(false)
 
   const fetchReservations = useCallback(async () => {
     setLoading(true)
@@ -589,13 +592,29 @@ export default function RPDashboard({ profile }: Props) {
 
   const addCustomVenue = () => {
     const name = newVenueName.trim()
-    if (!name || configVenues.includes(name)) return
-    setConfigVenues(prev => [...prev, name])
+    if (!name) return
+    const existing = configVenues.map(parseVenueEntry)
+    if (existing.some(v => v.name === name)) return
+    const serialized = serializeVenueEntry({
+      name,
+      destination: newVenueDest || undefined,
+      services: newVenueServices.length > 0 ? newVenueServices : undefined,
+    })
+    setConfigVenues(prev => [...prev, serialized])
     setNewVenueName('')
+    setNewVenueDest('')
+    setNewVenueServices([])
+    setShowServicePicker(false)
   }
 
-  const removeVenue = (name: string) => {
-    setConfigVenues(prev => prev.filter(v => v !== name))
+  const removeVenue = (raw: string) => {
+    setConfigVenues(prev => prev.filter(v => v !== raw))
+  }
+
+  const toggleNewVenueService = (s: string) => {
+    setNewVenueServices(prev =>
+      prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+    )
   }
 
   // ── VUE CONFIGURATION ─────────────────────────────────────────
@@ -721,43 +740,130 @@ export default function RPDashboard({ profile }: Props) {
           {/* ── Restaurants & Venues ── */}
           <div className="bg-[#141414] border border-white/5 p-5">
             <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-1">Restaurants & venues personnalisés</p>
-            <p className="text-[#F5F5F3]/30 text-xs mb-4 leading-relaxed">
-              Ajoutez des adresses de votre choix. Si vide, tous les établissements de vos destinations sont proposés.
+            <p className="text-[#F5F5F3]/30 text-xs mb-5 leading-relaxed">
+              Ajoutez des adresses de votre choix avec leurs créneaux. Si vide, tous les établissements de vos destinations sont proposés.
             </p>
 
-            {/* Ajouter un venue */}
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                value={newVenueName}
-                onChange={e => setNewVenueName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomVenue() } }}
-                placeholder="Nom du restaurant ou venue…"
-                className="flex-1 bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 placeholder-[#F5F5F3]/20 transition-colors"
-              />
+            {/* ── Formulaire ajout venue ── */}
+            <div className="bg-[#0B0B0B] border border-white/8 p-4 mb-4 space-y-3">
+              {/* Ligne 1 : ville + nom */}
+              <div className="flex gap-2">
+                <select
+                  value={newVenueDest}
+                  onChange={e => setNewVenueDest(e.target.value)}
+                  className="bg-[#141414] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 transition-colors w-44 flex-shrink-0"
+                >
+                  <option value="" className="bg-[#141414]">Ville…</option>
+                  {configDests.length > 0
+                    ? configDests.map(slug => {
+                        const d = (['saint-tropez','dubai','miami','cannes','monaco','courchevel','saint-barth','ibiza','mykonos','maldives'] as const)
+                        return (
+                          <option key={slug} value={slug} className="bg-[#141414]">
+                            {slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' ')}
+                          </option>
+                        )
+                      })
+                    : <option value="" disabled className="bg-[#141414]">Activez d'abord des destinations</option>
+                  }
+                </select>
+                <input
+                  type="text"
+                  value={newVenueName}
+                  onChange={e => setNewVenueName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomVenue() } }}
+                  placeholder="Nom du restaurant ou venue…"
+                  className="flex-1 bg-[#141414] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 placeholder-[#F5F5F3]/20 transition-colors"
+                />
+              </div>
+
+              {/* Ligne 2 : créneaux */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowServicePicker(p => !p)}
+                  className="text-[10px] tracking-[0.2em] uppercase text-[#5B3DF5]/60 hover:text-[#5B3DF5] transition-colors flex items-center gap-2"
+                >
+                  <span>{showServicePicker ? '▾' : '▸'}</span>
+                  Configurer les créneaux
+                  {newVenueServices.length > 0 && (
+                    <span className="bg-[#5B3DF5]/20 text-[#5B3DF5]/80 text-[9px] px-2 py-0.5 rounded-full">
+                      {newVenueServices.length} sélectionné{newVenueServices.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </button>
+
+                {showServicePicker && (
+                  <div className="mt-3 grid grid-cols-1 gap-1.5">
+                    <p className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/20 mb-1">
+                      Laisser vide = tous les créneaux proposés
+                    </p>
+                    {ALL_SERVICES.map(s => (
+                      <label key={s} className="flex items-center gap-3 cursor-pointer group">
+                        <div
+                          onClick={() => toggleNewVenueService(s)}
+                          className={`w-4 h-4 border flex items-center justify-center flex-shrink-0 transition-all cursor-pointer ${
+                            newVenueServices.includes(s)
+                              ? 'border-[#5B3DF5] bg-[#5B3DF5]/20'
+                              : 'border-white/15 hover:border-white/30'
+                          }`}
+                        >
+                          {newVenueServices.includes(s) && (
+                            <svg className="w-2.5 h-2.5 text-[#5B3DF5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                        <span
+                          onClick={() => toggleNewVenueService(s)}
+                          className={`text-xs transition-colors ${newVenueServices.includes(s) ? 'text-[#F5F5F3]/80' : 'text-[#F5F5F3]/35 group-hover:text-[#F5F5F3]/55'}`}
+                        >
+                          {s}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Bouton ajouter */}
               <button
                 onClick={addCustomVenue}
                 disabled={!newVenueName.trim()}
-                className="px-4 py-2.5 border border-[#5B3DF5]/40 text-[#5B3DF5]/70 text-[11px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/8 transition-colors disabled:opacity-30"
+                className="w-full py-2.5 border border-[#5B3DF5]/40 text-[#5B3DF5]/70 text-[11px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/8 transition-colors disabled:opacity-30"
               >
-                + Ajouter
+                + Ajouter à ma liste
               </button>
             </div>
 
-            {/* Liste venues actifs */}
+            {/* ── Liste venues actifs ── */}
             {configVenues.length > 0 ? (
               <div className="space-y-1.5">
-                {configVenues.map(name => (
-                  <div key={name} className="flex items-center gap-3 bg-[#0B0B0B] border border-white/5 px-3 py-2.5">
-                    <span className="text-[#F5F5F3]/70 text-sm flex-1 truncate">{name}</span>
-                    <button
-                      onClick={() => removeVenue(name)}
-                      className="text-[#F5F5F3]/20 hover:text-red-400/60 transition-colors text-lg flex-shrink-0"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+                {configVenues.map((raw, idx) => {
+                  const vc = parseVenueEntry(raw)
+                  return (
+                    <div key={idx} className="flex items-center gap-3 bg-[#0B0B0B] border border-white/5 px-3 py-2.5">
+                      {vc.destination && (
+                        <span className="text-[9px] tracking-[0.15em] uppercase text-[#5B3DF5]/50 flex-shrink-0 hidden sm:block">
+                          {vc.destination.replace(/-/g, ' ')}
+                        </span>
+                      )}
+                      <span className="text-[#F5F5F3]/70 text-sm flex-1 truncate">{vc.name}</span>
+                      {vc.services && vc.services.length > 0 ? (
+                        <span className="text-[9px] text-[#F5F5F3]/25 flex-shrink-0">
+                          {vc.services.length} créneau{vc.services.length > 1 ? 'x' : ''}
+                        </span>
+                      ) : (
+                        <span className="text-[9px] text-[#F5F5F3]/15 flex-shrink-0">tous</span>
+                      )}
+                      <button
+                        onClick={() => removeVenue(raw)}
+                        className="text-[#F5F5F3]/20 hover:text-red-400/60 transition-colors text-lg flex-shrink-0 ml-1"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <p className="text-[#F5F5F3]/20 text-xs italic text-center py-4">

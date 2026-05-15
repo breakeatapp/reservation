@@ -23,6 +23,7 @@ export type Establishment = {
   openTime: string
   closeTime: string
   tags: string[]
+  services?: string[]   // créneaux personnalisés (undefined = tous les créneaux par défaut)
 }
 
 export const destinations: Destination[] = [

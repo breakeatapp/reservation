@@ -1,6 +1,7 @@
 import { RPProfile } from './supabase'
 import { supabaseAdmin as supabase } from './supabase-admin'
 import { establishments, destinations, type Establishment, type Destination } from './data'
+import { parseVenueEntry } from './venue-utils'
 
 // ── Profils RP codés en dur (fallback si Supabase pas encore configuré)
 // Ajouter un RP ici suffit pour le faire fonctionner sans base de données
@@ -85,28 +86,55 @@ export function getRPEstablishments(rp: RPProfile): Establishment[] {
     : establishments
 
   if (rpVenues.length > 0) {
-    // Venues qui existent dans les données globales
-    const globalMatches = byDest.filter(e => rpVenues.includes(e.name))
-    // Venues personnalisées : noms dans activated_venues mais absents de data.ts
+    // Parser toutes les entrées (JSON ou plain string)
+    const venueConfigs = rpVenues.map(parseVenueEntry)
+    const venueNames = venueConfigs.map(v => v.name)
+
+    // Venues qui existent dans les données globales (on enrichit avec services si configurés)
     const globalNames = new Set(establishments.map(e => e.name))
-    const customNames = rpVenues.filter(name => !globalNames.has(name))
+    const globalMatches = byDest
+      .filter(e => venueNames.includes(e.name))
+      .map(e => {
+        const cfg = venueConfigs.find(v => v.name === e.name)
+        return cfg?.services && cfg.services.length > 0
+          ? { ...e, services: cfg.services }
+          : e
+      })
+
+    // Venues personnalisées : noms non présents dans data.ts
+    const customConfigs = venueConfigs.filter(v => !globalNames.has(v.name))
     const primaryDest = rpDests[0] || 'custom'
-    const customEsts: Establishment[] = customNames.map(name => ({
-      slug: name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'),
-      destination: primaryDest,
-      name,
+    const customEsts: Establishment[] = customConfigs.map(v => ({
+      slug: v.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'),
+      destination: v.destination || primaryDest,
+      name: v.name,
       type: 'Restaurant' as const,
       description: '',
-      shortDesc: name,
+      shortDesc: v.name,
       image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800&q=80',
       priceRange: '€€€€' as const,
       phone: '', email: '', address: '', openTime: '', closeTime: '',
       tags: [],
+      services: v.services && v.services.length > 0 ? v.services : undefined,
     }))
+
     return [...globalMatches, ...customEsts]
   }
 
   return byDest
+}
+
+// ── Map venue → créneaux personnalisés ────────────────────
+// Retourne un objet { [venueName]: string[] } pour les venues avec créneaux configurés
+export function getRPVenueServices(rp: RPProfile): Record<string, string[]> {
+  const map: Record<string, string[]> = {}
+  for (const raw of rp.activated_venues ?? []) {
+    const vc = parseVenueEntry(raw)
+    if (vc.services && vc.services.length > 0) {
+      map[vc.name] = vc.services
+    }
+  }
+  return map
 }
 
 // ── Options pour le formulaire de réservation ─────────────

@@ -34,6 +34,7 @@ type Props = {
     email?: string
     accent_color?: string
   }
+  venueServices?: Record<string, string[]>   // créneaux personnalisés par venue
 }
 
 const inputClass = `w-full bg-[#141414] border border-white/8 text-[#F5F5F3] placeholder-[#F5F5F3]/15 px-4 py-3.5 text-sm focus:border-white/30 outline-none transition-colors duration-200`
@@ -64,7 +65,7 @@ const SERVICES = [
 const OCCASIONS = ['Anniversaire', 'Romantique', 'Dîner d\'affaires', 'Célébration', 'Soirée VIP', 'Fête', 'Autre']
 const SEATINGS = ['Terrasse', 'Table coucher de soleil', 'Premier rang', 'Table DJ', 'Vue mer', 'Privé / Semi-privé', 'Sans préférence']
 
-export default function RPReservationForm({ estOptions, defaultVenue, rpSlug, rpProfile }: Props) {
+export default function RPReservationForm({ estOptions, defaultVenue, rpSlug, rpProfile, venueServices }: Props) {
   const accent = rpProfile?.accent_color || '#5B3DF5'
   const [accessStep, setAccessStep] = useState<AccessStep>('check')
   const [accessEmail, setAccessEmail] = useState('')
@@ -72,10 +73,17 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug, rp
   const [checkLoading, setCheckLoading] = useState(false)
   const [status, setStatus] = useState<Status>('idle')
 
-  const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { establishment: defaultVenue || '', guests: '2' },
   })
+
+  // Créneaux actifs : personnalisés si configurés pour ce venue, sinon tous par défaut
+  const watchedEst = watch('establishment')
+  const activeServices: string[] | null =
+    venueServices && watchedEst && venueServices[watchedEst]
+      ? venueServices[watchedEst]
+      : null
 
   useEffect(() => {
     if (defaultVenue) setValue('establishment', defaultVenue)
@@ -102,6 +110,11 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug, rp
   useEffect(() => {
     if (accessEmail) setValue('email', accessEmail)
   }, [accessEmail, setValue])
+
+  // Réinitialiser le créneau quand l'établissement change
+  useEffect(() => {
+    setValue('time', '')
+  }, [watchedEst, setValue])
 
   // ── Vérification de l'accès ────────────────────────────────
   const handleCheckAccess = async (e: React.FormEvent) => {
@@ -347,13 +360,21 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug, rp
               <label className={labelClass}>Service *</label>
               <select {...register('time')} className={`${inputClass} cursor-pointer`}>
                 <option value="" disabled className="bg-[#141414]">Choisir...</option>
-                {SERVICES.map(group => (
-                  <optgroup key={group.group} label={`─ ${group.group}`}>
-                    {group.options.map(s => (
-                      <option key={s.value} value={s.value} className="bg-[#141414]">{s.label}</option>
-                    ))}
-                  </optgroup>
-                ))}
+                {activeServices ? (
+                  // Créneaux personnalisés pour cet établissement
+                  activeServices.map(s => (
+                    <option key={s} value={s} className="bg-[#141414]">{s}</option>
+                  ))
+                ) : (
+                  // Tous les créneaux par défaut (groupés)
+                  SERVICES.map(group => (
+                    <optgroup key={group.group} label={`─ ${group.group}`}>
+                      {group.options.map(s => (
+                        <option key={s.value} value={s.value} className="bg-[#141414]">{s.label}</option>
+                      ))}
+                    </optgroup>
+                  ))
+                )}
               </select>
               {errors.time && <p className={errorClass}>{errors.time.message}</p>}
             </div>
