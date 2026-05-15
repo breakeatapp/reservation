@@ -25,7 +25,12 @@ export const RESTAURANT_SERVICES = [
 export const BEACH_CLUB_SERVICES = [
   'Matelas journée',
   'Ouverture (11h00)',
+  'Déjeuner — 1er service (12h30)',
+  'Déjeuner — 1er service (13h30)',
+  'Déjeuner — 2ème service (15h30)',
   'Sunset (17h00)',
+  'Dîner — 1er service (17h30)',
+  'Dîner — 2ème service (20h00)',
 ]
 
 export const NIGHT_CLUB_SERVICES = [
