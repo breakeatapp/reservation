@@ -19,7 +19,6 @@ const schema = z.object({
   guests: z.string().min(1, 'Nombre requis'),
   occasion: z.string().optional(),
   seating: z.string().optional(),
-  nationality: z.string().optional(),
   specialRequests: z.string().optional(),
 })
 
@@ -511,24 +510,6 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
                 {SEATINGS.map(s => <option key={s} value={s} className="bg-[#141414]">{s}</option>)}
               </select>
             </div>
-          </div>
-          <div className="mt-4">
-            <label className={labelClass}>Nationalité</label>
-            <select {...register('nationality')} className={`${inputClass} cursor-pointer`}>
-              <option value="" className="bg-[#141414]">— Non précisé</option>
-              <option value="🇺🇸 États-Unis" className="bg-[#141414]">🇺🇸 États-Unis</option>
-              <option value="🇦🇪 Émirats Arabes Unis" className="bg-[#141414]">🇦🇪 Émirats Arabes Unis</option>
-              <option value="🇫🇷 France" className="bg-[#141414]">🇫🇷 France</option>
-              <option value="🇨🇭 Suisse" className="bg-[#141414]">🇨🇭 Suisse</option>
-              <option value="🇲🇽 Mexique" className="bg-[#141414]">🇲🇽 Mexique</option>
-              <option value="🇧🇷 Brésil" className="bg-[#141414]">🇧🇷 Brésil</option>
-              <option value="🇸🇦 Arabie Saoudite" className="bg-[#141414]">🇸🇦 Arabie Saoudite</option>
-              <option value="🇮🇳 Inde" className="bg-[#141414]">🇮🇳 Inde</option>
-              <option value="🇬🇧 Royaume-Uni" className="bg-[#141414]">🇬🇧 Royaume-Uni</option>
-              <option value="🇷🇺 Russie" className="bg-[#141414]">🇷🇺 Russie</option>
-              <option value="🇮🇹 Italie" className="bg-[#141414]">🇮🇹 Italie</option>
-              <option value="🇩🇪 Allemagne" className="bg-[#141414]">🇩🇪 Allemagne</option>
-            </select>
           </div>
         </div>
 

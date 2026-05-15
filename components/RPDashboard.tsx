@@ -83,6 +83,45 @@ type DayPlan = {
   bookings: BookingSlot[]
 }
 
+const NATIONALITIES = [
+  { flag: '🇫🇷', label: 'France' },
+  { flag: '🇺🇸', label: 'États-Unis' },
+  { flag: '🇦🇪', label: 'Émirats' },
+  { flag: '🇸🇦', label: 'Arabie Saoudite' },
+  { flag: '🇨🇭', label: 'Suisse' },
+  { flag: '🇬🇧', label: 'Royaume-Uni' },
+  { flag: '🇷🇺', label: 'Russie' },
+  { flag: '🇮🇳', label: 'Inde' },
+  { flag: '🇧🇷', label: 'Brésil' },
+  { flag: '🇲🇽', label: 'Mexique' },
+  { flag: '🇮🇹', label: 'Italie' },
+  { flag: '🇩🇪', label: 'Allemagne' },
+]
+
+const PRODUCT_TAGS = ['Dom Pérignon', 'Cristal', 'Krug', 'Beluga', 'Caviar', 'Homard', 'Vin Prestige']
+
+/** Parse internal_note: either plain text or JSON {note, nationality, products} */
+function parseClientProfile(raw: string): { note: string; nationality: string; products: string[] } {
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object') {
+      return {
+        note: parsed.note ?? '',
+        nationality: parsed.nationality ?? '',
+        products: Array.isArray(parsed.products) ? parsed.products : [],
+      }
+    }
+  } catch { /* plain text */ }
+  return { note: raw ?? '', nationality: '', products: [] }
+}
+
+/** Serialize to JSON only if there's extra data, otherwise plain text */
+function serializeClientProfile(note: string, nationality: string, products: string[]): string {
+  const hasExtra = nationality || products.length > 0
+  if (!hasExtra) return note
+  return JSON.stringify({ note, nationality, products })
+}
+
 const DAYS_FR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
 const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
 
@@ -148,6 +187,14 @@ export default function RPDashboard({ profile }: Props) {
   // Clients list
   const [clients, setClients] = useState<RPClientNote[]>([])
   const [loadingClients, setLoadingClients] = useState(false)
+
+  // Client profile editing (inline in clients view)
+  const [editingClientEmail, setEditingClientEmail] = useState<string | null>(null)
+  const [editClientVip, setEditClientVip] = useState('')
+  const [editClientNat, setEditClientNat] = useState('')
+  const [editClientProducts, setEditClientProducts] = useState<string[]>([])
+  const [editClientNote, setEditClientNote] = useState('')
+  const [savingClientProfile, setSavingClientProfile] = useState(false)
 
   // Ajout client
   const [addClientOpen, setAddClientOpen] = useState(false)
@@ -697,6 +744,31 @@ export default function RPDashboard({ profile }: Props) {
         </div>
       </div>
     )
+  }
+
+  // ── Sauvegarder le profil d'un client ────────────────────────
+  const saveClientProfile = async (c: RPClientNote) => {
+    setSavingClientProfile(true)
+    try {
+      const serializedNote = serializeClientProfile(editClientNote, editClientNat, editClientProducts)
+      const res = await fetch(`/api/rp/${profile.slug}/clients`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-rp-password': password },
+        body: JSON.stringify({
+          clientEmail: c.client_email,
+          clientName: c.client_name,
+          vipTag: editClientVip,
+          internalNote: serializedNote,
+          sendWelcome: false,
+        }),
+      })
+      if (res.ok) {
+        await res.json()
+        setClients(prev => prev.map(cl => cl.client_email === c.client_email ? { ...cl, vip_tag: editClientVip, internal_note: serializedNote } : cl))
+        setEditingClientEmail(null)
+      }
+    } catch { /* ignore */ }
+    finally { setSavingClientProfile(false) }
   }
 
   // ── Ajouter un client ─────────────────────────────────────────
@@ -1337,26 +1409,167 @@ export default function RPDashboard({ profile }: Props) {
             <div className="divide-y divide-white/5">
               {clients.map(c => {
                 const vipColor = VIP_COLORS[c.vip_tag] || 'text-[#F5F5F3]/20'
+                const isEditing = editingClientEmail === c.client_email
+                const profile_ = parseClientProfile(c.internal_note || '')
+                const displayNote = profile_.note
+
                 return (
-                  <div key={c.id} className="px-4 py-4">
-                    <div className="flex items-start justify-between gap-3 mb-1">
-                      <p className="text-[#F5F5F3] text-sm font-medium">{c.client_name || c.client_email}</p>
-                      {c.vip_tag && (
-                        <span className={`text-[9px] tracking-[0.2em] uppercase font-medium flex-shrink-0 ${vipColor}`}>
-                          ✦ {c.vip_tag}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[#F5F5F3]/30 text-xs mb-1">{c.client_email}</p>
-                    <div className="flex items-center gap-3 text-[#F5F5F3]/20 text-[10px]">
-                      <span>{c.total_resas ?? 0} résa{(c.total_resas ?? 0) > 1 ? 's' : ''}</span>
-                      {c.internal_note && (
-                        <>
-                          <span>·</span>
-                          <span className="truncate max-w-[180px] italic">"{c.internal_note}"</span>
-                        </>
-                      )}
-                    </div>
+                  <div key={c.id} className="border-b border-white/5 last:border-0">
+                    {/* ── Row ── */}
+                    <button
+                      onClick={() => {
+                        if (isEditing) {
+                          setEditingClientEmail(null)
+                        } else {
+                          const p = parseClientProfile(c.internal_note || '')
+                          setEditingClientEmail(c.client_email)
+                          setEditClientVip(c.vip_tag || '')
+                          setEditClientNat(p.nationality || '')
+                          setEditClientProducts(p.products || [])
+                          setEditClientNote(p.note || '')
+                        }
+                      }}
+                      className="w-full text-left px-4 py-4 hover:bg-white/3 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-3 mb-1">
+                        <p className="text-[#F5F5F3] text-sm font-medium">{c.client_name || c.client_email}</p>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {c.vip_tag && (
+                            <span className={`text-[9px] tracking-[0.2em] uppercase font-medium ${vipColor}`}>
+                              ✦ {c.vip_tag}
+                            </span>
+                          )}
+                          <span className="text-[#F5F5F3]/20 text-xs">{isEditing ? '▲' : '▼'}</span>
+                        </div>
+                      </div>
+                      <p className="text-[#F5F5F3]/30 text-xs mb-1">{c.client_email}</p>
+                      <div className="flex items-center gap-3 text-[#F5F5F3]/20 text-[10px]">
+                        <span>{c.total_resas ?? 0} résa{(c.total_resas ?? 0) > 1 ? 's' : ''}</span>
+                        {profile_.nationality && (
+                          <>
+                            <span>·</span>
+                            <span>{profile_.nationality.split(' ')[0]}</span>
+                          </>
+                        )}
+                        {profile_.products.length > 0 && (
+                          <>
+                            <span>·</span>
+                            <span className="truncate max-w-[140px]">{profile_.products.join(', ')}</span>
+                          </>
+                        )}
+                        {displayNote && !profile_.nationality && profile_.products.length === 0 && (
+                          <>
+                            <span>·</span>
+                            <span className="truncate max-w-[180px] italic">"{displayNote}"</span>
+                          </>
+                        )}
+                      </div>
+                    </button>
+
+                    {/* ── Edit panel (accordion) ── */}
+                    {isEditing && (
+                      <div className="bg-[#0D0D0D] border-t border-white/5 px-4 py-5 space-y-5">
+
+                        {/* VIP Level */}
+                        <div>
+                          <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F5F3]/25 mb-3">Niveau client</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {VIP_TAGS.map(tag => (
+                              <button
+                                key={tag || 'none'}
+                                onClick={() => setEditClientVip(editClientVip === tag ? '' : tag)}
+                                className={`px-2.5 py-1 text-[9px] tracking-[0.15em] uppercase border transition-all ${
+                                  editClientVip === tag
+                                    ? `border-current ${VIP_COLORS[tag] || 'text-[#F5F5F3]/40'} bg-white/8`
+                                    : 'border-white/8 text-[#F5F5F3]/25 hover:border-white/20'
+                                }`}
+                              >
+                                {tag || '— Aucun'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Nationality */}
+                        <div>
+                          <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F5F3]/25 mb-3">Nationalité</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {NATIONALITIES.map(n => {
+                              const val = `${n.flag} ${n.label}`
+                              const active = editClientNat === val
+                              return (
+                                <button
+                                  key={n.label}
+                                  onClick={() => setEditClientNat(active ? '' : val)}
+                                  className={`px-3 py-1.5 text-sm border transition-all ${
+                                    active
+                                      ? 'border-[#5B3DF5]/60 bg-[#5B3DF5]/15 text-[#F5F5F3]'
+                                      : 'border-white/8 text-[#F5F5F3]/50 hover:border-white/20'
+                                  }`}
+                                  title={n.label}
+                                >
+                                  {n.flag} <span className="text-[10px] ml-1">{n.label}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Product Tags */}
+                        <div>
+                          <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F5F3]/25 mb-3">Préférences produits</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {PRODUCT_TAGS.map(tag => {
+                              const active = editClientProducts.includes(tag)
+                              return (
+                                <button
+                                  key={tag}
+                                  onClick={() => setEditClientProducts(prev =>
+                                    active ? prev.filter(t => t !== tag) : [...prev, tag]
+                                  )}
+                                  className={`px-2.5 py-1 text-[9px] tracking-[0.1em] border transition-all ${
+                                    active
+                                      ? 'border-amber-400/50 bg-amber-400/10 text-amber-300'
+                                      : 'border-white/8 text-[#F5F5F3]/30 hover:border-white/20'
+                                  }`}
+                                >
+                                  {active ? '✦ ' : ''}{tag}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Internal note */}
+                        <div>
+                          <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F5F3]/25 mb-2">Note interne</p>
+                          <textarea
+                            value={editClientNote}
+                            onChange={e => setEditClientNote(e.target.value)}
+                            rows={2}
+                            placeholder="Informations privées sur ce client..."
+                            className="w-full bg-[#0B0B0B] border border-white/8 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/20 transition-colors resize-none placeholder-[#F5F5F3]/15"
+                          />
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            onClick={() => setEditingClientEmail(null)}
+                            className="flex-1 py-2.5 border border-white/8 text-[#F5F5F3]/30 text-[10px] tracking-[0.2em] uppercase hover:border-white/15 transition-colors"
+                          >
+                            Annuler
+                          </button>
+                          <button
+                            onClick={() => saveClientProfile(c)}
+                            disabled={savingClientProfile}
+                            className="flex-1 py-2.5 bg-[#5B3DF5]/20 border border-[#5B3DF5]/40 text-[#A78BFA] text-[10px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/30 transition-colors disabled:opacity-40"
+                          >
+                            {savingClientProfile ? '...' : 'Sauvegarder'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -2042,7 +2255,7 @@ export default function RPDashboard({ profile }: Props) {
             }}
             className="text-[10px] tracking-[0.2em] uppercase text-white/80 hover:text-white transition-colors border border-white/20 hover:border-white/50 px-3 py-2"
           >
-            Réserver un guest
+            Réserver pour un guest
           </button>
           <button
             onClick={() => setMainView('config')}
