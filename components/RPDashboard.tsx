@@ -128,6 +128,10 @@ export default function RPDashboard({ profile }: Props) {
   // Villes personnalisées
   const [newCityName, setNewCityName] = useState('')
   const [newCityCountry, setNewCityCountry] = useState('')
+  // Zone dangereuse
+  const [dangerConfirm, setDangerConfirm] = useState<'reservations' | 'account' | null>(null)
+  const [dangerLoading, setDangerLoading] = useState(false)
+  const [dangerDone, setDangerDone] = useState('')
 
   const fetchReservations = useCallback(async () => {
     setLoading(true)
@@ -969,6 +973,82 @@ export default function RPDashboard({ profile }: Props) {
           >
             {configSaving ? 'Sauvegarde en cours...' : configSaved ? '✓ Configuration sauvegardée' : 'Sauvegarder la configuration'}
           </button>
+
+          {/* ── Zone dangereuse ── */}
+          <div className="mt-10 border border-red-500/15 bg-red-500/5 p-5">
+            <p className="text-[9px] tracking-[0.4em] uppercase text-red-400/50 mb-1">Zone dangereuse</p>
+            <p className="text-[#F5F5F3]/25 text-xs mb-5 leading-relaxed">
+              Ces actions sont irréversibles. Utilisez uniquement pour repartir de zéro lors de tests.
+            </p>
+
+            {dangerDone ? (
+              <div className="text-center py-4 text-green-400/70 text-xs tracking-wide">
+                ✓ {dangerDone}
+              </div>
+            ) : dangerConfirm === null ? (
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setDangerConfirm('reservations')}
+                  className="flex-1 py-2.5 border border-red-500/20 text-red-400/50 text-[10px] tracking-[0.2em] uppercase hover:bg-red-500/8 hover:border-red-500/40 hover:text-red-400/80 transition-all"
+                >
+                  Effacer toutes mes réservations
+                </button>
+                <button
+                  onClick={() => setDangerConfirm('account')}
+                  className="flex-1 py-2.5 border border-red-500/30 text-red-400/60 text-[10px] tracking-[0.2em] uppercase hover:bg-red-500/12 hover:border-red-500/60 hover:text-red-400 transition-all"
+                >
+                  Supprimer mon compte complet
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-red-300/80 text-sm text-center">
+                  {dangerConfirm === 'reservations'
+                    ? 'Toutes vos réservations seront supprimées définitivement.'
+                    : 'Votre compte et toutes vos données seront supprimés. Vous retournerez en mode démo.'}
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDangerConfirm(null)}
+                    disabled={dangerLoading}
+                    className="flex-1 py-2.5 border border-white/10 text-[#F5F5F3]/30 text-[10px] tracking-[0.2em] uppercase hover:border-white/20 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    disabled={dangerLoading}
+                    onClick={async () => {
+                      setDangerLoading(true)
+                      try {
+                        const res = await fetch(`/api/rp/${profile.slug}/config`, {
+                          method: 'DELETE',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'x-rp-password': password,
+                          },
+                          body: JSON.stringify({ deleteProfile: dangerConfirm === 'account' }),
+                        })
+                        if (res.ok) {
+                          if (dangerConfirm === 'account') {
+                            setDangerDone('Compte supprimé. Rechargez la page.')
+                          } else {
+                            setDangerDone('Réservations effacées avec succès.')
+                            setDangerConfirm(null)
+                            setTimeout(() => { setDangerDone('') }, 4000)
+                          }
+                        }
+                      } finally {
+                        setDangerLoading(false)
+                      }
+                    }}
+                    className="flex-1 py-2.5 bg-red-600/20 border border-red-500/50 text-red-300 text-[10px] tracking-[0.2em] uppercase hover:bg-red-600/30 transition-colors disabled:opacity-40"
+                  >
+                    {dangerLoading ? 'Suppression...' : '⚠ Confirmer la suppression'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
         </div>
       </div>

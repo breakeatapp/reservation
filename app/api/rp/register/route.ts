@@ -4,13 +4,10 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 // Alias pour lisibilité
 const supabase = supabaseAdmin
 
-const INVITE_CODE = process.env.RP_INVITE_CODE || 'ELITE2024'
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const {
-      inviteCode,
       slug,
       displayName,
       tagline,
@@ -22,11 +19,6 @@ export async function POST(req: NextRequest) {
       logoText,
       accentColor,
     } = body
-
-    // Vérifier le code d'invitation
-    if (!inviteCode || inviteCode.toUpperCase() !== INVITE_CODE.toUpperCase()) {
-      return NextResponse.json({ error: 'Code d\'invitation invalide.' }, { status: 403 })
-    }
 
     // Valider les champs obligatoires
     if (!slug || !displayName || !email || !password) {

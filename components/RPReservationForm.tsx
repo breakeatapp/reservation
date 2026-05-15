@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Link from 'next/link'
+import type { Destination, Establishment } from '@/lib/data'
 
 const schema = z.object({
   firstName: z.string().min(2, 'Prénom requis'),
@@ -27,6 +28,7 @@ type AccessStep = 'check' | 'form' | 'denied'
 type Props = {
   estOptions: { value: string; label: string }[]
   defaultVenue?: string
+  defaultDestination?: string
   rpSlug: string
   rpProfile?: {
     display_name: string
@@ -34,7 +36,9 @@ type Props = {
     email?: string
     accent_color?: string
   }
-  venueServices?: Record<string, string[]>   // créneaux personnalisés par venue
+  venueServices?: Record<string, string[]>
+  destinations?: Destination[]
+  establishments?: Establishment[]
 }
 
 const inputClass = `w-full bg-[#141414] border border-white/8 text-[#F5F5F3] placeholder-[#F5F5F3]/15 px-4 py-3.5 text-sm focus:border-white/30 outline-none transition-colors duration-200`
@@ -65,8 +69,18 @@ const SERVICES = [
 const OCCASIONS = ['Anniversaire', 'Romantique', 'Dîner d\'affaires', 'Célébration', 'Soirée VIP', 'Fête', 'Autre']
 const SEATINGS = ['Terrasse', 'Table coucher de soleil', 'Premier rang', 'Table DJ', 'Vue mer', 'Privé / Semi-privé', 'Sans préférence']
 
-export default function RPReservationForm({ estOptions, defaultVenue, rpSlug, rpProfile, venueServices }: Props) {
+export default function RPReservationForm({ estOptions, defaultVenue, defaultDestination, rpSlug, rpProfile, venueServices, destinations, establishments }: Props) {
   const accent = rpProfile?.accent_color || '#5B3DF5'
+
+  // ── Sélecteur de ville ────────────────────────────────────
+  const [selectedDest, setSelectedDest] = useState<string>(defaultDestination || '')
+
+  // Options d'établissements filtrées par ville sélectionnée
+  const filteredEstOptions = selectedDest && establishments
+    ? establishments
+        .filter(e => e.destination === selectedDest)
+        .map(e => ({ value: e.name, label: e.name }))
+    : estOptions
   const [accessStep, setAccessStep] = useState<AccessStep>('check')
   const [accessEmail, setAccessEmail] = useState('')
   const [accessEmailInput, setAccessEmailInput] = useState('')
@@ -115,6 +129,12 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug, rp
   useEffect(() => {
     setValue('time', '')
   }, [watchedEst, setValue])
+
+  // Réinitialiser l'établissement et le créneau quand la ville change
+  useEffect(() => {
+    setValue('establishment', '')
+    setValue('time', '')
+  }, [selectedDest, setValue])
 
   // ── Vérification de l'accès ────────────────────────────────
   const handleCheckAccess = async (e: React.FormEvent) => {
@@ -325,16 +345,46 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug, rp
 
       <div className="bg-[#141414] border border-white/5 p-8 md:p-12 space-y-8">
 
-        {/* 01 — Établissement */}
+        {/* 01 — Destination + Établissement */}
         <div>
           <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent + '50' }}>
             <span className="w-px h-3" style={{ background: accent + '30' }} />
             01 — Établissement
           </p>
-          <label className={labelClass}>Choisissez votre établissement *</label>
+
+          {/* Sélecteur de ville (si destinations disponibles) */}
+          {destinations && destinations.length > 1 && (
+            <div className="mb-4">
+              <label className={labelClass}>Ville / Destination *</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {destinations.map(dest => (
+                  <button
+                    key={dest.slug}
+                    type="button"
+                    onClick={() => setSelectedDest(dest.slug)}
+                    className={`flex items-center gap-2 px-3 py-2.5 border text-left text-sm transition-all ${
+                      selectedDest === dest.slug
+                        ? 'border-current text-white'
+                        : 'border-white/8 text-[#F5F5F3]/40 hover:border-white/20 hover:text-[#F5F5F3]/70'
+                    }`}
+                    style={selectedDest === dest.slug ? { borderColor: accent + '80', background: accent + '12', color: '#F5F5F3' } : {}}
+                  >
+                    <span>{dest.emoji}</span>
+                    <span className="truncate text-[12px]">{dest.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <label className={labelClass}>
+            {selectedDest ? 'Restaurant / Venue *' : 'Choisissez votre établissement *'}
+          </label>
           <select {...register('establishment')} className={`${inputClass} cursor-pointer`}>
-            <option value="" disabled className="bg-[#141414]">Sélectionner...</option>
-            {estOptions.map(opt => (
+            <option value="" disabled className="bg-[#141414]">
+              {selectedDest ? `Restaurants disponibles...` : 'Sélectionner...'}
+            </option>
+            {filteredEstOptions.map(opt => (
               <option key={opt.value} value={opt.value} className="bg-[#141414]">{opt.label}</option>
             ))}
           </select>

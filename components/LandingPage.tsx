@@ -197,9 +197,15 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="py-8 px-6 border-t border-white/5 text-center">
+      <footer className="py-8 px-6 border-t border-white/5 text-center space-y-3">
         <p className="text-[#F5F7FA]/30 text-[10px] tracking-wider uppercase">
           ITINERA · Hospitality Planning Between RPs & Guests
+        </p>
+        <p className="text-[#F5F7FA]/20 text-[10px]">
+          Vous êtes un RP ?{' '}
+          <a href="/register" className="text-[#6E5BFF]/60 hover:text-[#6E5BFF] underline transition-colors">
+            Créez votre espace gratuitement →
+          </a>
         </p>
       </footer>
 

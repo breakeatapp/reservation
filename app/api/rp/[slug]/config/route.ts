@@ -51,3 +51,25 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }
+
+// DELETE — supprimer toutes les réservations du RP (reset données de test)
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const password = req.headers.get('x-rp-password') || ''
+  const isValid = await verifyRPPassword(params.slug, password)
+  if (!isValid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const body = await req.json().catch(() => ({}))
+
+  // Si deleteProfile=true → supprimer aussi le profil RP de Supabase (retour au fallback local)
+  if (body.deleteProfile) {
+    await supabase.from('reservations').delete().eq('rp_slug', params.slug)
+    const { error } = await supabase.from('rp_profiles').delete().eq('slug', params.slug)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, deleted: 'profile+reservations' })
+  }
+
+  // Sinon → supprimer seulement les réservations
+  const { error } = await supabase.from('reservations').delete().eq('rp_slug', params.slug)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ success: true, deleted: 'reservations' })
+}

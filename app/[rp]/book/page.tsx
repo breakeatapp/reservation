@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getRPProfile, getRPEstablishmentOptions, getRPDestinations, getRPVenueServices } from '@/lib/rp'
+import { getRPProfile, getRPEstablishmentOptions, getRPDestinations, getRPEstablishments, getRPVenueServices } from '@/lib/rp'
 import RPReservationForm from '@/components/RPReservationForm'
 import Link from 'next/link'
 import type { Metadata } from 'next'
@@ -21,6 +21,8 @@ export default async function RPBookPage({ params, searchParams }: Props) {
 
   const estOptions = getRPEstablishmentOptions(profile)
   const venueServices = getRPVenueServices(profile)
+  const destinations = getRPDestinations(profile)
+  const allEstablishments = getRPEstablishments(profile)
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] pt-8 pb-20 px-6">
@@ -47,6 +49,7 @@ export default async function RPBookPage({ params, searchParams }: Props) {
       <RPReservationForm
         estOptions={estOptions}
         defaultVenue={searchParams.venue || ''}
+        defaultDestination={searchParams.destination || ''}
         rpSlug={params.rp}
         rpProfile={{
           display_name: profile.display_name,
@@ -55,6 +58,8 @@ export default async function RPBookPage({ params, searchParams }: Props) {
           accent_color: profile.accent_color,
         }}
         venueServices={venueServices}
+        destinations={destinations}
+        establishments={allEstablishments}
       />
     </div>
   )
