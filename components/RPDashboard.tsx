@@ -64,15 +64,35 @@ function buildWhatsAppMessage(r: Reservation, profile: RPProfile): string {
 
 type MainView = 'list' | 'clients' | 'config' | 'book-for-client'
 
-type BfcTripEntry = {
+type BookingSlot = {
   id: string
-  dest: string
-  venue: string
-  date: string
+  establishment: string
   time: string
   guests: string
   occasion: string
-  notes: string
+  seating: string
+  specialRequests: string
+}
+
+type DayPlan = {
+  date: string
+  label: string
+  bookings: BookingSlot[]
+}
+
+const DAYS_FR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
+const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+
+function generateDays(start: string, end: string): DayPlan[] {
+  const days: DayPlan[] = []
+  const cur = new Date(start + 'T12:00:00')
+  const endDate = new Date(end + 'T12:00:00')
+  while (cur <= endDate && days.length < 21) {
+    const d = cur.toISOString().split('T')[0]
+    days.push({ date: d, label: `${DAYS_FR[cur.getDay()]} ${cur.getDate()} ${MONTHS_FR[cur.getMonth()]}`, bookings: [] })
+    cur.setDate(cur.getDate() + 1)
+  }
+  return days
 }
 
 // Toutes les destinations disponibles dans la plateforme
@@ -168,8 +188,15 @@ export default function RPDashboard({ profile }: Props) {
   const [bfcInternalNote, setBfcInternalNote] = useState('')
   const [bfcSubmitting, setBfcSubmitting] = useState(false)
   const [bfcDone, setBfcDone] = useState<'success' | 'error' | null>(null)
-  // Planification séjour
-  const [bfcTrip, setBfcTrip] = useState<BfcTripEntry[]>([])
+  // Planification séjour — steps
+  const [bfcTripStep, setBfcTripStep] = useState<'dest' | 'dates' | 'planner' | 'review'>('dest')
+  const [bfcTripDest, setBfcTripDest] = useState('')
+  const [bfcTripArrival, setBfcTripArrival] = useState('')
+  const [bfcTripDeparture, setBfcTripDeparture] = useState('')
+  const [bfcTripDays, setBfcTripDays] = useState<DayPlan[]>([])
+  const [bfcTripExpandedDay, setBfcTripExpandedDay] = useState<string | null>(null)
+  const [bfcAddingToDay, setBfcAddingToDay] = useState<string | null>(null)
+  const [bfcNewBooking, setBfcNewBooking] = useState({ venue: '', time: '', guests: '2', occasion: '', seating: '', specialRequests: '' })
   const [bfcTripSubmitting, setBfcTripSubmitting] = useState(false)
   const [bfcTripDone, setBfcTripDone] = useState<'success' | 'error' | null>(null)
 
@@ -1286,7 +1313,13 @@ export default function RPDashboard({ profile }: Props) {
 
     const handleTripSubmit = async () => {
       const client = getClient()
-      if (!client?.email || bfcTrip.length === 0) return
+      const allBookings = bfcTripDays.flatMap(day =>
+        day.bookings.map(b => ({
+          establishment: b.establishment, date: day.date, time: b.time,
+          guests: b.guests, occasion: b.occasion, seating: b.seating, specialRequests: b.specialRequests,
+        }))
+      )
+      if (!client?.email || allBookings.length === 0) return
       setBfcTripSubmitting(true); setBfcTripDone(null)
       try {
         const res = await fetch('/api/trip', {
@@ -1296,10 +1329,7 @@ export default function RPDashboard({ profile }: Props) {
             firstName: client.firstName, lastName: client.lastName,
             email: client.email, phone: client.phone || '—',
             rpSlug: profile.slug,
-            bookings: bfcTrip.map(e => ({
-              establishment: e.venue, date: e.date, time: e.time,
-              guests: e.guests, occasion: e.occasion, specialRequests: e.notes,
-            })),
+            bookings: allBookings,
           }),
         })
         setBfcTripDone(res.ok ? 'success' : 'error')
@@ -1308,13 +1338,33 @@ export default function RPDashboard({ profile }: Props) {
       finally { setBfcTripSubmitting(false) }
     }
 
-    const addTripEntry = () => {
-      setBfcTrip(prev => [...prev, { id: crypto.randomUUID(), dest: '', venue: '', date: '', time: '', guests: '2', occasion: '', notes: '' }])
+    const addBookingToDay = (date: string) => {
+      if (!bfcNewBooking.venue || !bfcNewBooking.time) return
+      const newSlot: BookingSlot = {
+        id: crypto.randomUUID(),
+        establishment: bfcNewBooking.venue,
+        time: bfcNewBooking.time,
+        guests: bfcNewBooking.guests,
+        occasion: bfcNewBooking.occasion,
+        seating: bfcNewBooking.seating,
+        specialRequests: bfcNewBooking.specialRequests,
+      }
+      setBfcTripDays(prev => prev.map(day =>
+        day.date === date
+          ? { ...day, bookings: [...day.bookings, newSlot] }
+          : day
+      ))
+      setBfcAddingToDay(null)
+      setBfcNewBooking({ venue: '', time: '', guests: '2', occasion: '', seating: '', specialRequests: '' })
     }
 
-    const updateTrip = (id: string, field: keyof BfcTripEntry, val: string) => {
-      setBfcTrip(prev => prev.map(e => e.id === id ? { ...e, [field]: val, ...(field === 'dest' ? { venue: '', time: '' } : {}), ...(field === 'venue' ? { time: '' } : {}) } : e))
+    const removeBookingFromDay = (date: string, bookingId: string) => {
+      setBfcTripDays(prev => prev.map(day =>
+        day.date === date ? { ...day, bookings: day.bookings.filter(b => b.id !== bookingId) } : day
+      ))
     }
+
+    const totalBookings = bfcTripDays.reduce((acc, d) => acc + d.bookings.length, 0)
 
     const labelCls = 'block text-[8px] tracking-[0.25em] uppercase text-[#F5F5F3]/25 mb-1.5'
     const inputCls = 'w-full bg-[#0B0B0B] border border-white/8 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 transition-colors placeholder-[#F5F5F3]/15'
@@ -1560,120 +1610,294 @@ export default function RPDashboard({ profile }: Props) {
           {/* ── PLANIFICATION SÉJOUR ── */}
           {bookForType === 'trip' && hasClient && (
             <>
-              {bfcTrip.map((entry, idx) => (
-                <div key={entry.id} className="bg-[#141414] border border-white/5 p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">Réservation {idx + 1}</p>
-                    <button onClick={() => setBfcTrip(prev => prev.filter(e => e.id !== entry.id))}
-                      className="text-[#F5F5F3]/20 hover:text-red-400/60 transition-colors text-lg">×</button>
-                  </div>
-
-                  {/* Destination */}
-                  <div className="grid grid-cols-3 gap-1.5">
+              {/* ── Step 1 : Destination ── */}
+              {bfcTripStep === 'dest' && (
+                <div className="bg-[#141414] border border-white/5 p-5">
+                  <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-4">01 — Destination du séjour</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {activeDests.map(d => (
                       <button key={d.slug} type="button"
-                        onClick={() => updateTrip(entry.id, 'dest', d.slug)}
-                        className={`flex items-center gap-1.5 px-2 py-2 border text-[11px] transition-all ${entry.dest === d.slug ? 'border-[#5B3DF5]/50 bg-[#5B3DF5]/8 text-[#F5F5F3]/80' : 'border-white/8 text-[#F5F5F3]/35 hover:border-white/20'}`}
+                        onClick={() => { setBfcTripDest(d.slug); setBfcTripStep('dates') }}
+                        className={`flex items-center gap-2 px-3 py-2.5 border text-left transition-all ${bfcTripDest === d.slug ? 'border-[#5B3DF5]/60 bg-[#5B3DF5]/10 text-[#F5F5F3]' : 'border-white/8 text-[#F5F5F3]/40 hover:border-white/20'}`}
                       >
-                        <span>{d.emoji}</span><span className="truncate">{d.name}</span>
+                        <span>{d.emoji}</span>
+                        <span className="text-[12px] truncate">{d.name}</span>
                       </button>
                     ))}
                   </div>
+                </div>
+              )}
 
-                  {entry.dest && (
-                    <>
-                      <div>
-                        <label className={labelCls}>Établissement</label>
-                        <select className={selectCls} value={entry.venue} onChange={e => updateTrip(entry.id, 'venue', e.target.value)}>
-                          <option value="" className="bg-[#141414]">Sélectionner...</option>
-                          {(['restaurant', 'beach_club', 'night_club'] as const).map(cat => {
-                            const group = venuesForDest(entry.dest).filter(v => (v.type || 'restaurant') === cat)
-                            if (!group.length) return null
-                            const catLabel = cat === 'restaurant' ? '🍽️ Restaurants' : cat === 'beach_club' ? '🏖️ Beach Clubs' : '🎉 Night Clubs'
-                            return (
-                              <optgroup key={cat} label={catLabel}>
-                                {group.map(v => <option key={v.name} value={v.name} className="bg-[#141414]">{v.name}</option>)}
-                              </optgroup>
-                            )
-                          })}
-                        </select>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className={labelCls}>Date</label>
-                          <input type="date" className={`${inputCls} [color-scheme:dark]`} min={new Date().toISOString().split('T')[0]}
-                            value={entry.date} onChange={e => updateTrip(entry.id, 'date', e.target.value)} />
-                        </div>
-                        <div>
-                          <label className={labelCls}>Créneau</label>
-                          <select className={selectCls} value={entry.time} onChange={e => updateTrip(entry.id, 'time', e.target.value)}>
-                            <option value="" className="bg-[#141414]">Choisir...</option>
-                            {servicesForVenue(entry.venue).map(s => (
-                              <option key={s} value={s} className="bg-[#141414]">{s}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className={labelCls}>Personnes</label>
-                          <select className={selectCls} value={entry.guests} onChange={e => updateTrip(entry.id, 'guests', e.target.value)}>
-                            {[1,2,3,4,5,6,7,8,10,12,15,20].map(n => (
-                              <option key={n} value={n} className="bg-[#141414]">{n}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className={labelCls}>Occasion</label>
-                          <select className={selectCls} value={entry.occasion} onChange={e => updateTrip(entry.id, 'occasion', e.target.value)}>
-                            <option value="" className="bg-[#141414]">—</option>
-                            {['Anniversaire', 'Romantique', 'Dîner d\'affaires', 'Célébration', 'Soirée VIP', 'Fête', 'Autre'].map(o => (
-                              <option key={o} value={o} className="bg-[#141414]">{o}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                      <div>
-                        <label className={labelCls}>Note / demande spéciale</label>
-                        <input className={inputCls} placeholder="Allergie, préférence..." value={entry.notes}
-                          onChange={e => updateTrip(entry.id, 'notes', e.target.value)} />
-                      </div>
-                    </>
+              {/* ── Step 2 : Dates ── */}
+              {bfcTripStep === 'dates' && (
+                <div className="bg-[#141414] border border-white/5 p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">02 — Dates du séjour</p>
+                    <button onClick={() => setBfcTripStep('dest')}
+                      className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 hover:text-[#F5F5F3]/50 transition-colors">
+                      ← {activeDests.find(d => d.slug === bfcTripDest)?.name}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelCls}>Arrivée *</label>
+                      <input type="date" className={`${inputCls} [color-scheme:dark]`}
+                        min={new Date().toISOString().split('T')[0]}
+                        value={bfcTripArrival}
+                        onChange={e => { setBfcTripArrival(e.target.value); setBfcTripDeparture('') }} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Départ *</label>
+                      <input type="date" className={`${inputCls} [color-scheme:dark]`}
+                        min={bfcTripArrival || new Date().toISOString().split('T')[0]}
+                        value={bfcTripDeparture}
+                        onChange={e => setBfcTripDeparture(e.target.value)} />
+                    </div>
+                  </div>
+                  {bfcTripArrival && bfcTripDeparture && (
+                    <button
+                      onClick={() => {
+                        const days = generateDays(bfcTripArrival, bfcTripDeparture)
+                        setBfcTripDays(days)
+                        setBfcTripExpandedDay(days[0]?.date || null)
+                        setBfcAddingToDay(null)
+                        setBfcTripStep('planner')
+                      }}
+                      className="w-full py-3.5 text-white text-[11px] tracking-[0.2em] uppercase transition-colors hover:opacity-90"
+                      style={{ background: '#5B3DF5' }}
+                    >
+                      Générer le planning →
+                    </button>
                   )}
                 </div>
-              ))}
+              )}
 
-              <button onClick={addTripEntry}
-                className="w-full py-3 border border-dashed border-white/15 text-[#F5F5F3]/30 text-[11px] tracking-[0.2em] uppercase hover:border-white/30 hover:text-[#F5F5F3]/50 transition-all">
-                + Ajouter une réservation
-              </button>
+              {/* ── Step 3 : Planner jour par jour ── */}
+              {bfcTripStep === 'planner' && (
+                <>
+                  {/* Header séjour */}
+                  <div className="bg-[#141414] border border-white/5 p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-1">Séjour</p>
+                      <p className="text-sm text-[#F5F5F3]/70">
+                        {activeDests.find(d => d.slug === bfcTripDest)?.emoji}{' '}
+                        {activeDests.find(d => d.slug === bfcTripDest)?.name}
+                        {' · '}{bfcTripDays.length} jour{bfcTripDays.length > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <button onClick={() => setBfcTripStep('dates')}
+                      className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 hover:text-[#F5F5F3]/50 transition-colors">
+                      ← Modifier
+                    </button>
+                  </div>
 
-              {bfcTrip.length > 0 && (
-                <div className="space-y-3">
-                  {bfcTripDone === 'success' && (
-                    <div className="bg-green-500/8 border border-green-500/20 p-4 text-center">
-                      <p className="text-green-400 text-sm">✓ {bfcTrip.length} réservation{bfcTrip.length > 1 ? 's' : ''} créée{bfcTrip.length > 1 ? 's' : ''} — planning envoyé à {getClient()?.email}</p>
-                      <button onClick={() => { setBfcTripDone(null); setBfcTrip([]) }}
-                        className="mt-2 text-[9px] tracking-[0.2em] uppercase text-green-400/60 hover:text-green-400 transition-colors">
-                        Nouveau planning →
+                  {/* Accordion par jour */}
+                  {bfcTripDays.map(day => (
+                    <div key={day.date} className="bg-[#141414] border border-white/5">
+                      <button
+                        onClick={() => setBfcTripExpandedDay(bfcTripExpandedDay === day.date ? null : day.date)}
+                        className="w-full px-5 py-4 flex items-center justify-between text-left"
+                      >
+                        <div>
+                          <p className="text-sm text-[#F5F5F3]/80">{day.label}</p>
+                          {day.bookings.length > 0 && (
+                            <p className="text-[10px] text-[#5B3DF5]/60 mt-0.5">
+                              {day.bookings.length} réservation{day.bookings.length > 1 ? 's' : ''}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-[#F5F5F3]/25 text-xs">{bfcTripExpandedDay === day.date ? '▲' : '▼'}</span>
+                      </button>
+
+                      {bfcTripExpandedDay === day.date && (
+                        <div className="px-5 pb-5 space-y-3 border-t border-white/5 pt-4">
+                          {/* Réservations existantes */}
+                          {day.bookings.map(b => (
+                            <div key={b.id} className="flex items-start justify-between py-2 border-b border-white/5 last:border-0">
+                              <div>
+                                <p className="text-sm text-[#F5F5F3]/80">{b.establishment}</p>
+                                <p className="text-[10px] text-[#F5F5F3]/30 mt-0.5">
+                                  {b.time} · {b.guests} pers.{b.occasion ? ` · ${b.occasion}` : ''}
+                                </p>
+                              </div>
+                              <button onClick={() => removeBookingFromDay(day.date, b.id)}
+                                className="text-[#F5F5F3]/20 hover:text-red-400/60 transition-colors ml-3 text-lg leading-none">×</button>
+                            </div>
+                          ))}
+
+                          {/* Formulaire ajout réservation */}
+                          {bfcAddingToDay === day.date ? (
+                            <div className="space-y-3 pt-1">
+                              <div>
+                                <label className={labelCls}>Établissement *</label>
+                                <select className={selectCls}
+                                  value={bfcNewBooking.venue}
+                                  onChange={e => setBfcNewBooking(p => ({ ...p, venue: e.target.value, time: '' }))}>
+                                  <option value="" className="bg-[#141414]">Sélectionner...</option>
+                                  {(['restaurant', 'beach_club', 'night_club'] as const).map(cat => {
+                                    const group = venuesForDest(bfcTripDest).filter(v => (v.type || 'restaurant') === cat)
+                                    if (!group.length) return null
+                                    const catLabel = cat === 'restaurant' ? '🍽️ Restaurants' : cat === 'beach_club' ? '🏖️ Beach Clubs' : '🎉 Night Clubs'
+                                    return (
+                                      <optgroup key={cat} label={catLabel}>
+                                        {group.map(v => <option key={v.name} value={v.name} className="bg-[#141414]">{v.name}</option>)}
+                                      </optgroup>
+                                    )
+                                  })}
+                                </select>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className={labelCls}>Créneau *</label>
+                                  <select className={selectCls} value={bfcNewBooking.time}
+                                    onChange={e => setBfcNewBooking(p => ({ ...p, time: e.target.value }))}>
+                                    <option value="" className="bg-[#141414]">Choisir...</option>
+                                    {servicesForVenue(bfcNewBooking.venue).map(s => (
+                                      <option key={s} value={s} className="bg-[#141414]">{s}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className={labelCls}>Personnes</label>
+                                  <select className={selectCls} value={bfcNewBooking.guests}
+                                    onChange={e => setBfcNewBooking(p => ({ ...p, guests: e.target.value }))}>
+                                    {[1,2,3,4,5,6,7,8,10,12,15,20].map(n => (
+                                      <option key={n} value={n} className="bg-[#141414]">{n}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className={labelCls}>Occasion</label>
+                                  <select className={selectCls} value={bfcNewBooking.occasion}
+                                    onChange={e => setBfcNewBooking(p => ({ ...p, occasion: e.target.value }))}>
+                                    <option value="" className="bg-[#141414]">—</option>
+                                    {['Anniversaire', 'Romantique', "Dîner d'affaires", 'Célébration', 'Soirée VIP', 'Fête', 'Autre'].map(o => (
+                                      <option key={o} value={o} className="bg-[#141414]">{o}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className={labelCls}>Placement</label>
+                                  <select className={selectCls} value={bfcNewBooking.seating}
+                                    onChange={e => setBfcNewBooking(p => ({ ...p, seating: e.target.value }))}>
+                                    <option value="" className="bg-[#141414]">—</option>
+                                    {['Terrasse', 'Table coucher de soleil', 'Premier rang', 'Table DJ', 'Vue mer', 'Privé / Semi-privé', 'Sans préférence'].map(s => (
+                                      <option key={s} value={s} className="bg-[#141414]">{s}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                              <div>
+                                <label className={labelCls}>Demande spéciale</label>
+                                <input className={inputCls} placeholder="Allergie, préférence..."
+                                  value={bfcNewBooking.specialRequests}
+                                  onChange={e => setBfcNewBooking(p => ({ ...p, specialRequests: e.target.value }))} />
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => addBookingToDay(day.date)}
+                                  disabled={!bfcNewBooking.venue || !bfcNewBooking.time}
+                                  className="flex-1 py-2.5 text-white text-[10px] tracking-[0.2em] uppercase transition-colors disabled:opacity-30"
+                                  style={{ background: '#5B3DF5' }}
+                                >
+                                  ✓ Ajouter
+                                </button>
+                                <button
+                                  onClick={() => { setBfcAddingToDay(null); setBfcNewBooking({ venue: '', time: '', guests: '2', occasion: '', seating: '', specialRequests: '' }) }}
+                                  className="px-4 py-2.5 text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/30 hover:text-[#F5F5F3]/60 border border-white/8 hover:border-white/20 transition-colors"
+                                >
+                                  Annuler
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => { setBfcAddingToDay(day.date); setBfcNewBooking({ venue: '', time: '', guests: '2', occasion: '', seating: '', specialRequests: '' }) }}
+                              className="w-full py-2.5 border border-dashed border-white/12 text-[#F5F5F3]/30 text-[10px] tracking-[0.2em] uppercase hover:border-white/25 hover:text-[#F5F5F3]/50 transition-all"
+                            >
+                              + Ajouter une réservation
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* CTA vers récapitulatif */}
+                  <button
+                    onClick={() => setBfcTripStep('review')}
+                    disabled={totalBookings === 0}
+                    className="w-full py-3.5 text-white text-[11px] tracking-[0.2em] uppercase transition-colors disabled:opacity-30 hover:opacity-90"
+                    style={{ background: '#5B3DF5' }}
+                  >
+                    {totalBookings === 0 ? 'Ajoutez au moins une réservation' : `Récapitulatif (${totalBookings} résa) →`}
+                  </button>
+                </>
+              )}
+
+              {/* ── Step 4 : Review & Submit ── */}
+              {bfcTripStep === 'review' && (
+                <>
+                  <div className="bg-[#141414] border border-white/5 p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">Récapitulatif du séjour</p>
+                      <button onClick={() => setBfcTripStep('planner')}
+                        className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 hover:text-[#F5F5F3]/50 transition-colors">
+                        ← Modifier
                       </button>
                     </div>
-                  )}
-                  {bfcTripDone === 'error' && (
-                    <p className="text-red-400/70 text-xs text-center border border-red-500/15 bg-red-500/5 px-4 py-3">
-                      Une erreur est survenue. Réessayez.
+                    <p className="text-sm text-[#F5F5F3]/50 mb-5">
+                      {activeDests.find(d => d.slug === bfcTripDest)?.emoji}{' '}
+                      {activeDests.find(d => d.slug === bfcTripDest)?.name}
+                      {bfcTripDays.length > 0 && ` · ${bfcTripDays[0].label} → ${bfcTripDays[bfcTripDays.length - 1].label}`}
                     </p>
-                  )}
-                  <button
-                    onClick={handleTripSubmit}
-                    disabled={bfcTripSubmitting || bfcTrip.some(e => !e.venue || !e.date || !e.time)}
-                    className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase hover:opacity-90 transition-opacity disabled:opacity-30"
-                    style={{ background: `linear-gradient(135deg, ${configAccent}, ${configAccent}bb)` }}
-                  >
-                    {bfcTripSubmitting ? 'Envoi en cours...' : `✦ Envoyer le planning (${bfcTrip.length} résa)`}
-                  </button>
-                  <p className="text-center text-[9px] text-[#F5F5F3]/20">Le récapitulatif complet sera envoyé à {getClient()?.email}</p>
-                </div>
+                    <div className="space-y-4">
+                      {bfcTripDays.filter(d => d.bookings.length > 0).map(day => (
+                        <div key={day.date} className="border-l-2 border-[#5B3DF5]/30 pl-3">
+                          <p className="text-[9px] text-[#F5F5F3]/35 uppercase tracking-wider mb-1.5">{day.label}</p>
+                          {day.bookings.map(b => (
+                            <div key={b.id} className="mb-2 last:mb-0">
+                              <p className="text-sm text-[#F5F5F3]/80">{b.establishment}</p>
+                              <p className="text-[10px] text-[#F5F5F3]/30 mt-0.5">
+                                {b.time} · {b.guests} pers.{b.occasion ? ` · ${b.occasion}` : ''}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {bfcTripDone === 'success' && (
+                      <div className="bg-green-500/8 border border-green-500/20 p-4 text-center">
+                        <p className="text-green-400 text-sm">✓ Planning envoyé à {getClient()?.email}</p>
+                        <button onClick={() => {
+                          setBfcTripStep('dest'); setBfcTripDest(''); setBfcTripArrival(''); setBfcTripDeparture('')
+                          setBfcTripDays([]); setBfcTripExpandedDay(null); setBfcAddingToDay(null); setBfcTripDone(null)
+                        }} className="mt-2 text-[9px] tracking-[0.2em] uppercase text-green-400/60 hover:text-green-400 transition-colors">
+                          Nouveau planning →
+                        </button>
+                      </div>
+                    )}
+                    {bfcTripDone === 'error' && (
+                      <p className="text-red-400/70 text-xs text-center border border-red-500/15 bg-red-500/5 px-4 py-3">
+                        Une erreur est survenue. Réessayez.
+                      </p>
+                    )}
+                    <button
+                      onClick={handleTripSubmit}
+                      disabled={bfcTripSubmitting || totalBookings === 0}
+                      className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase hover:opacity-90 transition-opacity disabled:opacity-30"
+                      style={{ background: `linear-gradient(135deg, ${configAccent}, ${configAccent}bb)` }}
+                    >
+                      {bfcTripSubmitting ? 'Envoi en cours...' : `✦ Envoyer le planning (${totalBookings} résa)`}
+                    </button>
+                    <p className="text-center text-[9px] text-[#F5F5F3]/20">Le récapitulatif complet sera envoyé à {getClient()?.email}</p>
+                  </div>
+                </>
               )}
             </>
           )}
@@ -1700,7 +1924,11 @@ export default function RPDashboard({ profile }: Props) {
               setBfcManual({ firstName: '', lastName: '', email: '', phone: '' })
               setBfcDest(''); setBfcVenue(''); setBfcDate(''); setBfcTime('')
               setBfcGuests('2'); setBfcOccasion(''); setBfcSeating(''); setBfcNotes('')
-              setBfcInternalNote(''); setBfcDone(null); setBfcTrip([]); setBfcTripDone(null)
+              setBfcInternalNote(''); setBfcDone(null)
+              setBfcTripStep('dest'); setBfcTripDest(''); setBfcTripArrival(''); setBfcTripDeparture('')
+              setBfcTripDays([]); setBfcTripExpandedDay(null); setBfcAddingToDay(null)
+              setBfcNewBooking({ venue: '', time: '', guests: '2', occasion: '', seating: '', specialRequests: '' })
+              setBfcTripDone(null)
               setMainView('book-for-client')
             }}
             className="text-[10px] tracking-[0.2em] uppercase text-white/80 hover:text-white transition-colors border border-white/20 hover:border-white/50 px-3 py-2"
