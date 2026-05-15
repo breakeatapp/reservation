@@ -47,6 +47,10 @@ export async function getRPProfile(slug: string): Promise<RPProfile | null> {
         profile.display_name = 'ITINERA'
         updates.display_name = profile.display_name
       }
+      if (profile.logo_text === 'ÉLITE' || profile.logo_text === 'ELITE' || profile.logo_text === 'Élite') {
+        profile.logo_text = ''
+        updates.logo_text = ''
+      }
       if (Object.keys(updates).length > 0) {
         supabase.from('rp_profiles').update(updates).eq('slug', slug).then(() => {})
       }

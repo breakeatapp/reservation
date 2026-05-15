@@ -77,10 +77,10 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-[#0F1115]/90 via-[#0F1115]/60 to-[#0F1115]" />
         </div>
 
-        <div className="relative z-10 w-full max-w-lg mx-auto text-center">
+        <div className="relative z-10 w-full max-w-3xl mx-auto text-center">
 
           {/* Headline — big title centré, police uniforme */}
-          <h1 className="font-playfair text-4xl md:text-7xl text-[#F5F7FA] mb-6 text-center leading-tight">
+          <h1 className="font-playfair text-5xl md:text-6xl text-[#F5F7FA] mb-6 text-center leading-tight">
             Private access to the<br />
             Hospitality Planning<br />
             Between RPs &amp; Guests
