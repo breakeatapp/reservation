@@ -19,7 +19,22 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
   const [menuOpen, setMenuOpen] = useState(false)
   const [connectedName, setConnectedName] = useState('')
 
+  // ── Sélecteur RP au clic CTA ─────────────────────────────
+  const [rpPickerOpen, setRpPickerOpen] = useState(false)
+  const [rpPickerList, setRpPickerList] = useState<{ slug: string; displayName: string }[]>([])
+  const [rpPickerTarget, setRpPickerTarget] = useState<'book' | 'trip'>('book')
+
   const handleCTA = (target: 'book' | 'trip') => {
+    setRpPickerTarget(target)
+    try {
+      const stored = localStorage.getItem('itinera_guest_rps')
+      const rps = stored ? JSON.parse(stored) : []
+      if (rps.length > 1) {
+        setRpPickerList(rps)
+        setRpPickerOpen(true)
+        return
+      }
+    } catch { /* ignore */ }
     router.push(`/${slug}/${target === 'book' ? 'book' : 'trip'}`)
   }
 
@@ -55,17 +70,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled ? 'bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5' : 'bg-transparent'
       }`}>
-        <div className="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between">
-
-          {/* Logo */}
-          <Link href={`/${slug}`} className="group flex-shrink-0">
-            <span className="text-[8px] tracking-[0.4em] text-[#F5F5F3]/25 uppercase block leading-none">
-              Accès Privé
-            </span>
-            <span className="font-playfair text-lg text-[#F5F5F3] group-hover:opacity-80 transition-opacity">
-              {profile.logo_text || profile.display_name}
-            </span>
-          </Link>
+        <div className="max-w-7xl mx-auto px-5 py-4 flex items-center justify-end">
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-4">
@@ -206,6 +211,44 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
           <div className="w-px h-10 bg-gradient-to-b from-[#F5F5F3] to-transparent animate-pulse" />
         </div>
       </section>
+
+      {/* ── Overlay sélecteur RP ── */}
+      {rpPickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm px-5">
+          <div className="w-full max-w-sm bg-[#111] border border-white/10 p-8">
+            <p className="text-[9px] tracking-[0.5em] uppercase text-[#F5F5F3]/30 mb-2">
+              {rpPickerTarget === 'book' ? 'Réservation unique' : 'Planification de séjour'}
+            </p>
+            <h3 className="font-playfair text-xl text-[#F5F5F3] mb-6">
+              Avec quel concierge souhaitez-vous {rpPickerTarget === 'book' ? 'réserver' : 'planifier'} ?
+            </h3>
+            <div className="space-y-2 mb-6">
+              {rpPickerList.map(rp => (
+                <button
+                  key={rp.slug}
+                  onClick={() => {
+                    localStorage.setItem('itinera_guest_rp', rp.slug)
+                    setRpPickerOpen(false)
+                    router.push(`/${rp.slug}/${rpPickerTarget === 'book' ? 'book' : 'trip'}`)
+                  }}
+                  className="w-full flex items-center justify-between px-5 py-4 border border-white/8 hover:border-[#5B3DF5]/40 hover:bg-[#5B3DF5]/5 transition-all text-left group"
+                >
+                  <span className="text-[#F5F5F3]/70 text-sm group-hover:text-[#F5F5F3] transition-colors">
+                    {rp.displayName}
+                  </span>
+                  <span className="text-[#F5F5F3]/25 group-hover:text-[#5B3DF5]/60 transition-colors">→</span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setRpPickerOpen(false)}
+              className="text-[#F5F5F3]/20 text-[10px] tracking-wider hover:text-[#F5F5F3]/50 transition-colors"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── DESTINATIONS ── */}
       <section id="destinations" className="py-20 px-5">

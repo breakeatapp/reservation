@@ -33,13 +33,12 @@ export default function LandingPage() {
       const res = await fetch(`/api/client/rps?email=${encodeURIComponent(trimmed)}`)
       const data = await res.json()
 
-      if (data.rps && data.rps.length > 1) {
-        // Plusieurs RPs → afficher le sélecteur
-        setRpPicker({ rps: data.rps, email: trimmed, firstName: data.firstName || '' })
-      } else if (data.rps && data.rps.length === 1) {
+      if (data.rps && data.rps.length >= 1) {
+        // Sauvegarder tous les slugs RP pour le picker sur RPHomePage
         const rp = data.rps[0]
         localStorage.setItem('itinera_guest_email', trimmed)
         localStorage.setItem('itinera_guest_rp', rp.slug)
+        localStorage.setItem('itinera_guest_rps', JSON.stringify(data.rps))
         if (data.firstName) localStorage.setItem('itinera_guest_name', data.firstName)
         router.push(`/${rp.slug}`)
       } else {
