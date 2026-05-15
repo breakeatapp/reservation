@@ -3,26 +3,8 @@ import { supabaseAdmin as supabase } from './supabase-admin'
 import { establishments, destinations, type Establishment, type Destination } from './data'
 import { parseVenueEntry } from './venue-utils'
 
-// ── Profils RP codés en dur (fallback si Supabase pas encore configuré)
-// Ajouter un RP ici suffit pour le faire fonctionner sans base de données
-const FALLBACK_PROFILES: Record<string, RPProfile> = {
-  remi: {
-    id: 'local-remi',
-    slug: 'remi',
-    display_name: 'ITINERA',
-    tagline: 'Hospitality, Organized.',
-    email: 'notta.remi@hotmail.fr',
-    whatsapp: '33646695675',
-    dashboard_password: 'elite2024',
-    active: true,
-    activated_destinations: ['saint-tropez', 'dubai', 'miami', 'cannes', 'monaco', 'courchevel', 'saint-barth'],
-    activated_venues: [],   // vide = toutes les venues de ses destinations
-    cover_image: undefined,
-    logo_text: '',
-    accent_color: '#5B3DF5',
-    created_at: new Date().toISOString(),
-  },
-}
+// Tous les profils RP sont désormais gérés exclusivement dans Supabase
+const FALLBACK_PROFILES: Record<string, RPProfile> = {}
 
 // ── Fetch un profil RP par slug ────────────────────────────
 // Priorité : Supabase → fallback local
