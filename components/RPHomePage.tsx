@@ -75,12 +75,6 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
                 <span className="text-[#F5F5F3]/50">Mon Compte</span>
               )}
             </Link>
-            <Link
-              href={`/${slug}/book`}
-              className="text-[11px] tracking-[0.2em] uppercase px-6 py-2.5 border text-[#F5F5F3] border-white/20 hover:border-white/50 transition-all"
-            >
-              Réserver
-            </Link>
           </div>
 
           {/* Mobile : bouton "Mon compte" toujours visible + hamburger */}

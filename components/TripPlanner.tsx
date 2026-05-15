@@ -669,7 +669,6 @@ export default function TripPlanner({
                           <p className="text-green-400 text-xs flex-1">
                             {day.bookings.filter(b => b.establishment && b.time).length}/{day.bookings.length} réservation{day.bookings.length > 1 ? 's' : ''} complète{day.bookings.filter(b => b.establishment && b.time).length > 1 ? 's' : ''}
                           </p>
-                          <span className="text-green-400/60 text-[10px] tracking-wider uppercase">Confirmée{day.bookings.filter(b => b.establishment && b.time).length > 1 ? 's' : ''}</span>
                         </div>
                       )}
 

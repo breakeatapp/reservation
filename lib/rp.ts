@@ -17,7 +17,7 @@ const FALLBACK_PROFILES: Record<string, RPProfile> = {
     activated_destinations: ['saint-tropez', 'dubai', 'miami', 'cannes', 'monaco', 'courchevel', 'saint-barth'],
     activated_venues: [],   // vide = toutes les venues de ses destinations
     cover_image: undefined,
-    logo_text: 'ÉLITE',
+    logo_text: '',
     accent_color: '#5B3DF5',
     created_at: new Date().toISOString(),
   },

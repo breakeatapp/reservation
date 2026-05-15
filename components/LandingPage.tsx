@@ -10,6 +10,7 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [savedSession, setSavedSession] = useState<{ email: string; rp: string; name: string } | null>(null)
+  const [rpPicker, setRpPicker] = useState<{ rps: { slug: string; displayName: string }[]; email: string; firstName: string } | null>(null)
 
   // Vérifier si le client est déjà connecté
   useEffect(() => {
@@ -32,12 +33,15 @@ export default function LandingPage() {
       const res = await fetch(`/api/client/rps?email=${encodeURIComponent(trimmed)}`)
       const data = await res.json()
 
-      if (data.rps && data.rps.length > 0) {
+      if (data.rps && data.rps.length > 1) {
+        // Plusieurs RPs → afficher le sélecteur
+        setRpPicker({ rps: data.rps, email: trimmed, firstName: data.firstName || '' })
+      } else if (data.rps && data.rps.length === 1) {
         const rp = data.rps[0]
         localStorage.setItem('itinera_guest_email', trimmed)
         localStorage.setItem('itinera_guest_rp', rp.slug)
         if (data.firstName) localStorage.setItem('itinera_guest_name', data.firstName)
-        router.push(`/${rp.slug}/mon-espace`)
+        router.push(`/${rp.slug}`)
       } else {
         setError('No access found. Check your email or contact your RP.')
       }
@@ -76,10 +80,10 @@ export default function LandingPage() {
         <div className="relative z-10 w-full max-w-lg mx-auto text-center">
 
           {/* Headline — big title centré, police uniforme */}
-          <h1 className="font-playfair text-4xl md:text-6xl text-[#F5F7FA] mb-6 text-center" style={{ lineHeight: '1.25', letterSpacing: '-0.01em' }}>
-            ✦ Private access to the<br />
+          <h1 className="font-playfair text-4xl md:text-7xl text-[#F5F7FA] mb-6 text-center leading-tight">
+            Private access to the<br />
             Hospitality Planning<br />
-            Between RPs &amp; Guests ✦
+            Between RPs &amp; Guests
           </h1>
 
           {/* Sub */}
@@ -99,7 +103,7 @@ export default function LandingPage() {
               <p className="text-[#F5F7FA]/70 text-sm mb-1 font-medium">{savedSession.name}</p>
               <p className="text-[#F5F7FA]/35 text-xs mb-5">{savedSession.email}</p>
               <button
-                onClick={() => router.push(`/${savedSession.rp}/mon-espace`)}
+                onClick={() => router.push(`/${savedSession.rp}`)}
                 className="w-full py-3.5 text-white text-[11px] tracking-[0.2em] uppercase bg-[#6E5BFF] hover:bg-[#5B3DF5] transition-colors mb-3"
               >
                 Mon compte →
@@ -114,6 +118,37 @@ export default function LandingPage() {
                 className="text-[#F5F7FA]/25 text-[10px] hover:text-[#F5F7FA]/50 transition-colors"
               >
                 Se déconnecter
+              </button>
+            </div>
+          ) : rpPicker ? (
+            /* ── Sélecteur RP (plusieurs RPs) ── */
+            <div className="bg-[#181C23]/90 backdrop-blur-sm border border-white/10 p-6">
+              <p className="text-[10px] tracking-[0.4em] uppercase text-[#F5F7FA]/45 mb-1">
+                Bienvenue{rpPicker.firstName ? `, ${rpPicker.firstName}` : ''}
+              </p>
+              <p className="text-[#F5F7FA]/60 text-sm mb-5">Avec quel RP souhaitez-vous accéder ?</p>
+              <div className="space-y-2">
+                {rpPicker.rps.map(rp => (
+                  <button
+                    key={rp.slug}
+                    onClick={() => {
+                      localStorage.setItem('itinera_guest_email', rpPicker.email)
+                      localStorage.setItem('itinera_guest_rp', rp.slug)
+                      if (rpPicker.firstName) localStorage.setItem('itinera_guest_name', rpPicker.firstName)
+                      router.push(`/${rp.slug}`)
+                    }}
+                    className="w-full py-3.5 text-white text-[11px] tracking-[0.2em] uppercase bg-[#1E2229] border border-white/10 hover:border-[#6E5BFF]/50 hover:bg-[#6E5BFF]/10 transition-all text-left px-4"
+                  >
+                    {rp.displayName || rp.slug}
+                    <span className="float-right text-[#F5F7FA]/30">→</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setRpPicker(null)}
+                className="text-[#F5F7FA]/25 text-[10px] hover:text-[#F5F7FA]/50 transition-colors mt-4 block"
+              >
+                ← Retour
               </button>
             </div>
           ) : (

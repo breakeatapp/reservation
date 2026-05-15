@@ -81,6 +81,23 @@ export default function RPReservationForm({ estOptions, defaultVenue, rpSlug, rp
     if (defaultVenue) setValue('establishment', defaultVenue)
   }, [defaultVenue, setValue])
 
+  // Auto-login : si le client est déjà connecté pour ce RP, passer directement au formulaire
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('itinera_guest_email')
+    const savedRp = localStorage.getItem('itinera_guest_rp')
+    const savedName = localStorage.getItem('itinera_guest_name')
+    if (savedEmail && savedRp === rpSlug) {
+      setAccessEmail(savedEmail)
+      setValue('email', savedEmail)
+      if (savedName) {
+        const parts = savedName.split(' ')
+        setValue('firstName', parts[0] || '')
+        setValue('lastName', parts.slice(1).join(' ') || '')
+      }
+      setAccessStep('form')
+    }
+  }, [rpSlug, setValue])
+
   // Quand email vérifié → pré-remplir le champ email du formulaire
   useEffect(() => {
     if (accessEmail) setValue('email', accessEmail)
