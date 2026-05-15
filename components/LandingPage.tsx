@@ -75,10 +75,10 @@ export default function LandingPage() {
 
         <div className="relative z-10 w-full max-w-lg mx-auto text-center">
 
-          {/* Headline — big title centré */}
-          <h1 className="font-playfair text-3xl md:text-5xl text-[#F5F7FA] mb-6 leading-tight text-center">
+          {/* Headline — big title centré, police uniforme */}
+          <h1 className="font-playfair text-4xl md:text-6xl text-[#F5F7FA] mb-6 text-center" style={{ lineHeight: '1.25', letterSpacing: '-0.01em' }}>
             ✦ Private access to the<br />
-            <em>Hospitality Planning</em><br />
+            Hospitality Planning<br />
             Between RPs &amp; Guests ✦
           </h1>
 

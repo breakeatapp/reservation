@@ -35,7 +35,23 @@ export async function getRPProfile(slug: string): Promise<RPProfile | null> {
       .eq('active', true)
       .single()
 
-    if (!error && data) return data as RPProfile
+    if (!error && data) {
+      const profile = data as RPProfile
+      // Migration silencieuse : corriger les anciens libellés en base
+      const updates: Record<string, string> = {}
+      if (profile.tagline === 'Votre accès privé aux meilleures tables') {
+        profile.tagline = 'Hospitality, Organized.'
+        updates.tagline = profile.tagline
+      }
+      if (profile.display_name === 'Élite Reservations' || profile.display_name === 'Elite Reservations') {
+        profile.display_name = 'ITINERA'
+        updates.display_name = profile.display_name
+      }
+      if (Object.keys(updates).length > 0) {
+        supabase.from('rp_profiles').update(updates).eq('slug', slug).then(() => {})
+      }
+      return profile
+    }
   } catch {
     // Supabase pas encore configuré ou table inexistante → fallback
   }

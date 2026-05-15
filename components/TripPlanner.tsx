@@ -662,11 +662,22 @@ export default function TripPlanner({
                         </div>
                       ))}
 
+                      {/* Confirmer la résa en cours */}
+                      {day.bookings.length > 0 && (
+                        <div className="flex items-center gap-2 mb-2 bg-green-500/8 border border-green-500/20 px-4 py-3">
+                          <span className="text-green-400 text-base">✓</span>
+                          <p className="text-green-400 text-xs flex-1">
+                            {day.bookings.filter(b => b.establishment && b.time).length}/{day.bookings.length} réservation{day.bookings.length > 1 ? 's' : ''} complète{day.bookings.filter(b => b.establishment && b.time).length > 1 ? 's' : ''}
+                          </p>
+                          <span className="text-green-400/60 text-[10px] tracking-wider uppercase">Confirmée{day.bookings.filter(b => b.establishment && b.time).length > 1 ? 's' : ''}</span>
+                        </div>
+                      )}
+
                       <button
                         onClick={() => addBooking(day.date)}
-                        className="w-full border border-dashed border-[#5B3DF5]/30 text-[#5B3DF5]/60 text-[10px] tracking-[0.3em] uppercase py-3 hover:border-[#5B3DF5]/60 hover:text-[#8B5CF6] transition-all"
+                        className="w-full border border-dashed border-[#5B3DF5]/30 text-[#5B3DF5]/70 text-[10px] tracking-[0.3em] uppercase py-3 hover:border-[#5B3DF5]/60 hover:text-[#8B5CF6] transition-all"
                       >
-                        + Ajouter une réservation
+                        + Ajouter une nouvelle réservation ce jour-ci
                       </button>
                     </div>
                   )}

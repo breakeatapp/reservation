@@ -111,6 +111,7 @@ export default function ClientDashboard({ profile }: Props) {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [showAddRP, setShowAddRP] = useState(false)
   const [addRPInput, setAddRPInput] = useState('')
+  const [showRPPicker, setShowRPPicker] = useState(false)
 
   // Navigation
   const [screen, setScreen] = useState<Screen>('home')
@@ -331,34 +332,34 @@ export default function ClientDashboard({ profile }: Props) {
         <div className="px-5 pt-10 pb-6 max-w-md mx-auto">
           <Link
             href={`/${profile.slug}`}
-            className="inline-flex items-center gap-2 text-[11px] tracking-[0.2em] text-[#F5F5F3]/50 uppercase hover:text-[#F5F5F3]/80 transition-colors mb-8 border border-white/10 hover:border-white/25 px-4 py-2.5"
+            className="inline-flex items-center gap-2 text-[12px] tracking-[0.2em] text-white/70 uppercase hover:text-white transition-colors mb-8 border border-white/20 hover:border-white/40 px-4 py-2.5"
           >
             ← {profile.display_name}
           </Link>
 
           {isIdentified ? (
             <div className="mb-8">
-              <p className="text-[10px] tracking-[0.5em] uppercase mb-2" style={{ color: accent + '70' }}>
+              <p className="text-[10px] tracking-[0.5em] uppercase mb-2 text-white/50">
                 Mon espace
               </p>
-              <h1 className="font-playfair text-4xl text-[#F5F5F3] leading-tight">
+              <h1 className="font-playfair text-4xl text-white leading-tight">
                 Bienvenue{clientFirstName ? ',' : ''}<br />
                 {clientFirstName && (
                   <span style={{ color: accent }}>{clientFirstName}</span>
                 )}
-                {clientFirstName && <span className="text-[#F5F5F3]/20 text-3xl"> ✦</span>}
+                {clientFirstName && <span className="text-white/30 text-3xl"> ✦</span>}
               </h1>
-              <p className="text-[#F5F5F3]/45 text-sm mt-2">{email}</p>
+              <p className="text-white/60 text-sm mt-2">{email}</p>
             </div>
           ) : (
             <div className="mb-8">
-              <p className="text-[10px] tracking-[0.5em] uppercase mb-2" style={{ color: accent + '70' }}>
+              <p className="text-[10px] tracking-[0.5em] uppercase mb-2 text-white/50">
                 Mon espace
               </p>
-              <h1 className="font-playfair text-4xl text-[#F5F5F3] leading-tight mb-2">
+              <h1 className="font-playfair text-4xl text-white leading-tight mb-2">
                 Bienvenue
               </h1>
-              <p className="text-[#F5F5F3]/25 text-sm leading-relaxed">
+              <p className="text-white/60 text-sm leading-relaxed">
                 Identifiez-vous pour accéder à vos réservations.
               </p>
             </div>
@@ -432,7 +433,7 @@ export default function ClientDashboard({ profile }: Props) {
           {/* ── Sélection du RP ── */}
           {isIdentified && (
             <div>
-              <p className="text-[10px] tracking-[0.3em] text-[#F5F5F3]/40 uppercase mb-3">
+              <p className="text-[11px] tracking-[0.3em] text-white/70 uppercase mb-3">
                 Votre{rpList.length > 1 ? 's' : ''} RP
               </p>
               <div className="space-y-2">
@@ -441,27 +442,27 @@ export default function ClientDashboard({ profile }: Props) {
                     key={rp.slug}
                     onClick={() => selectRP(rp)}
                     disabled={resaLoading}
-                    className="w-full flex items-center gap-4 bg-[#141414] border border-white/8 hover:border-white/20 p-4 text-left transition-all group disabled:opacity-40"
+                    className="w-full flex items-center gap-4 bg-[#141414] border border-white/12 hover:border-white/30 p-4 text-left transition-all group disabled:opacity-40"
                   >
                     <div
                       className="w-11 h-11 flex items-center justify-center flex-shrink-0 text-white text-[10px] tracking-wider font-medium"
-                      style={{ background: `${rp.accentColor}25`, border: `1px solid ${rp.accentColor}40` }}
+                      style={{ background: `${rp.accentColor}30`, border: `1px solid ${rp.accentColor}60` }}
                     >
                       {rp.logoText?.slice(0, 2) ?? rp.slug.slice(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[#F5F5F3] text-sm font-medium mb-1">{rp.displayName}</p>
+                      <p className="text-white text-sm font-semibold mb-1">{rp.displayName}</p>
                       {rp.totalCount > 0 ? (
                         <div className="flex items-center gap-3 text-[11px]">
-                          <span className="text-[#F5F5F3]/50">{rp.totalCount} résa{rp.totalCount > 1 ? 's' : ''}</span>
-                          {rp.pendingCount > 0 && <span className="text-amber-400/80">· {rp.pendingCount} en attente</span>}
-                          {rp.confirmedCount > 0 && <span className="text-green-400/70">· {rp.confirmedCount} confirmée{rp.confirmedCount > 1 ? 's' : ''}</span>}
+                          <span className="text-white/65">{rp.totalCount} résa{rp.totalCount > 1 ? 's' : ''}</span>
+                          {rp.pendingCount > 0 && <span className="text-amber-400">· {rp.pendingCount} en attente</span>}
+                          {rp.confirmedCount > 0 && <span className="text-green-400">· {rp.confirmedCount} confirmée{rp.confirmedCount > 1 ? 's' : ''}</span>}
                         </div>
                       ) : (
-                        <p className="text-[#F5F5F3]/40 text-[11px]">Aucune réservation</p>
+                        <p className="text-white/50 text-[11px]">Aucune réservation</p>
                       )}
                     </div>
-                    <span className="text-[#F5F5F3]/25 group-hover:text-[#F5F5F3]/60 transition-colors flex-shrink-0 text-lg">›</span>
+                    <span className="text-white/40 group-hover:text-white transition-colors flex-shrink-0 text-lg">›</span>
                   </button>
                 ))}
 
@@ -522,16 +523,16 @@ export default function ClientDashboard({ profile }: Props) {
               <div className="mt-4">
                 <button
                   onClick={() => { setShowAccountMenu(v => !v); setDeleteConfirm(false) }}
-                  className="w-full text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/15 hover:text-[#F5F5F3]/35 transition-colors py-2 text-center"
+                  className="w-full text-[10px] tracking-[0.2em] uppercase text-white/45 hover:text-white/75 transition-colors py-2 text-center"
                 >
                   ··· Options du compte
                 </button>
 
                 {showAccountMenu && (
-                  <div className="mt-2 bg-[#141414] border border-white/5 overflow-hidden">
+                  <div className="mt-2 bg-[#141414] border border-white/10 overflow-hidden">
                     <button
                       onClick={resetIdentity}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-[#F5F5F3]/40 hover:text-[#F5F5F3]/70 hover:bg-white/3 transition-all text-sm border-b border-white/5"
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-white/65 hover:text-white hover:bg-white/5 transition-all text-sm border-b border-white/8"
                     >
                       <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -575,26 +576,50 @@ export default function ClientDashboard({ profile }: Props) {
             </div>
           )}
 
-          {/* ── Actions rapides ── */}
+          {/* ── Faire une réservation — avec sélection du RP ── */}
           {isIdentified && (
             <div>
-              <p className="text-[10px] tracking-[0.3em] text-[#F5F5F3]/40 uppercase mb-3">Action rapide</p>
-              <div className="space-y-2">
-                <Link
-                  href={`/${profile.slug}/book`}
-                  className="w-full flex items-center gap-4 bg-[#141414] border border-white/8 hover:border-white/20 p-4 transition-all group"
+              {!showRPPicker ? (
+                <button
+                  onClick={() => {
+                    if (rpList.length === 1) {
+                      router.push(`/${rpList[0].slug}/book`)
+                    } else {
+                      setShowRPPicker(true)
+                    }
+                  }}
+                  className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase hover:opacity-90 transition-opacity"
+                  style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}
                 >
-                  <div className="w-9 h-9 flex items-center justify-center flex-shrink-0 text-base"
-                    style={{ background: `${accent}15`, border: `1px solid ${accent}25` }}>
-                    🍽️
+                  🍽️ &nbsp; Faire une réservation unique
+                </button>
+              ) : (
+                <div className="bg-[#141414] border border-white/12 p-5">
+                  <p className="text-white text-sm font-semibold mb-1">Avec qui souhaitez-vous réserver ?</p>
+                  <p className="text-white/50 text-xs mb-4">Choisissez votre RP</p>
+                  <div className="space-y-2 mb-3">
+                    {rpList.map(rp => (
+                      <button
+                        key={rp.slug}
+                        onClick={() => { setShowRPPicker(false); router.push(`/${rp.slug}/book`) }}
+                        className="w-full flex items-center gap-3 bg-[#0B0B0B] border border-white/10 hover:border-white/30 p-3.5 text-left transition-all group"
+                      >
+                        <div
+                          className="w-9 h-9 flex items-center justify-center flex-shrink-0 text-white text-[10px] font-semibold"
+                          style={{ background: `${rp.accentColor}30`, border: `1px solid ${rp.accentColor}60` }}
+                        >
+                          {rp.logoText?.slice(0, 2) ?? rp.slug.slice(0, 2).toUpperCase()}
+                        </div>
+                        <span className="text-white text-sm font-medium group-hover:text-white flex-1">{rp.displayName}</span>
+                        <span className="text-white/40 group-hover:text-white text-lg">›</span>
+                      </button>
+                    ))}
                   </div>
-                  <div className="flex-1">
-                    <p className="text-[#F5F5F3] text-sm font-medium">Faire une réservation unique</p>
-                    <p className="text-[#F5F5F3]/45 text-xs">Réponse sous 24h</p>
-                  </div>
-                  <span className="text-[#F5F5F3]/25 group-hover:text-[#F5F5F3]/60 transition-colors text-lg">›</span>
-                </Link>
-              </div>
+                  <button onClick={() => setShowRPPicker(false)} className="text-white/40 text-xs hover:text-white/70 transition-colors">
+                    Annuler
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -616,10 +641,10 @@ export default function ClientDashboard({ profile }: Props) {
           ← Retour
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] tracking-[0.3em] uppercase truncate" style={{ color: (viewingRp?.accentColor ?? accent) + '80' }}>
+          <p className="text-[10px] tracking-[0.3em] uppercase truncate" style={{ color: (viewingRp?.accentColor ?? accent) }}>
             {viewingRp?.displayName ?? profile.display_name}
           </p>
-          <p className="text-sm text-[#F5F5F3]/55 truncate">{clientFirstName || email}</p>
+          <p className="text-sm text-white/75 truncate">{clientFirstName || email}</p>
         </div>
         {resaLoading && (
           <svg className="animate-spin w-4 h-4 text-[#F5F5F3]/20 flex-shrink-0" viewBox="0 0 24 24" fill="none">
@@ -661,7 +686,7 @@ export default function ClientDashboard({ profile }: Props) {
           </div>
         ) : (
           <>
-            <p className="text-[#F5F5F3]/20 text-sm mb-5">
+            <p className="text-white/65 text-sm mb-5">
               {reservations.length} réservation{reservations.length > 1 ? 's' : ''}
             </p>
 
@@ -684,7 +709,7 @@ export default function ClientDashboard({ profile }: Props) {
 
                     <div className="px-5 py-4">
                       <p className="font-playfair text-lg text-[#F5F5F3] mb-0.5">{r.establishment}</p>
-                      <p className="text-[#F5F5F3]/25 text-[10px] uppercase tracking-wider mb-4">{r.destination}</p>
+                      <p className="text-white/55 text-[10px] uppercase tracking-wider mb-4">{r.destination}</p>
 
                       {!isEditing && !isConfirmingCancel ? (
                         <>
@@ -695,8 +720,8 @@ export default function ClientDashboard({ profile }: Props) {
                               { label: 'Personnes', value: `${r.guests}` },
                             ].map(item => (
                               <div key={item.label}>
-                                <p className="text-[8px] tracking-wider text-[#F5F5F3]/20 uppercase mb-1">{item.label}</p>
-                                <p className="text-[#F5F5F3]/70 text-xs leading-tight">{item.value}</p>
+                                <p className="text-[9px] tracking-wider text-white/50 uppercase mb-1">{item.label}</p>
+                                <p className="text-white text-xs leading-tight">{item.value}</p>
                               </div>
                             ))}
                           </div>
