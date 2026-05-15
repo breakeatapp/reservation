@@ -13,42 +13,14 @@ type Props = {
   establishments: Establishment[]
 }
 
-type RPItem = { slug: string; displayName: string; accentColor: string }
-
 export default function RPHomePage({ profile, destinations, establishments }: Props) {
   const router = useRouter()
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [connectedName, setConnectedName] = useState('')
 
-  // ── Sélecteur RP ──────────────────────────────────────────
-  const [rpPickerOpen, setRpPickerOpen] = useState(false)
-  const [rpPickerList, setRpPickerList] = useState<RPItem[]>([])
-  const [rpPickerTarget, setRpPickerTarget] = useState<'book' | 'trip'>('book')
-  const [rpPickerLoading, setRpPickerLoading] = useState(false)
-
-  const handleCTA = async (target: 'book' | 'trip') => {
-    const savedEmail = localStorage.getItem('itinera_guest_email')
-    if (!savedEmail) {
-      router.push(`/${slug}/${target === 'book' ? 'book' : 'trip'}`)
-      return
-    }
-    setRpPickerLoading(true)
-    setRpPickerTarget(target)
-    try {
-      const res = await fetch(`/api/client/rps?email=${encodeURIComponent(savedEmail)}`)
-      const data = await res.json()
-      if (data.rps && data.rps.length > 1) {
-        setRpPickerList(data.rps)
-        setRpPickerOpen(true)
-      } else {
-        router.push(`/${slug}/${target === 'book' ? 'book' : 'trip'}`)
-      }
-    } catch {
-      router.push(`/${slug}/${target === 'book' ? 'book' : 'trip'}`)
-    } finally {
-      setRpPickerLoading(false)
-    }
+  const handleCTA = (target: 'book' | 'trip') => {
+    router.push(`/${slug}/${target === 'book' ? 'book' : 'trip'}`)
   }
 
   useEffect(() => {
@@ -69,7 +41,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
   }, [profile.slug])
 
   const slug = profile.slug
-  const accent = profile.accent_color || '#5B3DF5'
+  const accent = '#5B3DF5'
 
   const byDest = destinations.map(d => ({
     dest: d,
@@ -202,25 +174,23 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
             </p>
           )}
           <h1 className="font-playfair text-4xl md:text-7xl text-[#F5F5F3] mb-10 leading-tight">
-            {profile.tagline}
+            Hospitality, Organized.
           </h1>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
             <button
               onClick={() => handleCTA('book')}
-              disabled={rpPickerLoading}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-white text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-white text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:opacity-90 transition-opacity"
               style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}
             >
-              {rpPickerLoading && rpPickerTarget === 'book' ? '...' : 'Faire une réservation unique'}
+              Faire une réservation unique
             </button>
             <button
               onClick={() => handleCTA('trip')}
-              disabled={rpPickerLoading}
-              className="w-full sm:w-auto inline-flex items-center justify-center border border-white/25 text-[#F5F5F3]/70 text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:border-white/50 hover:text-[#F5F5F3] transition-all disabled:opacity-50"
+              className="w-full sm:w-auto inline-flex items-center justify-center border border-white/25 text-[#F5F5F3]/70 text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:border-white/50 hover:text-[#F5F5F3] transition-all"
             >
-              {rpPickerLoading && rpPickerTarget === 'trip' ? '...' : 'Planifier mon séjour'}
+              Planifier mon séjour
             </button>
             <Link
               href={`/${slug}/mon-espace`}
@@ -230,43 +200,6 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
             </Link>
           </div>
 
-          {/* ── Overlay sélecteur RP ── */}
-          {rpPickerOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-5">
-              <div className="w-full max-w-sm bg-[#111] border border-white/10 p-8">
-                <p className="text-[9px] tracking-[0.5em] uppercase text-[#F5F5F3]/35 mb-2">
-                  {rpPickerTarget === 'book' ? 'Réservation unique' : 'Planifier mon séjour'}
-                </p>
-                <h3 className="font-playfair text-xl text-[#F5F5F3] mb-6">
-                  Avec quel RP souhaitez-vous {rpPickerTarget === 'book' ? 'réserver' : 'planifier'} ?
-                </h3>
-                <div className="space-y-2 mb-6">
-                  {rpPickerList.map(rp => (
-                    <button
-                      key={rp.slug}
-                      onClick={() => {
-                        localStorage.setItem('itinera_guest_rp', rp.slug)
-                        setRpPickerOpen(false)
-                        router.push(`/${rp.slug}/${rpPickerTarget === 'book' ? 'book' : 'trip'}`)
-                      }}
-                      className="w-full flex items-center justify-between px-5 py-4 border border-white/8 hover:border-white/25 transition-all text-left group"
-                    >
-                      <span className="text-[#F5F5F3]/80 text-sm group-hover:text-[#F5F5F3] transition-colors">
-                        {rp.displayName}
-                      </span>
-                      <span className="text-[#F5F5F3]/30 group-hover:text-[#F5F5F3]/60 transition-colors">→</span>
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setRpPickerOpen(false)}
-                  className="text-[#F5F5F3]/25 text-[10px] tracking-wider hover:text-[#F5F5F3]/50 transition-colors"
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-20">

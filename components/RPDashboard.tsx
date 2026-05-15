@@ -133,7 +133,7 @@ export default function RPDashboard({ profile }: Props) {
   // Configuration
   const [configDests, setConfigDests] = useState<string[]>(profile.activated_destinations ?? [])
   const [configVenues, setConfigVenues] = useState<string[]>(profile.activated_venues ?? [])
-  const [configAccent, setConfigAccent] = useState(profile.accent_color || '#5B3DF5')
+  const configAccent = '#5B3DF5'
   const [configLogoText, setConfigLogoText] = useState(profile.logo_text || '')
   const [configSaving, setConfigSaving] = useState(false)
   const [configSaved, setConfigSaved] = useState(false)
@@ -612,7 +612,6 @@ export default function RPDashboard({ profile }: Props) {
         body: JSON.stringify({
           activated_destinations: configDests,
           activated_venues: configVenues,
-          accent_color: configAccent,
           logo_text: configLogoText,
         }),
       })
@@ -732,26 +731,6 @@ export default function RPDashboard({ profile }: Props) {
                   className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 transition-colors"
                   placeholder="ÉLITE"
                 />
-              </div>
-              <div>
-                <label className="block text-[8px] tracking-wider text-[#F5F5F3]/30 uppercase mb-1.5">Couleur accent</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={configAccent}
-                    onChange={e => setConfigAccent(e.target.value)}
-                    className="w-12 h-10 cursor-pointer bg-transparent border-0 outline-none"
-                  />
-                  <span className="text-[#F5F5F3]/40 text-sm font-mono">{configAccent}</span>
-                  <div className="flex gap-2 ml-auto">
-                    {['#5B3DF5', '#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#C77DFF'].map(c => (
-                      <button key={c} onClick={() => setConfigAccent(c)}
-                        className="w-6 h-6 rounded-full border-2 transition-all"
-                        style={{ background: c, borderColor: configAccent === c ? 'white' : 'transparent' }}
-                      />
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           </div>
