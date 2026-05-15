@@ -96,17 +96,27 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-8">
-            <Link href={`/${slug}/mon-espace`} className="flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase hover:text-[#F5F5F3] transition-colors"
-              style={{ color: connectedName ? accent + 'cc' : undefined }}
+          <div className="hidden md:flex items-center gap-4">
+            <Link
+              href={`/${slug}/mon-espace`}
+              className="flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase border px-5 py-2.5 transition-all hover:bg-white/5"
+              style={connectedName
+                ? { borderColor: accent + '60', color: accent + 'dd' }
+                : { borderColor: 'rgba(245,245,243,0.20)', color: 'rgba(245,245,243,0.70)' }
+              }
             >
               {connectedName ? (
                 <>
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                  {connectedName.split(' ')[0]}
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse flex-shrink-0" />
+                  {connectedName.split(' ')[0]} · Mon compte
                 </>
               ) : (
-                <span className="text-[#F5F5F3]/50">Mon Compte</span>
+                <>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Mon compte
+                </>
               )}
             </Link>
           </div>
