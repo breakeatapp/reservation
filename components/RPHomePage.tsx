@@ -28,15 +28,18 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
     setRpPickerTarget(target)
     try {
       const stored = localStorage.getItem('itinera_guest_rps')
-      const rps = stored ? JSON.parse(stored) : []
-      if (rps.length >= 1) {
-        setRpPickerList(rps)
-        setRpPickerOpen(true)
-        return
+      let rps: { slug: string; displayName: string }[] = stored ? JSON.parse(stored) : []
+      // Toujours inclure le RP de la page courante s'il n'est pas déjà dans la liste
+      if (!rps.find((r: { slug: string }) => r.slug === slug)) {
+        rps = [{ slug, displayName: profile.display_name }, ...rps]
       }
-    } catch { /* ignore */ }
-    // Pas connecté → accès direct à la page de réservation du RP courant
-    router.push(`/${slug}/${target}`)
+      setRpPickerList(rps)
+      setRpPickerOpen(true)
+    } catch {
+      // Fallback : ouvrir le picker avec uniquement le RP courant
+      setRpPickerList([{ slug, displayName: profile.display_name }])
+      setRpPickerOpen(true)
+    }
   }
 
   useEffect(() => {
