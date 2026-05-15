@@ -60,12 +60,16 @@ export async function DELETE(req: NextRequest, { params }: Params) {
 
   const body = await req.json().catch(() => ({}))
 
-  // Si deleteProfile=true → supprimer aussi le profil RP de Supabase (retour au fallback local)
+  // Si deleteProfile=true → supprimer toutes les données liées puis le profil
   if (body.deleteProfile) {
+    // 1. Supprimer les réservations
     await supabase.from('reservations').delete().eq('rp_slug', params.slug)
+    // 2. Supprimer les fiches clients (evite les erreurs de contrainte FK)
+    await supabase.from('rp_client_notes').delete().eq('rp_slug', params.slug)
+    // 3. Supprimer le profil RP
     const { error } = await supabase.from('rp_profiles').delete().eq('slug', params.slug)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ success: true, deleted: 'profile+reservations' })
+    return NextResponse.json({ success: true, deleted: 'profile+reservations+clients' })
   }
 
   // Sinon → supprimer seulement les réservations

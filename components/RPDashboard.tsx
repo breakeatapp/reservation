@@ -1293,11 +1293,15 @@ export default function RPDashboard({ profile }: Props) {
                         if (res.ok) {
                           if (dangerConfirm === 'account') {
                             setDangerDone('Compte supprimé. Rechargez la page.')
+                            setTimeout(() => { window.location.href = '/' }, 2500)
                           } else {
                             setDangerDone('Réservations effacées avec succès.')
                             setDangerConfirm(null)
                             setTimeout(() => { setDangerDone('') }, 4000)
                           }
+                        } else {
+                          const d = await res.json().catch(() => ({}))
+                          setDangerDone(`Erreur : ${d.error || res.status}`)
                         }
                       } finally {
                         setDangerLoading(false)
