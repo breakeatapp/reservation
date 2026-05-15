@@ -3,6 +3,9 @@ import { getRPProfile } from '@/lib/rp'
 import RPDashboard from '@/components/RPDashboard'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type Props = { params: { rp: string } }
 
 export const metadata: Metadata = { title: 'RP Dashboard — ITINERA' }

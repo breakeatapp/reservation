@@ -3,6 +3,9 @@ import { getRPProfile, getRPEstablishmentOptions, getRPDestinations, getRPEstabl
 import RPReservationForm from '@/components/RPReservationForm'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 import { parseVenueEntry } from '@/lib/venue-utils'
 
 type Props = {

@@ -3,6 +3,9 @@ import { getRPProfile, getRPDestinations, getRPEstablishments } from '@/lib/rp'
 import RPHomePage from '@/components/RPHomePage'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type Props = { params: { rp: string } }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
