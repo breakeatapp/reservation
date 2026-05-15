@@ -23,97 +23,98 @@ export default function LandingPage() {
 
       if (data.rps && data.rps.length > 0) {
         const rp = data.rps[0]
-        // Sauvegarder en localStorage → le dashboard se connecte sans redemander
-        localStorage.setItem('elite_client_email', trimmed)
-        localStorage.setItem('elite_client_rp', rp.slug)
-        if (data.firstName) localStorage.setItem('elite_client_name', data.firstName)
+        localStorage.setItem('itinera_guest_email', trimmed)
+        localStorage.setItem('itinera_guest_rp', rp.slug)
+        if (data.firstName) localStorage.setItem('itinera_guest_name', data.firstName)
         router.push(`/${rp.slug}/mon-espace`)
       } else {
-        // Peut-être inscrit mais sans réservations → vérifier directement
-        setError('Aucun espace trouvé. Vérifiez votre email ou contactez votre concierge.')
+        setError('No access found. Check your email or contact your RP.')
       }
     } catch {
-      setError('Une erreur est survenue. Réessayez.')
+      setError('An error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
+    <div className="min-h-screen bg-[#0F1115] text-[#F5F7FA]">
 
       {/* ── NAVBAR ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-5 flex items-center justify-between">
         <div>
-          <span className="text-[8px] tracking-[0.5em] text-[#F5F5F3]/20 uppercase block">Accès Privé</span>
-          <span className="font-playfair text-lg text-[#F5F5F3]">Élite Reservations</span>
+          <span className="text-[8px] tracking-[0.5em] text-[#F5F7FA]/20 uppercase block">Private Access</span>
+          <span className="font-playfair text-lg text-[#F5F7FA] tracking-wide">ITINERA</span>
         </div>
       </nav>
 
       {/* ── HERO ── */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-5">
-        {/* Fond */}
+        {/* Fond cinématique */}
         <div className="absolute inset-0">
           <Image
             src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920&q=90"
-            alt="Luxury hospitality"
+            alt="Private hospitality"
             fill
-            className="object-cover opacity-15"
+            className="object-cover opacity-10"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0B0B0B]/80 via-[#0B0B0B]/50 to-[#0B0B0B]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0F1115]/90 via-[#0F1115]/60 to-[#0F1115]" />
         </div>
 
         <div className="relative z-10 w-full max-w-lg mx-auto text-center">
 
-          <p className="text-[9px] tracking-[0.6em] text-[#F5F5F3]/20 uppercase mb-6">
-            ✦ Conciergerie Privée ✦
+          {/* Eyebrow */}
+          <p className="text-[9px] tracking-[0.6em] text-[#F5F7FA]/20 uppercase mb-8">
+            ✦ Hospitality Planning Between RPs & Guests ✦
           </p>
 
-          <h1 className="font-playfair text-4xl md:text-6xl text-[#F5F5F3] mb-4 leading-tight">
-            Des expériences
-            <span className="block italic text-[#F5F5F3]/40">d'exception</span>
+          {/* Headline */}
+          <h1 className="font-playfair text-4xl md:text-5xl text-[#F5F7FA] mb-4 leading-tight">
+            Private access to the
+            <span className="block italic text-[#F5F7FA]/35">world's most requested venues.</span>
           </h1>
 
-          <p className="text-[#F5F5F3]/30 text-sm leading-relaxed mb-12 max-w-sm mx-auto">
-            Service de réservation privé. Accès sur invitation uniquement.
+          {/* Sub */}
+          <p className="text-[#F5F7FA]/30 text-sm leading-relaxed mb-12 max-w-sm mx-auto">
+            From WhatsApp chaos to structured hospitality management.
           </p>
 
-          {/* ── Accès client ── */}
-          <div className="bg-[#111]/80 backdrop-blur-sm border border-white/8 p-6 mb-4">
-            <p className="text-[9px] tracking-[0.4em] uppercase text-[#F5F5F3]/25 mb-4">
-              Accéder à mon espace
+          {/* ── Accès guest ── */}
+          <div className="bg-[#181C23]/90 backdrop-blur-sm border border-white/6 p-6 mb-4">
+            <p className="text-[9px] tracking-[0.4em] uppercase text-[#F5F7FA]/25 mb-4">
+              Access my space
             </p>
             <form onSubmit={handleAccess} className="flex gap-2">
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="votre@email.com"
-                className="flex-1 bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-4 py-3 text-sm focus:border-white/25 outline-none placeholder-[#F5F5F3]/15"
+                placeholder="your@email.com"
+                className="flex-1 bg-[#0F1115] border border-white/8 text-[#F5F7FA] px-4 py-3 text-sm focus:border-white/20 outline-none placeholder-[#F5F7FA]/15 transition-colors"
                 required
               />
               <button
                 type="submit"
                 disabled={loading}
-                className="px-5 py-3 text-white text-[11px] tracking-[0.2em] uppercase bg-gradient-to-r from-[#5B3DF5] to-[#8B5CF6] hover:opacity-90 transition-opacity disabled:opacity-40 flex-shrink-0"
+                className="px-5 py-3 text-white text-[11px] tracking-[0.2em] uppercase bg-[#6E5BFF] hover:bg-[#5B3DF5] transition-colors disabled:opacity-40 flex-shrink-0"
               >
                 {loading ? '...' : '→'}
               </button>
             </form>
             {error && (
-              <p className="text-[#F5F5F3]/30 text-xs mt-3 leading-relaxed">{error}</p>
+              <p className="text-[#F5F7FA]/30 text-xs mt-3 leading-relaxed">{error}</p>
             )}
-            <p className="text-[#F5F5F3]/12 text-[10px] mt-3">
-              Entrez l'email utilisé lors de votre inscription
+            <p className="text-[#F5F7FA]/12 text-[10px] mt-3">
+              Enter the email used when your RP invited you
             </p>
           </div>
 
-          {/* Message pour les nouveaux */}
+          {/* Message nouveaux guests */}
           <div className="border border-white/5 p-5">
-            <p className="text-[#F5F5F3]/20 text-xs leading-relaxed">
-              Vous n'avez pas encore accès ?<br />
-              <span className="text-[#F5F5F3]/35">Ce service fonctionne sur invitation — contactez votre concierge attitré.</span>
+            <p className="text-[#F5F7FA]/20 text-xs leading-relaxed">
+              Access is by invitation only.<br />
+              <span className="text-[#F5F7FA]/35">Contact your RP to request access to the network.</span>
             </p>
           </div>
 
@@ -122,8 +123,8 @@ export default function LandingPage() {
 
       {/* ── FOOTER ── */}
       <footer className="py-8 px-6 border-t border-white/5 text-center">
-        <p className="text-[#F5F5F3]/10 text-[10px] tracking-wider uppercase">
-          Élite Reservations · Service privé · Accès sur invitation
+        <p className="text-[#F5F7FA]/10 text-[10px] tracking-wider uppercase">
+          ITINERA · Hospitality Planning Between RPs & Guests
         </p>
       </footer>
 

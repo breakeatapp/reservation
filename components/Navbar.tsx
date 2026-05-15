@@ -21,10 +21,10 @@ export default function Navbar() {
         {/* Logo */}
         <Link href="/" className="group">
           <span className="text-[10px] tracking-[0.3em] text-gold/60 uppercase block leading-none group-hover:text-gold transition-colors">
-            ✦ Conciergerie Privée
+            ✦ Private Access
           </span>
           <span className="font-playfair text-xl text-cream group-hover:text-gold transition-colors">
-            ÉLITE RESERVATIONS
+            ITINERA
           </span>
         </Link>
 

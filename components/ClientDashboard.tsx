@@ -132,9 +132,9 @@ export default function ClientDashboard({ profile }: Props) {
 
   // ── Auto-login depuis localStorage ───────────────────────────
   useEffect(() => {
-    const saved = localStorage.getItem('elite_client_email')
-    const savedName = localStorage.getItem('elite_client_name')
-    const savedRp = localStorage.getItem('elite_client_rp')
+    const saved = localStorage.getItem('itinera_guest_email')
+    const savedName = localStorage.getItem('itinera_guest_name')
+    const savedRp = localStorage.getItem('itinera_guest_rp')
     if (!saved || savedRp !== profile.slug) {
       // Pas de session → retour à la landing page
       router.replace('/')
@@ -147,9 +147,9 @@ export default function ClientDashboard({ profile }: Props) {
       .then(r => r.json())
       .then(async check => {
         if (!check.registered) {
-          localStorage.removeItem('elite_client_email')
-          localStorage.removeItem('elite_client_name')
-          localStorage.removeItem('elite_client_rp')
+          localStorage.removeItem('itinera_guest_email')
+          localStorage.removeItem('itinera_guest_name')
+          localStorage.removeItem('itinera_guest_rp')
           router.replace('/')
           return
         }
@@ -159,7 +159,7 @@ export default function ClientDashboard({ profile }: Props) {
         setEmail(saved)
         const firstName = data.firstName || savedName || check.clientName?.split(' ')[0] || ''
         setClientFirstName(firstName)
-        if (firstName) localStorage.setItem('elite_client_name', firstName)
+        if (firstName) localStorage.setItem('itinera_guest_name', firstName)
         const rps: RPSummary[] = data.rps ?? []
         if (!rps.some(r => r.slug === profile.slug)) {
           rps.unshift({
@@ -178,9 +178,9 @@ export default function ClientDashboard({ profile }: Props) {
   }, [])
 
   const resetIdentity = () => {
-    localStorage.removeItem('elite_client_email')
-    localStorage.removeItem('elite_client_name')
-    localStorage.removeItem('elite_client_rp')
+    localStorage.removeItem('itinera_guest_email')
+    localStorage.removeItem('itinera_guest_name')
+    localStorage.removeItem('itinera_guest_rp')
     setEmail('')
     setClientFirstName('')
     setRpList([])
@@ -535,8 +535,8 @@ export default function ClientDashboard({ profile }: Props) {
                     🍽️
                   </div>
                   <div className="flex-1">
-                    <p className="text-[#F5F5F3] text-sm font-medium">Réserver une table</p>
-                    <p className="text-[#F5F5F3]/25 text-xs">Confirmation sous 24h</p>
+                    <p className="text-[#F5F5F3] text-sm font-medium">Soumettre une demande</p>
+                    <p className="text-[#F5F5F3]/25 text-xs">Réponse sous 24h</p>
                   </div>
                   <span className="text-[#F5F5F3]/10 group-hover:text-[#F5F5F3]/30 transition-colors">›</span>
                 </Link>
@@ -550,8 +550,8 @@ export default function ClientDashboard({ profile }: Props) {
                     🗺️
                   </div>
                   <div className="flex-1">
-                    <p className="text-[#F5F5F3] text-sm font-medium">Planifier mon voyage</p>
-                    <p className="text-[#F5F5F3]/25 text-xs">Itinéraire multi-jours</p>
+                    <p className="text-[#F5F5F3] text-sm font-medium">Construire mon itinéraire</p>
+                    <p className="text-[#F5F5F3]/25 text-xs">Séjour multi-destinations</p>
                   </div>
                   <span className="text-[#F5F5F3]/10 group-hover:text-[#F5F5F3]/30 transition-colors">›</span>
                 </Link>

@@ -60,8 +60,8 @@ export default function Footer() {
         <div className="gold-divider my-10" />
 
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-cream/20 text-[11px] tracking-wider">
-          <span>© {new Date().getFullYear()} Élite Reservations. Tous droits réservés.</span>
-          <span>Service disponible 7j/7 · Discrétion absolue</span>
+          <span>© {new Date().getFullYear()} ITINERA. All rights reserved.</span>
+          <span>Hospitality Planning Between RPs & Guests</span>
         </div>
       </div>
     </footer>

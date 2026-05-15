@@ -319,7 +319,7 @@ export default function RPRegistration({ inviteCode }: { inviteCode: string }) {
                 value={displayName}
                 onChange={e => handleDisplayNameChange(e.target.value)}
                 className={inputClass}
-                placeholder="Élite Reservations, Monaco Conciergerie..."
+                placeholder="John — Monaco, Sarah — Ibiza..."
                 autoFocus
               />
             </div>
@@ -448,7 +448,7 @@ export default function RPRegistration({ inviteCode }: { inviteCode: string }) {
               <p className="text-[9px] tracking-wider text-[#F5F5F3]/20 uppercase mb-3">Aperçu navbar</p>
               <div className="bg-[#0B0B0B] px-4 py-3 flex items-center justify-between">
                 <div>
-                  <p className="text-[8px] tracking-[0.4em] text-[#F5F5F3]/20 uppercase">Accès Privé</p>
+                  <p className="text-[8px] tracking-[0.4em] text-[#F5F5F3]/20 uppercase">ITINERA</p>
                   <p className="text-[#F5F5F3] font-medium" style={{ fontFamily: 'Georgia, serif' }}>
                     {logoText || displayName}
                   </p>

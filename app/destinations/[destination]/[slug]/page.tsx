@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: { destination: stri
   const est = getEstablishment(params.destination, params.slug)
   if (!est) return {}
   return {
-    title: `${est.name} — Réservation · Élite Reservations`,
+    title: `${est.name} — Request Access · ITINERA`,
     description: est.shortDesc,
   }
 }

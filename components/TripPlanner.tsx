@@ -109,8 +109,8 @@ export default function TripPlanner({
   // Auto-login depuis localStorage
   useEffect(() => {
     if (!rpSlug) { setStep('info'); return }
-    const saved = localStorage.getItem('elite_client_email')
-    const savedRp = localStorage.getItem('elite_client_rp')
+    const saved = localStorage.getItem('itinera_guest_email')
+    const savedRp = localStorage.getItem('itinera_guest_rp')
     if (saved && savedRp === rpSlug) {
       setAccessEmail(saved)
       setStep('info')

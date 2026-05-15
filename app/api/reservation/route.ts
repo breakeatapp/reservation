@@ -63,10 +63,12 @@ export async function POST(req: NextRequest) {
     // Récupérer le profil du RP pour l'email
     let rpEmail: string | undefined
     let rpDisplayName: string | undefined
+    let rpWhatsapp: string | undefined
     try {
       const rpProfile = await getRPProfile(rpSlug || 'remi')
       rpEmail = rpProfile?.email
       rpDisplayName = rpProfile?.display_name
+      rpWhatsapp = rpProfile?.whatsapp
     } catch { /* non-bloquant */ }
 
     // Send email notification to RP
@@ -100,6 +102,9 @@ export async function POST(req: NextRequest) {
         destination,
         establishmentEmail: est?.email || '',
         establishmentPhone: est?.phone || '',
+        rpEmail,
+        rpDisplayName,
+        rpWhatsapp,
       })
     } catch (clientEmailErr) {
       console.error('Client confirmation email error (non-bloquant):', clientEmailErr)

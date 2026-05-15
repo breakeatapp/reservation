@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Conciergerie Privée — Réservations d\'Exception',
-  description: 'Réservez les meilleures tables et clubs des destinations les plus exclusives au monde. Saint-Tropez, Dubai, Monaco, Miami, Cannes, Courchevel, Saint-Barthélemy.',
-  keywords: 'réservation luxe, restaurant VIP, club privé, conciergerie, Saint-Tropez, Dubai, Monaco',
+  title: 'ITINERA — Hospitality Planning Between RPs & Guests',
+  description: 'From WhatsApp chaos to structured hospitality management. Private access to the world\'s most requested venues.',
+  keywords: 'private access, hospitality planning, concierge network, curated destinations, itinerary',
 }
 
 export default function RootLayout({

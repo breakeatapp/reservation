@@ -5,8 +5,8 @@ import { establishments, destinations } from '@/lib/data'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Réservation — Élite Reservations',
-  description: 'Faites une demande de réservation dans nos établissements d\'exception.',
+  title: 'Submit a Request — ITINERA',
+  description: 'Submit a hospitality request through your RP. Private access to curated venues.',
 }
 
 export default function ReservationPage({

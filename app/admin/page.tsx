@@ -46,7 +46,7 @@ function buildWhatsAppMessage(r: Reservation): string {
     r.special_requests ? `"${r.special_requests}"` : '',
     ``,
     `─────────────────`,
-    `Merci de confirmer la disponibilité — Élite Reservations`,
+    `Merci de confirmer la disponibilité — ITINERA`,
   ].filter(l => l !== undefined && l !== null)
 
   return lines.join('\n')
@@ -164,7 +164,7 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-4">
           <div>
             <p className="text-[9px] tracking-[0.3em] text-violet-light/50 uppercase">Dashboard</p>
-            <h1 className="font-playfair text-xl text-[#F5F5F3]">Élite Reservations</h1>
+            <h1 className="font-playfair text-xl text-[#F5F5F3]">ITINERA</h1>
           </div>
         </div>
         <div className="flex items-center gap-3">

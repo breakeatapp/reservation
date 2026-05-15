@@ -5,8 +5,8 @@ import { destinations, establishments } from '@/lib/data'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Planificateur de voyage — Élite Reservations',
-  description: 'Planifiez votre séjour de luxe : créez votre itinéraire sur-mesure avec toutes vos réservations.',
+  title: 'Build your Itinerary — ITINERA',
+  description: 'Plan your stay and build a curated itinerary with your RP. Private access to the world\'s most requested venues.',
 }
 
 export default function TripPlannerPage() {

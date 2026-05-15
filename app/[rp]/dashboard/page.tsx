@@ -5,7 +5,7 @@ import type { Metadata } from 'next'
 
 type Props = { params: { rp: string } }
 
-export const metadata: Metadata = { title: 'Dashboard — Élite Reservations' }
+export const metadata: Metadata = { title: 'RP Dashboard — ITINERA' }
 
 export default async function RPDashboardPage({ params }: Props) {
   const profile = await getRPProfile(params.rp)

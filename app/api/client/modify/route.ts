@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { sendModificationEmailToRP } from '@/lib/email'
+import { sendModificationEmailToRP, sendModificationAckToClient } from '@/lib/email'
 import { getRPProfile } from '@/lib/rp'
 
 // PATCH /api/client/modify
@@ -101,6 +101,24 @@ export async function PATCH(req: NextRequest) {
           rpEmail,
         })
       }
+
+      // ── Email de confirmation au CLIENT ──────────────────────────
+      const rpProfile = rpSlug ? await getRPProfile(rpSlug) : null
+      await sendModificationAckToClient({
+        firstName: reservation.first_name,
+        email: reservation.email,
+        establishment: reservation.establishment,
+        destination: reservation.destination,
+        date: reservation.date,
+        action: isCancel ? 'cancelled' : 'modified',
+        newDate: !isCancel ? newDateFormatted : undefined,
+        newTime: !isCancel && time ? time : undefined,
+        newGuests: !isCancel && guests ? parseInt(String(guests)) : undefined,
+        newNotes: !isCancel ? specialRequests : undefined,
+        rpDisplayName,
+        rpWhatsapp: rpProfile?.whatsapp,
+        rpEmail,
+      })
     } catch (emailErr) {
       // L'email est non-bloquant — on log mais on ne fait pas échouer la requête
       console.error('Erreur envoi email modification (non-bloquant):', emailErr)

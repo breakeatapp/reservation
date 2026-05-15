@@ -2,6 +2,13 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// ── Formate un numéro de téléphone pour WhatsApp ───────────
+function toWaPhone(phone: string): string {
+  const digits = phone.replace(/[^0-9]/g, '')
+  if (digits.startsWith('0')) return '33' + digits.slice(1)
+  return digits
+}
+
 // ── Type pour un voyage complet ────────────────────────────
 export type TripBooking = {
   establishment: string
@@ -28,7 +35,7 @@ export type TripData = {
 
 // ── Email récap voyage (UN seul email pour tout le trip) ───
 export async function sendTripSummaryEmail(data: TripData) {
-  const managerName = process.env.MANAGER_NAME || 'Élite Reservations'
+  const managerName = process.env.MANAGER_NAME || 'ITINERA'
   const rpName = data.rpDisplayName || managerName
 
   const bookingRows = data.bookings.map((b, i) => `
@@ -147,7 +154,7 @@ export async function sendTripSummaryEmail(data: TripData) {
   const toRp = data.rpEmail || process.env.MANAGER_EMAIL || 'noreply@example.com'
 
   await resend.emails.send({
-    from: `${rpName} <onboarding@resend.dev>`,
+    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
     to: [toRp],
     subject: `🗺️ Voyage — ${data.firstName} ${data.lastName} · ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''}`,
     html,
@@ -157,7 +164,7 @@ export async function sendTripSummaryEmail(data: TripData) {
 
 // ── Email confirmation client pour voyage ─────────────────
 export async function sendTripClientConfirmationEmail(data: TripData) {
-  const managerName = process.env.MANAGER_NAME || 'Élite Reservations'
+  const managerName = process.env.MANAGER_NAME || 'ITINERA'
   const rpName = data.rpDisplayName || managerName
 
   const bookingCards = data.bookings.map((b, i) => `
@@ -237,7 +244,7 @@ export async function sendTripClientConfirmationEmail(data: TripData) {
 </html>`
 
   await resend.emails.send({
-    from: `${rpName} <onboarding@resend.dev>`,
+    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
     to: [data.email],
     subject: `✦ Voyage reçu — ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''} · ${data.firstName} ${data.lastName}`,
     html,
@@ -263,6 +270,7 @@ export type ReservationData = {
   establishmentPhone: string
   rpEmail?: string        // email du RP destinataire (priorité sur MANAGER_EMAIL)
   rpDisplayName?: string  // nom du RP expéditeur
+  rpWhatsapp?: string     // WhatsApp du RP (affiché dans l'email client)
 }
 
 export async function sendReservationEmail(data: ReservationData) {
@@ -366,10 +374,10 @@ export async function sendReservationEmail(data: ReservationData) {
         </div>
       </div>
 
-      <div style="text-align: center; margin-top: 32px;">
-        <a href="https://wa.me/${process.env.MANAGER_WHATSAPP}?text=Réservation%20confirmée%20pour%20${encodeURIComponent(data.firstName + ' ' + data.lastName)}%20le%20${encodeURIComponent(data.date)}%20à%20${encodeURIComponent(data.time)}"
-           class="whatsapp-btn">
-          💬 Répondre via WhatsApp
+      <div style="text-align: center; margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, j'ai bien reçu votre demande de réservation chez ${data.establishment}.`)}"
+           class="whatsapp-btn" style="background:#25D366;">
+          💬 WhatsApp ${data.firstName}
         </a>
       </div>
     </div>
@@ -383,7 +391,7 @@ export async function sendReservationEmail(data: ReservationData) {
   `
 
   await resend.emails.send({
-    from: `${managerName} <onboarding@resend.dev>`,
+    from: `${managerName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
     to: [managerEmail],
     subject: `🥂 Réservation — ${data.establishment} · ${data.date} · ${data.firstName} ${data.lastName}`,
     html: htmlContent,
@@ -392,7 +400,7 @@ export async function sendReservationEmail(data: ReservationData) {
 }
 
 export async function sendClientConfirmationEmail(data: ReservationData) {
-  const managerName = process.env.MANAGER_NAME || 'Élite Reservations'
+  const managerName = process.env.MANAGER_NAME || 'ITINERA'
 
   const clientHtml = `
 <!DOCTYPE html>
@@ -515,6 +523,15 @@ export async function sendClientConfirmationEmail(data: ReservationData) {
         </div>
       </div>
 
+      ${data.rpWhatsapp ? `
+      <!-- Contact concierge -->
+      <div style="text-align: center; margin-top: 16px;">
+        <a href="https://wa.me/${toWaPhone(data.rpWhatsapp)}?text=${encodeURIComponent(`Bonjour, j'ai une question concernant ma réservation chez ${data.establishment} le ${data.date}.`)}"
+           style="display:inline-block;background:#25D366;color:white;padding:14px 32px;text-decoration:none;font-size:13px;letter-spacing:1px;">
+          💬 Contacter votre concierge
+        </a>
+      </div>` : ''}
+
     </div>
 
     <div class="footer">
@@ -530,7 +547,7 @@ export async function sendClientConfirmationEmail(data: ReservationData) {
   `
 
   await resend.emails.send({
-    from: `${managerName} <onboarding@resend.dev>`,
+    from: `${managerName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
     to: [data.email],
     subject: `✦ Demande reçue — ${data.establishment} · ${data.date}`,
     html: clientHtml,
@@ -556,7 +573,7 @@ export type ModificationData = {
 }
 
 export async function sendModificationEmailToRP(data: ModificationData) {
-  const rpName = data.rpDisplayName || process.env.MANAGER_NAME || 'Élite Reservations'
+  const rpName = data.rpDisplayName || process.env.MANAGER_NAME || 'ITINERA'
   const isCancel = data.action === 'cancelled'
 
   const changes = [
@@ -607,9 +624,9 @@ export async function sendModificationEmailToRP(data: ModificationData) {
       </div>` : ''}
 
       <div style="text-align: center;">
-        <a href="https://wa.me/${process.env.MANAGER_WHATSAPP}"
+        <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, concernant votre ${isCancel ? 'annulation' : 'modification'} de réservation chez ${data.establishment}.`)}"
            style="display: inline-block; background: #25D366; color: white; padding: 12px 28px; text-decoration: none; font-size: 14px;">
-          💬 Répondre via WhatsApp
+          💬 WhatsApp ${data.firstName}
         </a>
       </div>
     </div>
@@ -623,7 +640,7 @@ export async function sendModificationEmailToRP(data: ModificationData) {
   const toAddress = data.rpEmail || process.env.MANAGER_EMAIL || 'breakeat.app@breakeatapp.com'
 
   await resend.emails.send({
-    from: `${rpName} <onboarding@resend.dev>`,
+    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
     to: [toAddress],
     subject: isCancel
       ? `✕ Annulation — ${data.establishment} · ${data.firstName} ${data.lastName}`
@@ -650,7 +667,7 @@ export type StatusUpdateData = {
 }
 
 export async function sendStatusUpdateEmailToClient(data: StatusUpdateData) {
-  const rpName = data.rpDisplayName || process.env.MANAGER_NAME || 'Élite Reservations'
+  const rpName = data.rpDisplayName || process.env.MANAGER_NAME || 'ITINERA'
   const isConfirmed = data.status === 'confirmed'
 
   const whatsappLink = data.rpWhatsapp
@@ -758,7 +775,7 @@ export async function sendStatusUpdateEmailToClient(data: StatusUpdateData) {
   const replyToAddress = data.rpEmail || process.env.MANAGER_EMAIL || undefined
 
   await resend.emails.send({
-    from: `${rpName} <onboarding@resend.dev>`,
+    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
     to: [data.email],
     subject: isConfirmed
       ? `✦ Confirmée — ${data.establishment} · ${data.date}`
@@ -795,7 +812,7 @@ export async function sendClientWelcomeEmail(data: ClientWelcomeData) {
 
     <!-- Header -->
     <div style="padding:40px 40px 32px;border-bottom:1px solid #1e1e1e;text-align:center;">
-      <p style="color:#555;font-size:9px;letter-spacing:4px;text-transform:uppercase;margin:0 0 8px;">Accès Privé</p>
+      <p style="color:#555;font-size:9px;letter-spacing:4px;text-transform:uppercase;margin:0 0 8px;">ITINERA · Private Access</p>
       <p style="color:#f5f0e8;font-size:22px;font-style:italic;font-family:Georgia,serif;margin:0;">${rpName}</p>
     </div>
 
@@ -838,16 +855,123 @@ export async function sendClientWelcomeEmail(data: ClientWelcomeData) {
 
     <!-- Footer -->
     <div style="padding:20px 40px;text-align:center;border-top:1px solid #1e1e1e;">
-      <p style="color:#333;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin:0;">${rpName} · Service de conciergerie privée</p>
+      <p style="color:#333;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin:0;">${rpName} · Hospitality Planning · ITINERA</p>
     </div>
   </div>
 </body>
 </html>`
 
   await resend.emails.send({
-    from: `${rpName} <onboarding@resend.dev>`,
+    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
     to: [data.clientEmail],
     subject: `✦ Votre accès ${rpName} est activé`,
+    html,
+    ...(data.rpEmail ? { reply_to: data.rpEmail } : {}),
+  })
+}
+
+// ── Email au CLIENT quand il modifie ou annule sa réservation ──────────────
+export type ModificationAckData = {
+  firstName: string
+  email: string
+  establishment: string
+  destination: string
+  date: string
+  action: 'modified' | 'cancelled'
+  newDate?: string
+  newTime?: string
+  newGuests?: number
+  newNotes?: string
+  rpDisplayName?: string
+  rpWhatsapp?: string
+  rpEmail?: string
+}
+
+export async function sendModificationAckToClient(data: ModificationAckData) {
+  const rpName = data.rpDisplayName || process.env.MANAGER_NAME || 'ITINERA'
+  const isCancel = data.action === 'cancelled'
+  const whatsappLink = data.rpWhatsapp
+    ? `https://wa.me/${toWaPhone(data.rpWhatsapp)}?text=${encodeURIComponent(`Bonjour, j'ai une question concernant ma réservation chez ${data.establishment}.`)}`
+    : null
+
+  const changes = [
+    data.newDate ? `📅 Nouvelle date : <strong style="color:#f5f0e8">${data.newDate}</strong>` : '',
+    data.newTime ? `🕐 Nouveau service : <strong style="color:#f5f0e8">${data.newTime}</strong>` : '',
+    data.newGuests ? `👥 Nouvelles personnes : <strong style="color:#f5f0e8">${data.newGuests}</strong>` : '',
+    data.newNotes !== undefined && data.newNotes !== '' ? `📝 Notes : <em style="color:#c4c4c4">"${data.newNotes}"</em>` : '',
+  ].filter(Boolean)
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:Georgia,serif;">
+  <div style="max-width:580px;margin:0 auto;background:#141414;">
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0a0a0a,#1e1e1e);padding:40px;text-align:center;border-bottom:2px solid ${isCancel ? '#ef4444' : '#C9A84C'};">
+      <div style="color:${isCancel ? '#ef4444' : '#C9A84C'};font-size:10px;letter-spacing:4px;text-transform:uppercase;margin-bottom:12px;">
+        ${isCancel ? '✕ Annulation confirmée' : '✎ Modification prise en compte'}
+      </div>
+      <h1 style="color:#f5f0e8;font-size:26px;margin:0;font-style:italic;font-weight:normal;">
+        ${isCancel ? 'Votre réservation a été annulée' : 'Vos modifications ont été transmises'}
+      </h1>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:40px;">
+      <p style="color:#d4d4d4;font-size:15px;line-height:1.8;margin:0 0 28px;">
+        Bonjour <strong style="color:#f5f0e8;">${data.firstName}</strong>,<br><br>
+        ${isCancel
+          ? `Nous confirmons l'annulation de votre réservation chez <strong style="color:#f5f0e8;">${data.establishment}</strong> (${data.date}).<br>Votre RP a été notifié.`
+          : `Vos modifications pour la réservation chez <strong style="color:#f5f0e8;">${data.establishment}</strong> ont bien été transmises à votre RP.`
+        }
+      </p>
+
+      <!-- Réservation concernée -->
+      <div style="background:#1e1e1e;border:1px solid rgba(201,168,76,0.2);padding:24px;margin-bottom:24px;">
+        <div style="color:#C9A84C;font-size:9px;letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;">Réservation concernée</div>
+        <p style="color:#f5f0e8;font-size:20px;font-style:italic;margin:0 0 4px;">${data.establishment}</p>
+        <p style="color:#9a9a9a;font-size:12px;margin:0 0 12px;">${data.destination}</p>
+        <p style="color:#d4d4d4;font-size:13px;margin:0;">Date initiale : ${data.date}</p>
+      </div>
+
+      ${!isCancel && changes.length > 0 ? `
+      <!-- Modifications -->
+      <div style="background:#1e1e1e;border-left:3px solid #C9A84C;padding:20px 24px;margin-bottom:24px;">
+        <div style="color:#C9A84C;font-size:9px;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">Modifications demandées</div>
+        ${changes.map(c => `<p style="color:#d4d4d4;font-size:14px;margin:0 0 8px;">${c}</p>`).join('')}
+        <p style="color:#666;font-size:12px;margin:12px 0 0;">Votre RP confirmera les nouvelles disponibilités sous 24h.</p>
+      </div>` : ''}
+
+      ${isCancel ? `
+      <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);padding:20px;text-align:center;margin-bottom:24px;">
+        <p style="color:#888;font-size:13px;line-height:1.7;margin:0;">
+          Besoin d'une autre réservation ? Votre concierge est disponible.
+        </p>
+      </div>` : ''}
+
+      ${whatsappLink ? `
+      <div style="text-align:center;margin-top:8px;">
+        <a href="${whatsappLink}" style="display:inline-block;background:#25D366;color:white;text-decoration:none;font-size:13px;letter-spacing:1px;padding:14px 32px;">
+          💬 Contacter votre concierge
+        </a>
+      </div>` : ''}
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:20px 40px;text-align:center;border-top:1px solid #1e1e1e;">
+      <p style="color:#333;font-size:11px;letter-spacing:1px;text-transform:uppercase;margin:0;">${rpName} · Conciergerie privée</p>
+    </div>
+  </div>
+</body>
+</html>`
+
+  await resend.emails.send({
+    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
+    to: [data.email],
+    subject: isCancel
+      ? `✕ Annulation confirmée — ${data.establishment}`
+      : `✎ Modification transmise — ${data.establishment}`,
     html,
     ...(data.rpEmail ? { reply_to: data.rpEmail } : {}),
   })

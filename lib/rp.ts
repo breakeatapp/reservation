@@ -8,8 +8,8 @@ const FALLBACK_PROFILES: Record<string, RPProfile> = {
   remi: {
     id: 'local-remi',
     slug: 'remi',
-    display_name: 'Élite Reservations',
-    tagline: 'Votre accès privé aux meilleures tables',
+    display_name: 'ITINERA',
+    tagline: 'Hospitality Planning Between RPs & Guests',
     email: 'notta.remi@hotmail.fr',
     whatsapp: '33646695675',
     dashboard_password: 'elite2024',

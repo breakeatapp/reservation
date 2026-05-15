@@ -26,9 +26,9 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
   // Lire le nom du client connecté depuis localStorage
   useEffect(() => {
     const rpSlug = profile.slug
-    const savedRp = localStorage.getItem('elite_client_rp')
-    const savedName = localStorage.getItem('elite_client_name')
-    const savedEmail = localStorage.getItem('elite_client_email')
+    const savedRp = localStorage.getItem('itinera_guest_rp')
+    const savedName = localStorage.getItem('itinera_guest_name')
+    const savedEmail = localStorage.getItem('itinera_guest_email')
     if (savedRp === rpSlug && (savedName || savedEmail)) {
       setConnectedName(savedName || savedEmail || '')
     }
@@ -137,7 +137,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
             </Link>
             <div className="pt-2">
               <Link href={`/${slug}/book`} className="block text-[11px] tracking-[0.2em] uppercase text-white py-3 text-center" style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }} onClick={() => setMenuOpen(false)}>
-                Réserver une table
+                Soumettre une demande
               </Link>
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
             </div>
           ) : (
             <p className="text-[9px] tracking-[0.6em] text-[#F5F5F3]/25 uppercase mb-6">
-              ✦ Accès Privé · {profile.display_name} ✦
+              ✦ {profile.display_name} · Private Access ✦
             </p>
           )}
           <h1 className="font-playfair text-4xl md:text-7xl text-[#F5F5F3] mb-6 leading-tight">
@@ -192,7 +192,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-white text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:opacity-90 transition-opacity"
               style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}
             >
-              Réserver une table
+              Soumettre une demande
             </Link>
             <Link
               href={`/${slug}/trip`}
