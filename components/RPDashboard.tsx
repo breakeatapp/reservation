@@ -62,7 +62,18 @@ function buildWhatsAppMessage(r: Reservation, profile: RPProfile): string {
   ].filter(l => l !== undefined).join('\n')
 }
 
-type MainView = 'list' | 'clients' | 'config'
+type MainView = 'list' | 'clients' | 'config' | 'book-for-client'
+
+type BfcTripEntry = {
+  id: string
+  dest: string
+  venue: string
+  date: string
+  time: string
+  guests: string
+  occasion: string
+  notes: string
+}
 
 // Toutes les destinations disponibles dans la plateforme
 const ALL_DESTINATIONS = [
@@ -139,6 +150,28 @@ export default function RPDashboard({ profile }: Props) {
   const [dangerConfirm, setDangerConfirm] = useState<'reservations' | 'account' | null>(null)
   const [dangerLoading, setDangerLoading] = useState(false)
   const [dangerDone, setDangerDone] = useState('')
+
+  // ── Réserver pour un client ────────────────────────────────────
+  const [bookForType, setBookForType] = useState<'single' | 'trip' | null>(null)
+  const [bfcSelectedClient, setBfcSelectedClient] = useState<RPClientNote | null>(null)
+  const [bfcUseManual, setBfcUseManual] = useState(false)
+  const [bfcManual, setBfcManual] = useState({ firstName: '', lastName: '', email: '', phone: '' })
+  // Réservation unique
+  const [bfcDest, setBfcDest] = useState('')
+  const [bfcVenue, setBfcVenue] = useState('')
+  const [bfcDate, setBfcDate] = useState('')
+  const [bfcTime, setBfcTime] = useState('')
+  const [bfcGuests, setBfcGuests] = useState('2')
+  const [bfcOccasion, setBfcOccasion] = useState('')
+  const [bfcSeating, setBfcSeating] = useState('')
+  const [bfcNotes, setBfcNotes] = useState('')
+  const [bfcInternalNote, setBfcInternalNote] = useState('')
+  const [bfcSubmitting, setBfcSubmitting] = useState(false)
+  const [bfcDone, setBfcDone] = useState<'success' | 'error' | null>(null)
+  // Planification séjour
+  const [bfcTrip, setBfcTrip] = useState<BfcTripEntry[]>([])
+  const [bfcTripSubmitting, setBfcTripSubmitting] = useState(false)
+  const [bfcTripDone, setBfcTripDone] = useState<'success' | 'error' | null>(null)
 
   const fetchReservations = useCallback(async () => {
     setLoading(true)
@@ -224,7 +257,7 @@ export default function RPDashboard({ profile }: Props) {
 
   // Charger les clients quand on change de vue
   useEffect(() => {
-    if (authenticated && mainView === 'clients') fetchClients()
+    if (authenticated && (mainView === 'clients' || mainView === 'book-for-client')) fetchClients()
   }, [authenticated, mainView, fetchClients])
 
   const updateStatus = async (id: string, status: ReservationStatus) => {
@@ -1219,6 +1252,458 @@ export default function RPDashboard({ profile }: Props) {
     )
   }
 
+  // ── RÉSERVER POUR UN CLIENT ───────────────────────────────────
+  if (mainView === 'book-for-client') {
+    // Destinations actives
+    const activeDests = configDests.map(raw => {
+      try { const p = JSON.parse(raw); if (p?.slug) return { slug: p.slug, name: p.name, emoji: p.emoji || '📍' } } catch {}
+      return ALL_DESTINATIONS.find(d => d.slug === raw) || null
+    }).filter(Boolean) as { slug: string; name: string; emoji: string }[]
+
+    // Venues actives
+    const activeVenues = configVenues.map(parseVenueEntry)
+    const venuesForDest = (dest: string) => dest
+      ? activeVenues.filter(v => !v.destination || v.destination === dest)
+      : activeVenues
+
+    // Créneaux pour un venue
+    const servicesForVenue = (venueName: string) => {
+      const vc = activeVenues.find(v => v.name === venueName)
+      if (vc?.services?.length) return vc.services
+      return SERVICES_BY_TYPE[vc?.type || 'restaurant']
+    }
+
+    // Info client pour soumission
+    const getClient = () => {
+      if (bfcUseManual) return bfcManual
+      if (bfcSelectedClient) {
+        const parts = (bfcSelectedClient.client_name || '').trim().split(' ')
+        return { firstName: parts[0] || '', lastName: parts.slice(1).join(' ') || parts[0] || '', email: bfcSelectedClient.client_email, phone: '—' }
+      }
+      return null
+    }
+
+    const handleSingleSubmit = async () => {
+      const client = getClient()
+      if (!client?.email || !bfcVenue || !bfcDate || !bfcTime) return
+      setBfcSubmitting(true); setBfcDone(null)
+      try {
+        const res = await fetch('/api/reservation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: client.firstName, lastName: client.lastName,
+            email: client.email, phone: client.phone || '—',
+            establishment: bfcVenue, date: bfcDate, time: bfcTime,
+            guests: bfcGuests, occasion: bfcOccasion, seating: bfcSeating,
+            specialRequests: bfcNotes, rpSlug: profile.slug,
+          }),
+        })
+        setBfcDone(res.ok ? 'success' : 'error')
+        if (res.ok) { fetchReservations() }
+      } catch { setBfcDone('error') }
+      finally { setBfcSubmitting(false) }
+    }
+
+    const handleTripSubmit = async () => {
+      const client = getClient()
+      if (!client?.email || bfcTrip.length === 0) return
+      setBfcTripSubmitting(true); setBfcTripDone(null)
+      try {
+        const res = await fetch('/api/trip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            firstName: client.firstName, lastName: client.lastName,
+            email: client.email, phone: client.phone || '—',
+            rpSlug: profile.slug,
+            bookings: bfcTrip.map(e => ({
+              establishment: e.venue, date: e.date, time: e.time,
+              guests: e.guests, occasion: e.occasion, specialRequests: e.notes,
+            })),
+          }),
+        })
+        setBfcTripDone(res.ok ? 'success' : 'error')
+        if (res.ok) { fetchReservations() }
+      } catch { setBfcTripDone('error') }
+      finally { setBfcTripSubmitting(false) }
+    }
+
+    const addTripEntry = () => {
+      setBfcTrip(prev => [...prev, { id: crypto.randomUUID(), dest: '', venue: '', date: '', time: '', guests: '2', occasion: '', notes: '' }])
+    }
+
+    const updateTrip = (id: string, field: keyof BfcTripEntry, val: string) => {
+      setBfcTrip(prev => prev.map(e => e.id === id ? { ...e, [field]: val, ...(field === 'dest' ? { venue: '', time: '' } : {}), ...(field === 'venue' ? { time: '' } : {}) } : e))
+    }
+
+    const labelCls = 'block text-[8px] tracking-[0.25em] uppercase text-[#F5F5F3]/25 mb-1.5'
+    const inputCls = 'w-full bg-[#0B0B0B] border border-white/8 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 transition-colors placeholder-[#F5F5F3]/15'
+    const selectCls = `${inputCls} cursor-pointer`
+    const client = getClient()
+    const hasClient = !!(client?.email)
+
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4 flex items-center justify-between">
+          <div>
+            <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/40 uppercase">Réserver pour un client</p>
+            <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
+          </div>
+          <button onClick={() => setMainView('list')}
+            className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/30 hover:text-[#F5F5F3]/60 border border-white/8 hover:border-white/20 px-3 py-2 transition-colors">
+            ← Retour
+          </button>
+        </div>
+
+        <div className="max-w-2xl mx-auto px-4 py-6 space-y-5 pb-24">
+
+          {/* ── Sélection du client ── */}
+          <div className="bg-[#141414] border border-white/5 p-5">
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-4">Pour quel client ?</p>
+
+            {!bfcUseManual ? (
+              <>
+                <label className={labelCls}>Choisir dans ma liste</label>
+                <select
+                  className={selectCls}
+                  value={bfcSelectedClient?.client_email || ''}
+                  onChange={e => {
+                    const c = clients.find(c => c.client_email === e.target.value) || null
+                    setBfcSelectedClient(c)
+                  }}
+                >
+                  <option value="" className="bg-[#141414]">Sélectionner un client...</option>
+                  {clients.map(c => (
+                    <option key={c.client_email} value={c.client_email} className="bg-[#141414]">
+                      {c.client_name || c.client_email} {c.vip_tag ? `· ${c.vip_tag}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <button onClick={() => setBfcUseManual(true)}
+                  className="mt-3 text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 hover:text-[#F5F5F3]/50 transition-colors">
+                  ou saisir manuellement →
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className={labelCls}>Prénom *</label>
+                    <input className={inputCls} placeholder="Jean" value={bfcManual.firstName} onChange={e => setBfcManual(p => ({ ...p, firstName: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Nom *</label>
+                    <input className={inputCls} placeholder="Dupont" value={bfcManual.lastName} onChange={e => setBfcManual(p => ({ ...p, lastName: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Email *</label>
+                    <input className={inputCls} type="email" placeholder="jean@email.com" value={bfcManual.email} onChange={e => setBfcManual(p => ({ ...p, email: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Téléphone</label>
+                    <input className={inputCls} placeholder="+33 6..." value={bfcManual.phone} onChange={e => setBfcManual(p => ({ ...p, phone: e.target.value }))} />
+                  </div>
+                </div>
+                <button onClick={() => { setBfcUseManual(false); setBfcManual({ firstName: '', lastName: '', email: '', phone: '' }) }}
+                  className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 hover:text-[#F5F5F3]/50 transition-colors">
+                  ← Choisir dans ma liste
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* ── Type de réservation ── */}
+          {hasClient && (
+            <div className="bg-[#141414] border border-white/5 p-5">
+              <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-4">Type de réservation</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setBookForType('single')}
+                  className={`p-4 border text-left transition-all ${bookForType === 'single' ? 'border-[#5B3DF5]/50 bg-[#5B3DF5]/8' : 'border-white/8 hover:border-white/20'}`}
+                >
+                  <p className="text-sm text-[#F5F5F3]/80 mb-1">✦ Réservation unique</p>
+                  <p className="text-[10px] text-[#F5F5F3]/30">Un seul établissement, une date</p>
+                </button>
+                <button
+                  onClick={() => setBookForType('trip')}
+                  className={`p-4 border text-left transition-all ${bookForType === 'trip' ? 'border-[#5B3DF5]/50 bg-[#5B3DF5]/8' : 'border-white/8 hover:border-white/20'}`}
+                >
+                  <p className="text-sm text-[#F5F5F3]/80 mb-1">✦ Planification séjour</p>
+                  <p className="text-[10px] text-[#F5F5F3]/30">Plusieurs réservations d&apos;un coup</p>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── RÉSERVATION UNIQUE ── */}
+          {bookForType === 'single' && hasClient && (
+            <>
+              {/* Destination */}
+              <div className="bg-[#141414] border border-white/5 p-5">
+                <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-4">01 — Destination</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {activeDests.map(d => (
+                    <button key={d.slug} type="button"
+                      onClick={() => { setBfcDest(d.slug); setBfcVenue(''); setBfcTime('') }}
+                      className={`flex items-center gap-2 px-3 py-2.5 border text-left text-sm transition-all ${bfcDest === d.slug ? 'border-[#5B3DF5]/60 bg-[#5B3DF5]/10 text-[#F5F5F3]' : 'border-white/8 text-[#F5F5F3]/40 hover:border-white/20'}`}
+                    >
+                      <span>{d.emoji}</span>
+                      <span className="text-[12px] truncate">{d.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Établissement + Date + Service */}
+              {bfcDest && (
+                <div className="bg-[#141414] border border-white/5 p-5 space-y-4">
+                  <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">02 — Établissement & Date</p>
+
+                  <div>
+                    <label className={labelCls}>Établissement *</label>
+                    <select className={selectCls} value={bfcVenue} onChange={e => { setBfcVenue(e.target.value); setBfcTime('') }}>
+                      <option value="" className="bg-[#141414]">Sélectionner...</option>
+                      {(['restaurant', 'beach_club', 'night_club'] as const).map(cat => {
+                        const group = venuesForDest(bfcDest).filter(v => (v.type || 'restaurant') === cat)
+                        if (!group.length) return null
+                        const catLabel = cat === 'restaurant' ? '🍽️ Restaurants' : cat === 'beach_club' ? '🏖️ Beach Clubs' : '🎉 Night Clubs'
+                        return (
+                          <optgroup key={cat} label={catLabel}>
+                            {group.map(v => <option key={v.name} value={v.name} className="bg-[#141414]">{v.name}</option>)}
+                          </optgroup>
+                        )
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelCls}>Date *</label>
+                      <input type="date" className={`${inputCls} [color-scheme:dark]`} min={new Date().toISOString().split('T')[0]}
+                        value={bfcDate} onChange={e => setBfcDate(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Créneau *</label>
+                      <select className={selectCls} value={bfcTime} onChange={e => setBfcTime(e.target.value)}>
+                        <option value="" className="bg-[#141414]">Choisir...</option>
+                        {servicesForVenue(bfcVenue).map(s => (
+                          <option key={s} value={s} className="bg-[#141414]">{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelCls}>Nombre de personnes *</label>
+                    <select className={selectCls} value={bfcGuests} onChange={e => setBfcGuests(e.target.value)}>
+                      {[1,2,3,4,5,6,7,8,10,12,15,20].map(n => (
+                        <option key={n} value={n} className="bg-[#141414]">{n} personne{n > 1 ? 's' : ''}</option>
+                      ))}
+                      <option value="20+" className="bg-[#141414]">Plus de 20</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Détails */}
+              {bfcDest && bfcVenue && (
+                <div className="bg-[#141414] border border-white/5 p-5 space-y-4">
+                  <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">03 — Détails</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={labelCls}>Occasion</label>
+                      <select className={selectCls} value={bfcOccasion} onChange={e => setBfcOccasion(e.target.value)}>
+                        <option value="" className="bg-[#141414]">—</option>
+                        {['Anniversaire', 'Romantique', 'Dîner d\'affaires', 'Célébration', 'Soirée VIP', 'Fête', 'Autre'].map(o => (
+                          <option key={o} value={o} className="bg-[#141414]">{o}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelCls}>Placement</label>
+                      <select className={selectCls} value={bfcSeating} onChange={e => setBfcSeating(e.target.value)}>
+                        <option value="" className="bg-[#141414]">—</option>
+                        {['Terrasse', 'Table coucher de soleil', 'Premier rang', 'Table DJ', 'Vue mer', 'Privé / Semi-privé', 'Sans préférence'].map(s => (
+                          <option key={s} value={s} className="bg-[#141414]">{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Demandes spéciales du client</label>
+                    <textarea className={`${inputCls} resize-none`} rows={2} placeholder="Allergie, préférences..."
+                      value={bfcNotes} onChange={e => setBfcNotes(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>📝 Note interne RP <span className="text-[#F5F5F3]/15 normal-case tracking-normal">— non envoyée au client</span></label>
+                    <textarea className={`${inputCls} resize-none border-[#5B3DF5]/15 focus:border-[#5B3DF5]/30`} rows={2}
+                      placeholder="Rappel : client VIP, préfère table isolée..."
+                      value={bfcInternalNote} onChange={e => setBfcInternalNote(e.target.value)} />
+                  </div>
+                </div>
+              )}
+
+              {/* Submit */}
+              {bfcDest && bfcVenue && (
+                <div className="space-y-3">
+                  {bfcDone === 'success' && (
+                    <div className="bg-green-500/8 border border-green-500/20 p-4 text-center">
+                      <p className="text-green-400 text-sm">✓ Réservation créée — email envoyé à {getClient()?.email}</p>
+                      <button onClick={() => {
+                        setBfcDone(null); setBfcDest(''); setBfcVenue(''); setBfcDate(''); setBfcTime('')
+                        setBfcGuests('2'); setBfcOccasion(''); setBfcSeating(''); setBfcNotes(''); setBfcInternalNote('')
+                      }} className="mt-2 text-[9px] tracking-[0.2em] uppercase text-green-400/60 hover:text-green-400 transition-colors">
+                        Nouvelle réservation →
+                      </button>
+                    </div>
+                  )}
+                  {bfcDone === 'error' && (
+                    <p className="text-red-400/70 text-xs text-center border border-red-500/15 bg-red-500/5 px-4 py-3">
+                      Une erreur est survenue. Vérifiez les champs et réessayez.
+                    </p>
+                  )}
+                  <button
+                    onClick={handleSingleSubmit}
+                    disabled={bfcSubmitting || !bfcDate || !bfcTime}
+                    className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase hover:opacity-90 transition-opacity disabled:opacity-30"
+                    style={{ background: `linear-gradient(135deg, ${configAccent}, ${configAccent}bb)` }}
+                  >
+                    {bfcSubmitting ? 'Création en cours...' : '✦ Créer la réservation'}
+                  </button>
+                  <p className="text-center text-[9px] text-[#F5F5F3]/20">Un email de confirmation sera automatiquement envoyé à {getClient()?.email}</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── PLANIFICATION SÉJOUR ── */}
+          {bookForType === 'trip' && hasClient && (
+            <>
+              {bfcTrip.map((entry, idx) => (
+                <div key={entry.id} className="bg-[#141414] border border-white/5 p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">Réservation {idx + 1}</p>
+                    <button onClick={() => setBfcTrip(prev => prev.filter(e => e.id !== entry.id))}
+                      className="text-[#F5F5F3]/20 hover:text-red-400/60 transition-colors text-lg">×</button>
+                  </div>
+
+                  {/* Destination */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {activeDests.map(d => (
+                      <button key={d.slug} type="button"
+                        onClick={() => updateTrip(entry.id, 'dest', d.slug)}
+                        className={`flex items-center gap-1.5 px-2 py-2 border text-[11px] transition-all ${entry.dest === d.slug ? 'border-[#5B3DF5]/50 bg-[#5B3DF5]/8 text-[#F5F5F3]/80' : 'border-white/8 text-[#F5F5F3]/35 hover:border-white/20'}`}
+                      >
+                        <span>{d.emoji}</span><span className="truncate">{d.name}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {entry.dest && (
+                    <>
+                      <div>
+                        <label className={labelCls}>Établissement</label>
+                        <select className={selectCls} value={entry.venue} onChange={e => updateTrip(entry.id, 'venue', e.target.value)}>
+                          <option value="" className="bg-[#141414]">Sélectionner...</option>
+                          {(['restaurant', 'beach_club', 'night_club'] as const).map(cat => {
+                            const group = venuesForDest(entry.dest).filter(v => (v.type || 'restaurant') === cat)
+                            if (!group.length) return null
+                            const catLabel = cat === 'restaurant' ? '🍽️ Restaurants' : cat === 'beach_club' ? '🏖️ Beach Clubs' : '🎉 Night Clubs'
+                            return (
+                              <optgroup key={cat} label={catLabel}>
+                                {group.map(v => <option key={v.name} value={v.name} className="bg-[#141414]">{v.name}</option>)}
+                              </optgroup>
+                            )
+                          })}
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={labelCls}>Date</label>
+                          <input type="date" className={`${inputCls} [color-scheme:dark]`} min={new Date().toISOString().split('T')[0]}
+                            value={entry.date} onChange={e => updateTrip(entry.id, 'date', e.target.value)} />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Créneau</label>
+                          <select className={selectCls} value={entry.time} onChange={e => updateTrip(entry.id, 'time', e.target.value)}>
+                            <option value="" className="bg-[#141414]">Choisir...</option>
+                            {servicesForVenue(entry.venue).map(s => (
+                              <option key={s} value={s} className="bg-[#141414]">{s}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={labelCls}>Personnes</label>
+                          <select className={selectCls} value={entry.guests} onChange={e => updateTrip(entry.id, 'guests', e.target.value)}>
+                            {[1,2,3,4,5,6,7,8,10,12,15,20].map(n => (
+                              <option key={n} value={n} className="bg-[#141414]">{n}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className={labelCls}>Occasion</label>
+                          <select className={selectCls} value={entry.occasion} onChange={e => updateTrip(entry.id, 'occasion', e.target.value)}>
+                            <option value="" className="bg-[#141414]">—</option>
+                            {['Anniversaire', 'Romantique', 'Dîner d\'affaires', 'Célébration', 'Soirée VIP', 'Fête', 'Autre'].map(o => (
+                              <option key={o} value={o} className="bg-[#141414]">{o}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label className={labelCls}>Note / demande spéciale</label>
+                        <input className={inputCls} placeholder="Allergie, préférence..." value={entry.notes}
+                          onChange={e => updateTrip(entry.id, 'notes', e.target.value)} />
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+
+              <button onClick={addTripEntry}
+                className="w-full py-3 border border-dashed border-white/15 text-[#F5F5F3]/30 text-[11px] tracking-[0.2em] uppercase hover:border-white/30 hover:text-[#F5F5F3]/50 transition-all">
+                + Ajouter une réservation
+              </button>
+
+              {bfcTrip.length > 0 && (
+                <div className="space-y-3">
+                  {bfcTripDone === 'success' && (
+                    <div className="bg-green-500/8 border border-green-500/20 p-4 text-center">
+                      <p className="text-green-400 text-sm">✓ {bfcTrip.length} réservation{bfcTrip.length > 1 ? 's' : ''} créée{bfcTrip.length > 1 ? 's' : ''} — planning envoyé à {getClient()?.email}</p>
+                      <button onClick={() => { setBfcTripDone(null); setBfcTrip([]) }}
+                        className="mt-2 text-[9px] tracking-[0.2em] uppercase text-green-400/60 hover:text-green-400 transition-colors">
+                        Nouveau planning →
+                      </button>
+                    </div>
+                  )}
+                  {bfcTripDone === 'error' && (
+                    <p className="text-red-400/70 text-xs text-center border border-red-500/15 bg-red-500/5 px-4 py-3">
+                      Une erreur est survenue. Réessayez.
+                    </p>
+                  )}
+                  <button
+                    onClick={handleTripSubmit}
+                    disabled={bfcTripSubmitting || bfcTrip.some(e => !e.venue || !e.date || !e.time)}
+                    className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase hover:opacity-90 transition-opacity disabled:opacity-30"
+                    style={{ background: `linear-gradient(135deg, ${configAccent}, ${configAccent}bb)` }}
+                  >
+                    {bfcTripSubmitting ? 'Envoi en cours...' : `✦ Envoyer le planning (${bfcTrip.length} résa)`}
+                  </button>
+                  <p className="text-center text-[9px] text-[#F5F5F3]/20">Le récapitulatif complet sera envoyé à {getClient()?.email}</p>
+                </div>
+              )}
+            </>
+          )}
+
+        </div>
+      </div>
+    )
+  }
+
   // ── LISTE RÉSERVATIONS ────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
@@ -1230,6 +1715,19 @@ export default function RPDashboard({ profile }: Props) {
           <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setBookForType(null); setBfcSelectedClient(null); setBfcUseManual(false)
+              setBfcManual({ firstName: '', lastName: '', email: '', phone: '' })
+              setBfcDest(''); setBfcVenue(''); setBfcDate(''); setBfcTime('')
+              setBfcGuests('2'); setBfcOccasion(''); setBfcSeating(''); setBfcNotes('')
+              setBfcInternalNote(''); setBfcDone(null); setBfcTrip([]); setBfcTripDone(null)
+              setMainView('book-for-client')
+            }}
+            className="text-[10px] tracking-[0.2em] uppercase text-white/80 hover:text-white transition-colors border border-white/20 hover:border-white/50 px-3 py-2"
+          >
+            + Réserver
+          </button>
           <button
             onClick={() => setMainView('config')}
             className="text-[10px] tracking-[0.2em] uppercase text-white/80 hover:text-white transition-colors border border-white/20 hover:border-white/50 px-3 py-2"
