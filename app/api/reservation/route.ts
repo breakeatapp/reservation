@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
       firstName, lastName, email, phone,
       establishment, date, time, guests,
       occasion, seating, specialRequests,
+      nationality,
       rpSlug,             // identifiant du RP (ex: "remi", "antoine")
       // vipLevel & budgetLevel supprimés côté client — gérés par le RP dans son dashboard
     } = body
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
           seating: seating || '',
           vip_level: '',      // défini par le RP dans son dashboard
           budget_level: '',   // défini par le RP dans son dashboard
+          nationality: nationality || '',
           special_requests: specialRequests || '',
           status: 'pending',
           establishment_phone: est?.phone || '',

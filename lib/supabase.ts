@@ -35,6 +35,7 @@ export type Reservation = {
   seating: string
   vip_level: string
   budget_level: string
+  nationality: string
   special_requests: string
   status: ReservationStatus
   establishment_phone: string

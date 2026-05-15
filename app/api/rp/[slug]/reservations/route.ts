@@ -66,8 +66,33 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
   }
 
-  const { id, status } = await req.json()
-  if (!id || !status) {
+  const body = await req.json()
+  const { id, status, establishment, date, time, guests } = body
+
+  if (!id) {
+    return NextResponse.json({ error: 'ID manquant' }, { status: 400 })
+  }
+
+  // ── Mise à jour des champs de la réservation (modification RP) ──
+  if (establishment !== undefined || date !== undefined || time !== undefined || guests !== undefined) {
+    const updateData: Record<string, unknown> = {}
+    if (establishment) updateData.establishment = establishment
+    if (date) updateData.date = date
+    if (time) updateData.time = time
+    if (guests) updateData.guests = parseInt(guests)
+
+    const { error } = await supabase
+      .from('reservations')
+      .update(updateData)
+      .eq('id', id)
+      .eq('rp_slug', params.slug)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true })
+  }
+
+  // ── Mise à jour du statut ──
+  if (!status) {
     return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 })
   }
 

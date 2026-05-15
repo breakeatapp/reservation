@@ -25,10 +25,13 @@ const STATUS_DOT: Record<ReservationStatus, string> = {
   cancelled: 'bg-[#F5F5F3]/15',
 }
 
-const VIP_TAGS = ['', 'VIP', 'Gold', 'Régulier', 'Corporate', 'Blacklist']
+const VIP_TAGS = ['', 'Ultra VIP', 'VVIP', 'VIP', 'Premium', 'Gold', 'Régulier', 'Corporate', 'Blacklist']
 const VIP_COLORS: Record<string, string> = {
   '': 'text-[#F5F5F3]/20',
+  'Ultra VIP': 'text-rose-300',
+  VVIP: 'text-fuchsia-400',
   VIP: 'text-purple-400',
+  Premium: 'text-emerald-400',
   Gold: 'text-amber-400',
   Régulier: 'text-blue-400',
   Corporate: 'text-cyan-400',
@@ -125,6 +128,10 @@ export default function RPDashboard({ profile }: Props) {
   const [filter, setFilter] = useState<'all' | ReservationStatus>('all')
   const [selected, setSelected] = useState<Reservation | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
+  // Edit réservation en attente
+  const [editingResa, setEditingResa] = useState(false)
+  const [resaEdit, setResaEdit] = useState({ venue: '', date: '', time: '', guests: '2' })
+  const [resaEditSaving, setResaEditSaving] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
   const [mainView, setMainView] = useState<MainView>('list')
 
@@ -279,6 +286,8 @@ export default function RPDashboard({ profile }: Props) {
     if (selected) {
       loadClientNote(selected.email)
       setNoteSaved(false)
+      setEditingResa(false)
+      setResaEdit({ venue: selected.establishment, date: '', time: selected.time, guests: String(selected.guests) })
     }
   }, [selected, loadClientNote])
 
@@ -286,6 +295,31 @@ export default function RPDashboard({ profile }: Props) {
   useEffect(() => {
     if (authenticated && (mainView === 'clients' || mainView === 'book-for-client')) fetchClients()
   }, [authenticated, mainView, fetchClients])
+
+  const handleResaUpdate = async () => {
+    if (!selected || !resaEdit.venue || !resaEdit.date || !resaEdit.time) return
+    setResaEditSaving(true)
+    try {
+      const res = await fetch(`/api/rp/${profile.slug}/reservations`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-rp-password': password },
+        body: JSON.stringify({
+          id: selected.id,
+          establishment: resaEdit.venue,
+          date: resaEdit.date,
+          time: resaEdit.time,
+          guests: resaEdit.guests,
+        }),
+      })
+      if (res.ok) {
+        const updated = { ...selected, establishment: resaEdit.venue, date: resaEdit.date, time: resaEdit.time, guests: parseInt(resaEdit.guests) }
+        setSelected(updated)
+        setReservations(prev => prev.map(r => r.id === selected.id ? updated : r))
+        setEditingResa(false)
+      }
+    } catch { /* ignore */ }
+    finally { setResaEditSaving(false) }
+  }
 
   const updateStatus = async (id: string, status: ReservationStatus) => {
     setUpdating(id)
@@ -409,31 +443,106 @@ export default function RPDashboard({ profile }: Props) {
 
           {/* Réservation */}
           <div className="bg-[#141414] border border-white/5 p-5">
-            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-3">Réservation</p>
-            <p className="font-playfair text-xl text-[#F5F5F3] mb-0.5">{selected.establishment}</p>
-            <p className="text-[#F5F5F3]/25 text-xs uppercase tracking-wider mb-4">{selected.destination}</p>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: 'Date', value: selected.date },
-                { label: 'Service', value: selected.time },
-                { label: 'Personnes', value: `${selected.guests}` },
-              ].map(item => (
-                <div key={item.label}>
-                  <p className="text-[8px] tracking-wider text-[#F5F5F3]/20 uppercase mb-1">{item.label}</p>
-                  <p className="text-[#F5F5F3]/80 text-sm leading-tight">{item.value}</p>
-                </div>
-              ))}
+            <div className="flex items-start justify-between mb-3">
+              <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">Réservation</p>
+              {selected.status === 'pending' && !editingResa && (
+                <button
+                  onClick={() => {
+                    setResaEdit({ venue: selected.establishment, date: '', time: selected.time, guests: String(selected.guests) })
+                    setEditingResa(true)
+                  }}
+                  className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 hover:text-[#5B3DF5]/70 transition-colors"
+                >
+                  ✎ Modifier
+                </button>
+              )}
             </div>
-            {(selected.occasion || selected.seating) && (
-              <div className="flex gap-4 mt-3 pt-3 border-t border-white/5 text-xs text-[#F5F5F3]/40">
-                {selected.occasion && <span>🎉 {selected.occasion}</span>}
-                {selected.seating && <span>🪑 {selected.seating}</span>}
+
+            {editingResa ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[8px] tracking-wider text-[#F5F5F3]/20 uppercase mb-1.5">Établissement</p>
+                  <select
+                    className="w-full bg-[#0B0B0B] border border-white/8 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-[#5B3DF5]/40 transition-colors cursor-pointer"
+                    value={resaEdit.venue}
+                    onChange={e => setResaEdit(p => ({ ...p, venue: e.target.value, time: '' }))}
+                  >
+                    <option value="" className="bg-[#0B0B0B]">Sélectionner...</option>
+                    {configVenues.map(raw => {
+                      const vc = parseVenueEntry(raw)
+                      return <option key={vc.name} value={vc.name} className="bg-[#0B0B0B]">{vc.name}</option>
+                    })}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[8px] tracking-wider text-[#F5F5F3]/20 uppercase mb-1.5">Date</p>
+                    <input type="date" className="w-full bg-[#0B0B0B] border border-white/8 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-[#5B3DF5]/40 [color-scheme:dark]"
+                      value={resaEdit.date} onChange={e => setResaEdit(p => ({ ...p, date: e.target.value }))} />
+                  </div>
+                  <div>
+                    <p className="text-[8px] tracking-wider text-[#F5F5F3]/20 uppercase mb-1.5">Créneau</p>
+                    <select className="w-full bg-[#0B0B0B] border border-white/8 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-[#5B3DF5]/40 cursor-pointer"
+                      value={resaEdit.time} onChange={e => setResaEdit(p => ({ ...p, time: e.target.value }))}>
+                      <option value="" className="bg-[#0B0B0B]">Choisir...</option>
+                      {(() => {
+                        const vc = configVenues.map(parseVenueEntry).find(v => v.name === resaEdit.venue)
+                        const slots = vc?.services?.length ? vc.services : SERVICES_BY_TYPE[vc?.type || 'restaurant']
+                        return slots.map(s => <option key={s} value={s} className="bg-[#0B0B0B]">{s}</option>)
+                      })()}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[8px] tracking-wider text-[#F5F5F3]/20 uppercase mb-1.5">Personnes</p>
+                  <select className="w-full bg-[#0B0B0B] border border-white/8 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-[#5B3DF5]/40 cursor-pointer"
+                    value={resaEdit.guests} onChange={e => setResaEdit(p => ({ ...p, guests: e.target.value }))}>
+                    {[1,2,3,4,5,6,7,8,10,12,15,20].map(n => <option key={n} value={n} className="bg-[#0B0B0B]">{n} pers.</option>)}
+                  </select>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={handleResaUpdate}
+                    disabled={resaEditSaving || !resaEdit.venue || !resaEdit.date || !resaEdit.time}
+                    className="flex-1 py-2.5 text-white text-[10px] tracking-[0.2em] uppercase disabled:opacity-30 transition-colors"
+                    style={{ background: '#5B3DF5' }}
+                  >
+                    {resaEditSaving ? 'Enregistrement...' : '✓ Sauvegarder'}
+                  </button>
+                  <button onClick={() => setEditingResa(false)}
+                    className="px-4 py-2.5 text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/30 hover:text-[#F5F5F3]/60 border border-white/8 hover:border-white/20 transition-colors">
+                    Annuler
+                  </button>
+                </div>
               </div>
-            )}
-            {selected.special_requests && (
-              <div className="mt-3 pt-3 border-t border-white/5 border-l-2 border-l-[#5B3DF5]/30 pl-3">
-                <p className="text-[#F5F5F3]/40 text-xs italic">"{selected.special_requests}"</p>
-              </div>
+            ) : (
+              <>
+                <p className="font-playfair text-xl text-[#F5F5F3] mb-0.5">{selected.establishment}</p>
+                <p className="text-[#F5F5F3]/25 text-xs uppercase tracking-wider mb-4">{selected.destination}</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Date', value: selected.date },
+                    { label: 'Service', value: selected.time },
+                    { label: 'Personnes', value: `${selected.guests}` },
+                  ].map(item => (
+                    <div key={item.label}>
+                      <p className="text-[8px] tracking-wider text-[#F5F5F3]/20 uppercase mb-1">{item.label}</p>
+                      <p className="text-[#F5F5F3]/80 text-sm leading-tight">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+                {(selected.occasion || selected.seating) && (
+                  <div className="flex gap-4 mt-3 pt-3 border-t border-white/5 text-xs text-[#F5F5F3]/40">
+                    {selected.occasion && <span>🎉 {selected.occasion}</span>}
+                    {selected.seating && <span>🪑 {selected.seating}</span>}
+                  </div>
+                )}
+                {selected.special_requests && (
+                  <div className="mt-3 pt-3 border-t border-white/5 border-l-2 border-l-[#5B3DF5]/30 pl-3">
+                    <p className="text-[#F5F5F3]/40 text-xs italic">"{selected.special_requests}"</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -1933,7 +2042,7 @@ export default function RPDashboard({ profile }: Props) {
             }}
             className="text-[10px] tracking-[0.2em] uppercase text-white/80 hover:text-white transition-colors border border-white/20 hover:border-white/50 px-3 py-2"
           >
-            + Réserver
+            Réserver un guest
           </button>
           <button
             onClick={() => setMainView('config')}
