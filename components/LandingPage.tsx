@@ -78,15 +78,15 @@ export default function LandingPage() {
 
         <div className="relative z-10 w-full max-w-3xl mx-auto text-center">
 
-          {/* Headline — big title centré, police uniforme */}
-          <h1 className="font-playfair text-5xl md:text-6xl text-[#F5F7FA] mb-6 text-center leading-tight">
+          {/* Headline */}
+          <h1 className="font-playfair text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#F5F7FA] mb-5 text-center leading-snug tracking-wide px-4">
             Private access to the<br />
             Hospitality Planning<br />
-            Between RPs &amp; Guests
+            <span className="text-[#F5F7FA]/70">Between RPs &amp; Guests</span>
           </h1>
 
           {/* Sub */}
-          <p className="text-[#F5F7FA]/50 text-sm leading-relaxed mb-12 max-w-sm mx-auto">
+          <p className="text-[11px] tracking-[0.25em] uppercase leading-relaxed mb-12 max-w-xs mx-auto" style={{ color: '#6E5BFF' }}>
             From WhatsApp chaos to structured hospitality management.
           </p>
 
