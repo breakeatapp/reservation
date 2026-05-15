@@ -109,6 +109,8 @@ export default function ClientDashboard({ profile }: Props) {
   const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [showAddRP, setShowAddRP] = useState(false)
+  const [addRPInput, setAddRPInput] = useState('')
 
   // Navigation
   const [screen, setScreen] = useState<Screen>('home')
@@ -329,7 +331,7 @@ export default function ClientDashboard({ profile }: Props) {
         <div className="px-5 pt-10 pb-6 max-w-md mx-auto">
           <Link
             href={`/${profile.slug}`}
-            className="text-[9px] tracking-[0.3em] text-[#F5F5F3]/15 uppercase hover:text-[#F5F5F3]/35 transition-colors block mb-8"
+            className="inline-flex items-center gap-2 text-[11px] tracking-[0.2em] text-[#F5F5F3]/50 uppercase hover:text-[#F5F5F3]/80 transition-colors mb-8 border border-white/10 hover:border-white/25 px-4 py-2.5"
           >
             ← {profile.display_name}
           </Link>
@@ -346,7 +348,7 @@ export default function ClientDashboard({ profile }: Props) {
                 )}
                 {clientFirstName && <span className="text-[#F5F5F3]/20 text-3xl"> ✦</span>}
               </h1>
-              <p className="text-[#F5F5F3]/25 text-sm mt-2">{email}</p>
+              <p className="text-[#F5F5F3]/45 text-sm mt-2">{email}</p>
             </div>
           ) : (
             <div className="mb-8">
@@ -430,7 +432,7 @@ export default function ClientDashboard({ profile }: Props) {
           {/* ── Sélection du RP ── */}
           {isIdentified && (
             <div>
-              <p className="text-[9px] tracking-[0.3em] text-[#F5F5F3]/20 uppercase mb-3">
+              <p className="text-[10px] tracking-[0.3em] text-[#F5F5F3]/40 uppercase mb-3">
                 Votre{rpList.length > 1 ? 's' : ''} RP
               </p>
               <div className="space-y-2">
@@ -439,7 +441,7 @@ export default function ClientDashboard({ profile }: Props) {
                     key={rp.slug}
                     onClick={() => selectRP(rp)}
                     disabled={resaLoading}
-                    className="w-full flex items-center gap-4 bg-[#141414] border border-white/5 hover:border-white/12 p-4 text-left transition-all group disabled:opacity-40"
+                    className="w-full flex items-center gap-4 bg-[#141414] border border-white/8 hover:border-white/20 p-4 text-left transition-all group disabled:opacity-40"
                   >
                     <div
                       className="w-11 h-11 flex items-center justify-center flex-shrink-0 text-white text-[10px] tracking-wider font-medium"
@@ -450,18 +452,70 @@ export default function ClientDashboard({ profile }: Props) {
                     <div className="flex-1 min-w-0">
                       <p className="text-[#F5F5F3] text-sm font-medium mb-1">{rp.displayName}</p>
                       {rp.totalCount > 0 ? (
-                        <div className="flex items-center gap-3 text-[10px]">
-                          <span className="text-[#F5F5F3]/30">{rp.totalCount} résa{rp.totalCount > 1 ? 's' : ''}</span>
-                          {rp.pendingCount > 0 && <span className="text-amber-400/70">· {rp.pendingCount} en attente</span>}
-                          {rp.confirmedCount > 0 && <span className="text-green-400/60">· {rp.confirmedCount} confirmée{rp.confirmedCount > 1 ? 's' : ''}</span>}
+                        <div className="flex items-center gap-3 text-[11px]">
+                          <span className="text-[#F5F5F3]/50">{rp.totalCount} résa{rp.totalCount > 1 ? 's' : ''}</span>
+                          {rp.pendingCount > 0 && <span className="text-amber-400/80">· {rp.pendingCount} en attente</span>}
+                          {rp.confirmedCount > 0 && <span className="text-green-400/70">· {rp.confirmedCount} confirmée{rp.confirmedCount > 1 ? 's' : ''}</span>}
                         </div>
                       ) : (
-                        <p className="text-[#F5F5F3]/20 text-[10px]">Aucune réservation</p>
+                        <p className="text-[#F5F5F3]/40 text-[11px]">Aucune réservation</p>
                       )}
                     </div>
-                    <span className="text-[#F5F5F3]/10 group-hover:text-[#F5F5F3]/30 transition-colors flex-shrink-0">›</span>
+                    <span className="text-[#F5F5F3]/25 group-hover:text-[#F5F5F3]/60 transition-colors flex-shrink-0 text-lg">›</span>
                   </button>
                 ))}
+
+                {/* ── Ajouter un nouvel RP ── */}
+                {!showAddRP ? (
+                  <button
+                    onClick={() => setShowAddRP(true)}
+                    className="w-full flex items-center gap-4 border border-dashed border-white/15 hover:border-white/30 p-4 text-left transition-all group"
+                  >
+                    <div className="w-11 h-11 flex items-center justify-center flex-shrink-0 border border-white/10 text-[#F5F5F3]/40 group-hover:text-[#F5F5F3]/70 transition-colors">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-[#F5F5F3]/50 text-sm group-hover:text-[#F5F5F3]/80 transition-colors">Ajouter un nouvel RP</p>
+                      <p className="text-[#F5F5F3]/30 text-[11px]">Connectez-vous à un autre concierge</p>
+                    </div>
+                  </button>
+                ) : (
+                  <div className="border border-white/15 p-4 bg-[#141414]">
+                    <p className="text-[10px] tracking-[0.3em] text-[#F5F5F3]/40 uppercase mb-3">Rejoindre un RP</p>
+                    <p className="text-[#F5F5F3]/50 text-xs mb-3 leading-relaxed">
+                      Entrez l'identifiant (slug) de votre RP — il vous l'aura communiqué.
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={addRPInput}
+                        onChange={e => setAddRPInput(e.target.value.toLowerCase().trim())}
+                        placeholder="ex: remi, sophie..."
+                        className="flex-1 bg-[#0B0B0B] border border-white/12 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none placeholder-[#F5F5F3]/25 focus:border-white/25 transition-colors"
+                      />
+                      <button
+                        onClick={() => {
+                          if (addRPInput) {
+                            localStorage.setItem('itinera_guest_rp', addRPInput)
+                            router.push(`/${addRPInput}/mon-espace`)
+                          }
+                        }}
+                        className="px-4 py-2.5 text-white text-[11px] tracking-[0.2em] uppercase hover:opacity-90 transition-opacity flex-shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}
+                      >
+                        →
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => { setShowAddRP(false); setAddRPInput('') }}
+                      className="mt-2 text-[10px] text-[#F5F5F3]/30 hover:text-[#F5F5F3]/50 transition-colors"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Menu compte */}
@@ -524,36 +578,21 @@ export default function ClientDashboard({ profile }: Props) {
           {/* ── Actions rapides ── */}
           {isIdentified && (
             <div>
-              <p className="text-[9px] tracking-[0.3em] text-[#F5F5F3]/20 uppercase mb-3">Actions rapides</p>
+              <p className="text-[10px] tracking-[0.3em] text-[#F5F5F3]/40 uppercase mb-3">Action rapide</p>
               <div className="space-y-2">
                 <Link
                   href={`/${profile.slug}/book`}
-                  className="w-full flex items-center gap-4 bg-[#141414] border border-white/5 hover:border-white/10 p-4 transition-all group"
+                  className="w-full flex items-center gap-4 bg-[#141414] border border-white/8 hover:border-white/20 p-4 transition-all group"
                 >
                   <div className="w-9 h-9 flex items-center justify-center flex-shrink-0 text-base"
                     style={{ background: `${accent}15`, border: `1px solid ${accent}25` }}>
                     🍽️
                   </div>
                   <div className="flex-1">
-                    <p className="text-[#F5F5F3] text-sm font-medium">Soumettre une demande</p>
-                    <p className="text-[#F5F5F3]/25 text-xs">Réponse sous 24h</p>
+                    <p className="text-[#F5F5F3] text-sm font-medium">Faire une réservation unique</p>
+                    <p className="text-[#F5F5F3]/45 text-xs">Réponse sous 24h</p>
                   </div>
-                  <span className="text-[#F5F5F3]/10 group-hover:text-[#F5F5F3]/30 transition-colors">›</span>
-                </Link>
-
-                <Link
-                  href={`/${profile.slug}/trip`}
-                  className="w-full flex items-center gap-4 bg-[#141414] border border-white/5 hover:border-white/10 p-4 transition-all group"
-                >
-                  <div className="w-9 h-9 flex items-center justify-center flex-shrink-0 text-base"
-                    style={{ background: `${accent}15`, border: `1px solid ${accent}25` }}>
-                    🗺️
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[#F5F5F3] text-sm font-medium">Construire mon itinéraire</p>
-                    <p className="text-[#F5F5F3]/25 text-xs">Séjour multi-destinations</p>
-                  </div>
-                  <span className="text-[#F5F5F3]/10 group-hover:text-[#F5F5F3]/30 transition-colors">›</span>
+                  <span className="text-[#F5F5F3]/25 group-hover:text-[#F5F5F3]/60 transition-colors text-lg">›</span>
                 </Link>
               </div>
             </div>
@@ -569,18 +608,18 @@ export default function ClientDashboard({ profile }: Props) {
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
 
-      <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4 flex items-center gap-3">
+      <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/8 px-4 py-4 flex items-center gap-3">
         <button
           onClick={() => { setScreen('home'); setError('') }}
-          className="text-[#F5F5F3]/25 hover:text-[#F5F5F3]/60 transition-colors text-lg flex-shrink-0"
+          className="flex items-center gap-2 text-[#F5F5F3]/55 hover:text-[#F5F5F3]/90 transition-colors text-sm border border-white/12 hover:border-white/25 px-3 py-1.5 flex-shrink-0"
         >
-          ←
+          ← Retour
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-[9px] tracking-[0.3em] uppercase truncate" style={{ color: (viewingRp?.accentColor ?? accent) + '60' }}>
+          <p className="text-[10px] tracking-[0.3em] uppercase truncate" style={{ color: (viewingRp?.accentColor ?? accent) + '80' }}>
             {viewingRp?.displayName ?? profile.display_name}
           </p>
-          <p className="text-sm text-[#F5F5F3]/40 truncate">{clientFirstName || email}</p>
+          <p className="text-sm text-[#F5F5F3]/55 truncate">{clientFirstName || email}</p>
         </div>
         {resaLoading && (
           <svg className="animate-spin w-4 h-4 text-[#F5F5F3]/20 flex-shrink-0" viewBox="0 0 24 24" fill="none">
@@ -767,17 +806,12 @@ export default function ClientDashboard({ profile }: Props) {
               })}
             </div>
 
-            <div className="mt-8 pt-6 border-t border-white/5 grid grid-cols-2 gap-3">
+            <div className="mt-8 pt-6 border-t border-white/5">
               <Link href={`/${profile.slug}/book`}
-                className="flex flex-col items-center gap-1.5 border border-white/8 py-4 hover:border-white/15 transition-colors text-center">
-                <span className="text-xl">🍽️</span>
-                <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/30">Réserver</span>
-              </Link>
-              <Link href={`/${profile.slug}/trip`}
-                className="flex flex-col items-center gap-1.5 border py-4 transition-colors text-center"
-                style={{ borderColor: accent + '30' }}>
-                <span className="text-xl">🗺️</span>
-                <span className="text-[9px] tracking-[0.2em] uppercase" style={{ color: accent + '70' }}>Planifier</span>
+                className="flex items-center justify-center gap-3 border border-white/12 hover:border-white/25 py-4 transition-colors text-center w-full"
+                style={{ color: accent + 'cc' }}>
+                <span className="text-lg">🍽️</span>
+                <span className="text-[11px] tracking-[0.2em] uppercase">Faire une réservation unique</span>
               </Link>
             </div>
           </>

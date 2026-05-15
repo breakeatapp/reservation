@@ -9,7 +9,7 @@ const FALLBACK_PROFILES: Record<string, RPProfile> = {
     id: 'local-remi',
     slug: 'remi',
     display_name: 'ITINERA',
-    tagline: 'Hospitality Planning Between RPs & Guests',
+    tagline: 'Hospitality, Organized.',
     email: 'notta.remi@hotmail.fr',
     whatsapp: '33646695675',
     dashboard_password: 'elite2024',

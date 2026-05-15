@@ -63,12 +63,6 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-8">
-            <Link href={`/${slug}#destinations`} className="text-[11px] tracking-[0.2em] uppercase text-[#F5F5F3]/50 hover:text-[#F5F5F3] transition-colors">
-              Destinations
-            </Link>
-            <Link href={`/${slug}/trip`} className="text-[11px] tracking-[0.2em] uppercase text-[#F5F5F3]/50 hover:text-[#F5F5F3] transition-colors">
-              Mon Voyage
-            </Link>
             <Link href={`/${slug}/mon-espace`} className="flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase hover:text-[#F5F5F3] transition-colors"
               style={{ color: connectedName ? accent + 'cc' : undefined }}
             >
@@ -126,18 +120,12 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
         {/* Menu mobile déroulant */}
         {menuOpen && (
           <div className="md:hidden bg-[#111] border-t border-white/5 px-6 py-5 space-y-3">
-            <Link href={`/${slug}#destinations`} className="flex items-center gap-3 text-[11px] tracking-[0.2em] uppercase text-[#F5F5F3]/50 py-2" onClick={() => setMenuOpen(false)}>
-              <span>🌍</span> Destinations
-            </Link>
-            <Link href={`/${slug}/trip`} className="flex items-center gap-3 text-[11px] tracking-[0.2em] uppercase text-[#F5F5F3]/50 py-2" onClick={() => setMenuOpen(false)}>
-              <span>🗺️</span> Mon Voyage
-            </Link>
-            <Link href={`/${slug}/mon-espace`} className="flex items-center gap-3 text-[11px] tracking-[0.2em] uppercase text-[#F5F5F3]/50 py-2" onClick={() => setMenuOpen(false)}>
+            <Link href={`/${slug}/mon-espace`} className="flex items-center gap-3 text-[12px] tracking-[0.2em] uppercase text-[#F5F5F3]/70 py-2" onClick={() => setMenuOpen(false)}>
               <span>👤</span> Mon Compte
             </Link>
             <div className="pt-2">
               <Link href={`/${slug}/book`} className="block text-[11px] tracking-[0.2em] uppercase text-white py-3 text-center" style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }} onClick={() => setMenuOpen(false)}>
-                Soumettre une demande
+                Faire une réservation unique
               </Link>
             </div>
           </div>
@@ -176,12 +164,9 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
             </p>
           )}
           <h1 className="font-playfair text-4xl md:text-7xl text-[#F5F5F3] mb-6 leading-tight">
-            {profile.tagline.split(' ').slice(0, 3).join(' ')}
-            <span className="block italic text-[#F5F5F3]/50">
-              {profile.tagline.split(' ').slice(3).join(' ')}
-            </span>
+            {profile.tagline}
           </h1>
-          <p className="text-[#F5F5F3]/35 text-sm max-w-lg mx-auto mb-10 leading-relaxed">
+          <p className="text-[#F5F5F3]/55 text-sm max-w-lg mx-auto mb-10 leading-relaxed">
             {destinations.length} destination{destinations.length > 1 ? 's' : ''} · {establishments.length} établissement{establishments.length > 1 ? 's' : ''} sélectionné{establishments.length > 1 ? 's' : ''}
           </p>
 
@@ -192,17 +177,11 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-white text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:opacity-90 transition-opacity"
               style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}
             >
-              Soumettre une demande
-            </Link>
-            <Link
-              href={`/${slug}/trip`}
-              className="w-full sm:w-auto inline-flex items-center justify-center border border-white/20 text-[#F5F5F3]/70 text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:border-white/40 hover:text-[#F5F5F3] transition-all"
-            >
-              Planifier mon séjour
+              Faire une réservation unique
             </Link>
             <Link
               href={`/${slug}/mon-espace`}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-white/8 text-[#F5F5F3]/35 text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:border-white/20 hover:text-[#F5F5F3]/60 transition-all"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 border border-white/25 text-[#F5F5F3]/70 text-[11px] tracking-[0.3em] uppercase px-8 py-4 hover:border-white/50 hover:text-[#F5F5F3] transition-all"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -222,7 +201,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
         <div className="max-w-7xl mx-auto">
 
           <div className="text-center mb-14">
-            <p className="text-[9px] tracking-[0.5em] text-[#F5F5F3]/20 uppercase mb-4">Sélection exclusive</p>
+            <p className="text-[10px] tracking-[0.5em] text-[#F5F5F3]/40 uppercase mb-4">Sélection exclusive</p>
             <h2 className="font-playfair text-3xl md:text-5xl text-[#F5F5F3]">Vos destinations</h2>
           </div>
 
@@ -238,11 +217,11 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0B] via-[#0B0B0B]/20 to-transparent" />
                 <div className="absolute inset-0 border border-white/0 group-hover:border-white/10 transition-colors" />
                 <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <div className="text-[8px] tracking-[0.3em] text-[#F5F5F3]/40 uppercase mb-1">
+                  <div className="text-[9px] tracking-[0.3em] text-[#F5F5F3]/60 uppercase mb-1">
                     {dest.emoji} {dest.country}
                   </div>
                   <h3 className="font-playfair text-lg md:text-2xl text-[#F5F5F3] mb-0.5">{dest.name}</h3>
-                  <p className="text-[#F5F5F3]/35 text-[10px]">
+                  <p className="text-[#F5F5F3]/55 text-[10px]">
                     {establishments.filter(e => e.destination === dest.slug).length} établissement{establishments.filter(e => e.destination === dest.slug).length > 1 ? 's' : ''}
                   </p>
                 </div>
@@ -275,10 +254,10 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
                       </div>
                     </div>
                     <h4 className="font-playfair text-base text-[#F5F5F3] mb-1">{v.name}</h4>
-                    <p className="text-[#F5F5F3]/30 text-xs leading-relaxed line-clamp-2">{v.shortDesc}</p>
+                    <p className="text-[#F5F5F3]/55 text-xs leading-relaxed line-clamp-2">{v.shortDesc}</p>
                     <div className="mt-3 flex items-center justify-between">
-                      <span className="text-[9px] tracking-wider text-[#F5F5F3]/20">{v.priceRange}</span>
-                      <span className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 group-hover:text-[#F5F5F3]/60 transition-colors">
+                      <span className="text-[10px] tracking-wider text-[#F5F5F3]/45">{v.priceRange}</span>
+                      <span className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/45 group-hover:text-[#F5F5F3]/80 transition-colors">
                         Réserver →
                       </span>
                     </div>
@@ -313,43 +292,18 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
         </div>
       </section>
 
-      {/* ── TRIP PLANNER CTA ── */}
-      <section className="py-16 px-5 bg-[#0F0F0F] border-t border-white/5">
-        <div className="max-w-3xl mx-auto text-center">
-          <p className="text-[9px] tracking-[0.5em] uppercase mb-5" style={{ color: accent + '60' }}>Planification complète</p>
-          <h2 className="font-playfair text-3xl md:text-4xl text-[#F5F5F3] mb-4 leading-tight">
-            Planifiez votre voyage
-            <span className="italic text-[#F5F5F3]/40 block">en quelques minutes</span>
-          </h2>
-          <p className="text-[#F5F5F3]/30 leading-relaxed mb-8 max-w-xl mx-auto text-sm">
-            Composez votre itinéraire sur plusieurs jours — déjeuners, dîners, beach clubs, soirées.
-            Nous gérons chaque réservation à votre place.
-          </p>
-          <Link
-            href={`/${slug}/trip`}
-            className="inline-flex items-center gap-3 text-white text-[11px] tracking-[0.3em] uppercase px-10 py-4 hover:opacity-90 transition-opacity"
-            style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}
-          >
-            Composer mon itinéraire →
-          </Link>
-        </div>
-      </section>
-
       {/* ── FOOTER ── */}
       <footer className="py-10 px-5 border-t border-white/5">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
-            <p className="font-playfair text-[#F5F5F3]/40">{profile.display_name}</p>
-            <p className="text-[8px] tracking-[0.3em] text-[#F5F5F3]/15 uppercase mt-1">Accès sur invitation · Traitement confidentiel</p>
+            <p className="font-playfair text-[#F5F5F3]/70">{profile.display_name}</p>
+            <p className="text-[9px] tracking-[0.3em] text-[#F5F5F3]/35 uppercase mt-1">Accès sur invitation · Traitement confidentiel</p>
           </div>
           <div className="flex items-center gap-5">
-            <Link href={`/${slug}/book`} className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 hover:text-[#F5F5F3]/50 transition-colors">
+            <Link href={`/${slug}/book`} className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/45 hover:text-[#F5F5F3]/70 transition-colors">
               Réserver
             </Link>
-            <Link href={`/${slug}/trip`} className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 hover:text-[#F5F5F3]/50 transition-colors">
-              Mon Voyage
-            </Link>
-            <Link href={`/${slug}/mon-espace`} className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 hover:text-[#F5F5F3]/50 transition-colors">
+            <Link href={`/${slug}/mon-espace`} className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/45 hover:text-[#F5F5F3]/70 transition-colors">
               Mon Compte
             </Link>
             {/* Lien discret dashboard RP — non visible par les clients */}
@@ -362,33 +316,26 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
 
       {/* ── BARRE DE NAVIGATION FIXE MOBILE ── */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0B0B0B]/98 backdrop-blur-md border-t border-white/8">
-        <div className="grid grid-cols-4 h-16">
-          <Link href={`/${slug}`} className="flex flex-col items-center justify-center gap-1 text-[#F5F5F3]/30 hover:text-[#F5F5F3]/60 transition-colors active:bg-white/3">
+        <div className="grid grid-cols-3 h-16">
+          <Link href={`/${slug}`} className="flex flex-col items-center justify-center gap-1 text-[#F5F5F3]/50 hover:text-[#F5F5F3]/80 transition-colors active:bg-white/3">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             </svg>
-            <span className="text-[8px] tracking-wider uppercase">Accueil</span>
+            <span className="text-[9px] tracking-wider uppercase">Accueil</span>
           </Link>
 
-          <Link href={`/${slug}/book`} className="flex flex-col items-center justify-center gap-1 transition-colors active:bg-white/3" style={{ color: accent + 'cc' }}>
+          <Link href={`/${slug}/book`} className="flex flex-col items-center justify-center gap-1 transition-colors active:bg-white/3" style={{ color: accent + 'ee' }}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
             </svg>
-            <span className="text-[8px] tracking-wider uppercase">Réserver</span>
+            <span className="text-[9px] tracking-wider uppercase">Réserver</span>
           </Link>
 
-          <Link href={`/${slug}/trip`} className="flex flex-col items-center justify-center gap-1 text-[#F5F5F3]/30 hover:text-[#F5F5F3]/60 transition-colors active:bg-white/3">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-            <span className="text-[8px] tracking-wider uppercase">Voyage</span>
-          </Link>
-
-          <Link href={`/${slug}/mon-espace`} className="flex flex-col items-center justify-center gap-1 text-[#F5F5F3]/30 hover:text-[#F5F5F3]/60 transition-colors active:bg-white/3">
+          <Link href={`/${slug}/mon-espace`} className="flex flex-col items-center justify-center gap-1 text-[#F5F5F3]/50 hover:text-[#F5F5F3]/80 transition-colors active:bg-white/3">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            <span className="text-[8px] tracking-wider uppercase">Mon compte</span>
+            <span className="text-[9px] tracking-wider uppercase">Mon compte</span>
           </Link>
         </div>
       </div>

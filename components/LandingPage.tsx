@@ -64,25 +64,21 @@ export default function LandingPage() {
 
         <div className="relative z-10 w-full max-w-lg mx-auto text-center">
 
-          {/* Eyebrow */}
-          <p className="text-[9px] tracking-[0.6em] text-[#F5F7FA]/20 uppercase mb-8">
-            ✦ Hospitality Planning Between RPs & Guests ✦
-          </p>
-
-          {/* Headline */}
-          <h1 className="font-playfair text-4xl md:text-5xl text-[#F5F7FA] mb-4 leading-tight">
-            Private access to the
-            <span className="block italic text-[#F5F7FA]/35">world's most requested venues.</span>
+          {/* Headline — big title */}
+          <h1 className="font-playfair text-3xl md:text-5xl text-[#F5F7FA] mb-6 leading-tight">
+            ✦ Private access to the<br />
+            <span className="italic">Hospitality Planning</span><br />
+            <span>Between RPs & Guests ✦</span>
           </h1>
 
           {/* Sub */}
-          <p className="text-[#F5F7FA]/30 text-sm leading-relaxed mb-12 max-w-sm mx-auto">
+          <p className="text-[#F5F7FA]/50 text-sm leading-relaxed mb-12 max-w-sm mx-auto">
             From WhatsApp chaos to structured hospitality management.
           </p>
 
           {/* ── Accès guest ── */}
-          <div className="bg-[#181C23]/90 backdrop-blur-sm border border-white/6 p-6 mb-4">
-            <p className="text-[9px] tracking-[0.4em] uppercase text-[#F5F7FA]/25 mb-4">
+          <div className="bg-[#181C23]/90 backdrop-blur-sm border border-white/10 p-6 mb-4">
+            <p className="text-[10px] tracking-[0.4em] uppercase text-[#F5F7FA]/45 mb-4">
               Access my space
             </p>
             <form onSubmit={handleAccess} className="flex gap-2">
@@ -91,7 +87,7 @@ export default function LandingPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="your@email.com"
-                className="flex-1 bg-[#0F1115] border border-white/8 text-[#F5F7FA] px-4 py-3 text-sm focus:border-white/20 outline-none placeholder-[#F5F7FA]/15 transition-colors"
+                className="flex-1 bg-[#0F1115] border border-white/12 text-[#F5F7FA] px-4 py-3 text-sm focus:border-white/30 outline-none placeholder-[#F5F7FA]/30 transition-colors"
                 required
               />
               <button
@@ -103,18 +99,18 @@ export default function LandingPage() {
               </button>
             </form>
             {error && (
-              <p className="text-[#F5F7FA]/30 text-xs mt-3 leading-relaxed">{error}</p>
+              <p className="text-red-400/70 text-xs mt-3 leading-relaxed">{error}</p>
             )}
-            <p className="text-[#F5F7FA]/12 text-[10px] mt-3">
+            <p className="text-[#F5F7FA]/35 text-[11px] mt-3">
               Enter the email used when your RP invited you
             </p>
           </div>
 
           {/* Message nouveaux guests */}
-          <div className="border border-white/5 p-5">
-            <p className="text-[#F5F7FA]/20 text-xs leading-relaxed">
+          <div className="border border-white/8 p-5">
+            <p className="text-[#F5F7FA]/40 text-xs leading-relaxed">
               Access is by invitation only.<br />
-              <span className="text-[#F5F7FA]/35">Contact your RP to request access to the network.</span>
+              <span className="text-[#F5F7FA]/55">Contact your RP to request access to the network.</span>
             </p>
           </div>
 
@@ -123,7 +119,7 @@ export default function LandingPage() {
 
       {/* ── FOOTER ── */}
       <footer className="py-8 px-6 border-t border-white/5 text-center">
-        <p className="text-[#F5F7FA]/10 text-[10px] tracking-wider uppercase">
+        <p className="text-[#F5F7FA]/30 text-[10px] tracking-wider uppercase">
           ITINERA · Hospitality Planning Between RPs & Guests
         </p>
       </footer>
