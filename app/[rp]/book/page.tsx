@@ -3,6 +3,7 @@ import { getRPProfile, getRPEstablishmentOptions, getRPDestinations, getRPEstabl
 import RPReservationForm from '@/components/RPReservationForm'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import { parseVenueEntry } from '@/lib/venue-utils'
 
 type Props = {
   params: { rp: string }
@@ -23,6 +24,7 @@ export default async function RPBookPage({ params, searchParams }: Props) {
   const venueServices = getRPVenueServices(profile)
   const destinations = getRPDestinations(profile)
   const allEstablishments = getRPEstablishments(profile)
+  const venueConfigs = profile.activated_venues.map(parseVenueEntry)
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] pt-8 pb-20 px-6">
@@ -60,6 +62,7 @@ export default async function RPBookPage({ params, searchParams }: Props) {
         venueServices={venueServices}
         destinations={destinations}
         establishments={allEstablishments}
+        venueConfigs={venueConfigs}
       />
     </div>
   )

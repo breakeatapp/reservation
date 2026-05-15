@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import type { RPProfile, Reservation, ReservationStatus, RPClientNote } from '@/lib/supabase'
-import { parseVenueEntry, serializeVenueEntry, ALL_SERVICES } from '@/lib/venue-utils'
+import { parseVenueEntry, serializeVenueEntry, SERVICES_BY_TYPE, type VenueType } from '@/lib/venue-utils'
 
 type Props = { profile: RPProfile }
 
@@ -76,6 +76,13 @@ const ALL_DESTINATIONS = [
   { slug: 'ibiza', name: 'Ibiza', emoji: '🎶' },
   { slug: 'mykonos', name: 'Mykonos', emoji: '🏛️' },
   { slug: 'maldives', name: 'Maldives', emoji: '🌺' },
+  { slug: 'aspen', name: 'Aspen', emoji: '🏔️' },
+  { slug: 'tulum', name: 'Tulum', emoji: '🌿' },
+  { slug: 'cavalaire', name: 'Cavalaire-sur-Mer', emoji: '⚓' },
+  { slug: 'milan', name: 'Milan', emoji: '👗' },
+  { slug: 'rome', name: 'Rome', emoji: '🏟️' },
+  { slug: 'abu-dhabi', name: 'Abu Dhabi', emoji: '🕌' },
+  { slug: 'jeddah', name: 'Jeddah', emoji: '🌙' },
 ]
 
 export default function RPDashboard({ profile }: Props) {
@@ -115,7 +122,6 @@ export default function RPDashboard({ profile }: Props) {
   // Configuration
   const [configDests, setConfigDests] = useState<string[]>(profile.activated_destinations ?? [])
   const [configVenues, setConfigVenues] = useState<string[]>(profile.activated_venues ?? [])
-  const [configTagline, setConfigTagline] = useState(profile.tagline || 'Hospitality, Organized.')
   const [configAccent, setConfigAccent] = useState(profile.accent_color || '#5B3DF5')
   const [configLogoText, setConfigLogoText] = useState(profile.logo_text || '')
   const [configSaving, setConfigSaving] = useState(false)
@@ -125,6 +131,7 @@ export default function RPDashboard({ profile }: Props) {
   const [newVenueDest, setNewVenueDest] = useState('')
   const [newVenueServices, setNewVenueServices] = useState<string[]>([])
   const [showServicePicker, setShowServicePicker] = useState(false)
+  const [newVenueType, setNewVenueType] = useState<VenueType>('restaurant')
   // Villes personnalisées
   const [newCityName, setNewCityName] = useState('')
   const [newCityCountry, setNewCityCountry] = useState('')
@@ -572,7 +579,6 @@ export default function RPDashboard({ profile }: Props) {
         body: JSON.stringify({
           activated_destinations: configDests,
           activated_venues: configVenues,
-          tagline: configTagline,
           accent_color: configAccent,
           logo_text: configLogoText,
         }),
@@ -624,11 +630,13 @@ export default function RPDashboard({ profile }: Props) {
       name,
       destination: newVenueDest || undefined,
       services: newVenueServices.length > 0 ? newVenueServices : undefined,
+      type: newVenueType,
     })
     setConfigVenues(prev => [...prev, serialized])
     setNewVenueName('')
     setNewVenueDest('')
     setNewVenueServices([])
+    setNewVenueType('restaurant')
     setShowServicePicker(false)
   }
 
@@ -682,16 +690,6 @@ export default function RPDashboard({ profile }: Props) {
             <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-4">Profil public</p>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-[8px] tracking-wider text-[#F5F5F3]/30 uppercase mb-1.5">Tagline</label>
-                <input
-                  type="text"
-                  value={configTagline}
-                  onChange={e => setConfigTagline(e.target.value)}
-                  className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 transition-colors"
-                  placeholder="Hospitality, Organized."
-                />
-              </div>
               <div>
                 <label className="block text-[8px] tracking-wider text-[#F5F5F3]/30 uppercase mb-1.5">Texte logo</label>
                 <input
@@ -868,6 +866,31 @@ export default function RPDashboard({ profile }: Props) {
                 />
               </div>
 
+              {/* Type de venue */}
+              <div>
+                <p className="text-[8px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 mb-2">Catégorie</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    { key: 'restaurant', label: '🍽️ Restaurant' },
+                    { key: 'beach_club', label: '🏖️ Beach Club' },
+                    { key: 'night_club', label: '🎉 Night Club' },
+                  ] as { key: VenueType; label: string }[]).map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => { setNewVenueType(key); setNewVenueServices([]); setShowServicePicker(false) }}
+                      className={`px-2 py-2 text-[10px] tracking-[0.1em] border transition-all ${
+                        newVenueType === key
+                          ? 'border-[#5B3DF5]/50 bg-[#5B3DF5]/10 text-[#F5F5F3]/80'
+                          : 'border-white/10 text-[#F5F5F3]/30 hover:border-white/20'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Ligne 2 : créneaux */}
               <div>
                 <button
@@ -889,7 +912,7 @@ export default function RPDashboard({ profile }: Props) {
                     <p className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/20 mb-1">
                       Laisser vide = tous les créneaux proposés
                     </p>
-                    {ALL_SERVICES.map(s => (
+                    {SERVICES_BY_TYPE[newVenueType].map(s => (
                       <label key={s} className="flex items-center gap-3 cursor-pointer group">
                         <div
                           onClick={() => toggleNewVenueService(s)}
@@ -929,30 +952,49 @@ export default function RPDashboard({ profile }: Props) {
 
             {/* ── Liste venues actifs ── */}
             {configVenues.length > 0 ? (
-              <div className="space-y-1.5">
-                {configVenues.map((raw, idx) => {
-                  const vc = parseVenueEntry(raw)
+              <div className="space-y-4">
+                {([
+                  { key: 'restaurant', label: '🍽️ Restaurants' },
+                  { key: 'beach_club', label: '🏖️ Beach Clubs' },
+                  { key: 'night_club', label: '🎉 Night Clubs' },
+                ] as { key: string; label: string }[]).map(({ key, label }) => {
+                  const group = configVenues.filter(raw => {
+                    const vc = parseVenueEntry(raw)
+                    const t = vc.type || 'restaurant'
+                    return t === key
+                  })
+                  if (group.length === 0) return null
                   return (
-                    <div key={idx} className="flex items-center gap-3 bg-[#0B0B0B] border border-white/5 px-3 py-2.5">
-                      {vc.destination && (
-                        <span className="text-[9px] tracking-[0.15em] uppercase text-[#5B3DF5]/50 flex-shrink-0 hidden sm:block">
-                          {vc.destination.replace(/-/g, ' ')}
-                        </span>
-                      )}
-                      <span className="text-[#F5F5F3]/70 text-sm flex-1 truncate">{vc.name}</span>
-                      {vc.services && vc.services.length > 0 ? (
-                        <span className="text-[9px] text-[#F5F5F3]/25 flex-shrink-0">
-                          {vc.services.length} créneau{vc.services.length > 1 ? 'x' : ''}
-                        </span>
-                      ) : (
-                        <span className="text-[9px] text-[#F5F5F3]/15 flex-shrink-0">tous</span>
-                      )}
-                      <button
-                        onClick={() => removeVenue(raw)}
-                        className="text-[#F5F5F3]/20 hover:text-red-400/60 transition-colors text-lg flex-shrink-0 ml-1"
-                      >
-                        ×
-                      </button>
+                    <div key={key}>
+                      <p className="text-[8px] tracking-[0.2em] uppercase text-[#F5F5F3]/20 mb-1.5">{label}</p>
+                      <div className="space-y-1.5">
+                        {group.map((raw, idx) => {
+                          const vc = parseVenueEntry(raw)
+                          return (
+                            <div key={idx} className="flex items-center gap-3 bg-[#0B0B0B] border border-white/5 px-3 py-2.5">
+                              {vc.destination && (
+                                <span className="text-[9px] tracking-[0.15em] uppercase text-[#5B3DF5]/50 flex-shrink-0 hidden sm:block">
+                                  {vc.destination.replace(/-/g, ' ')}
+                                </span>
+                              )}
+                              <span className="text-[#F5F5F3]/70 text-sm flex-1 truncate">{vc.name}</span>
+                              {vc.services && vc.services.length > 0 ? (
+                                <span className="text-[9px] text-[#F5F5F3]/25 flex-shrink-0">
+                                  {vc.services.length} créneau{vc.services.length > 1 ? 'x' : ''}
+                                </span>
+                              ) : (
+                                <span className="text-[9px] text-[#F5F5F3]/15 flex-shrink-0">tous</span>
+                              )}
+                              <button
+                                onClick={() => removeVenue(raw)}
+                                className="text-[#F5F5F3]/20 hover:text-red-400/60 transition-colors text-lg flex-shrink-0 ml-1"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
                   )
                 })}

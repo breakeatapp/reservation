@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Link from 'next/link'
 import type { Destination, Establishment } from '@/lib/data'
+import { normalizeEstType, type VenueConfig } from '@/lib/venue-utils'
 
 const schema = z.object({
   firstName: z.string().min(2, 'Prénom requis'),
@@ -39,6 +40,7 @@ type Props = {
   venueServices?: Record<string, string[]>
   destinations?: Destination[]
   establishments?: Establishment[]
+  venueConfigs?: VenueConfig[]
 }
 
 const inputClass = `w-full bg-[#141414] border border-white/8 text-[#F5F5F3] placeholder-[#F5F5F3]/15 px-4 py-3.5 text-sm focus:border-white/30 outline-none transition-colors duration-200`
@@ -46,36 +48,55 @@ const labelClass = `block text-[9px] tracking-[0.3em] text-[#F5F5F3]/30 uppercas
 const errorClass = `text-red-400/60 text-[11px] mt-1`
 
 const SERVICES = [
-  { group: 'Restaurant', options: [
-    { label: 'Premier service — Déjeuner (12h30)', value: 'Premier service — Déjeuner (12h30)' },
-    { label: 'Deuxième service — Déjeuner (14h30)', value: 'Deuxième service — Déjeuner (14h30)' },
-    { label: 'Premier service — Dîner (19h30)', value: 'Premier service — Dîner (19h30)' },
-    { label: 'Deuxième service — Dîner (21h30)', value: 'Deuxième service — Dîner (21h30)' },
-  ]},
-  { group: 'Beach Club', options: [
-    { label: 'Ouverture (11h00)', value: 'Beach Club — Ouverture (11h00)' },
-    { label: 'Sunset (17h00)', value: 'Beach Club — Sunset (17h00)' },
-  ]},
-  { group: 'Club / Soirée', options: [
-    { label: 'Entrée early (22h00)', value: 'Club — Entrée early (22h00)' },
-    { label: 'Entrée late night (00h00)', value: 'Club — Entrée late night (00h00)' },
-  ]},
-  { group: 'Autre', options: [
+  { group: '🍽️ Restaurant', options: [
+    { label: 'Déjeuner — 1er service (12h30)', value: 'Déjeuner — 1er service (12h30)' },
+    { label: 'Déjeuner — 1er service (13h30)', value: 'Déjeuner — 1er service (13h30)' },
+    { label: 'Déjeuner — 2ème service (15h30)', value: 'Déjeuner — 2ème service (15h30)' },
+    { label: 'Dîner — 1er service (17h30)', value: 'Dîner — 1er service (17h30)' },
+    { label: 'Dîner — 2ème service (20h00)', value: 'Dîner — 2ème service (20h00)' },
+    { label: 'Dîner — 3ème service (22h30)', value: 'Dîner — 3ème service (22h30)' },
     { label: 'Brunch (11h00)', value: 'Brunch (11h00)' },
-    { label: 'Cocktails (18h00)', value: 'Cocktails (18h00)' },
+  ]},
+  { group: '🏖️ Beach Club', options: [
+    { label: 'Matelas journée', value: 'Matelas journée' },
+    { label: 'Ouverture (11h00)', value: 'Ouverture (11h00)' },
+    { label: 'Sunset (17h00)', value: 'Sunset (17h00)' },
+  ]},
+  { group: '🎉 Night Club', options: [
+    { label: 'Entrée early (22h00)', value: 'Entrée early (22h00)' },
+    { label: 'Entrée late night (00h00)', value: 'Entrée late night (00h00)' },
   ]},
 ]
 
 const OCCASIONS = ['Anniversaire', 'Romantique', 'Dîner d\'affaires', 'Célébration', 'Soirée VIP', 'Fête', 'Autre']
 const SEATINGS = ['Terrasse', 'Table coucher de soleil', 'Premier rang', 'Table DJ', 'Vue mer', 'Privé / Semi-privé', 'Sans préférence']
 
-export default function RPReservationForm({ estOptions, defaultVenue, defaultDestination, rpSlug, rpProfile, venueServices, destinations, establishments }: Props) {
+export default function RPReservationForm({ estOptions, defaultVenue, defaultDestination, rpSlug, rpProfile, venueServices, destinations, establishments, venueConfigs }: Props) {
   const accent = rpProfile?.accent_color || '#5B3DF5'
 
   // ── Sélecteur de ville ────────────────────────────────────
   const [selectedDest, setSelectedDest] = useState<string>(defaultDestination || '')
 
-  // Options d'établissements filtrées par ville sélectionnée
+  // Groupement des venues par catégorie pour la destination sélectionnée
+  const groupedVenues = (() => {
+    if (!selectedDest) return null
+    const predefined = (establishments || []).filter(e => e.destination === selectedDest)
+    const custom = (venueConfigs || []).filter(vc => vc.destination === selectedDest)
+    const all: { name: string; category: string }[] = [
+      ...predefined.map(e => ({ name: e.name, category: normalizeEstType(e.type) })),
+    ]
+    for (const vc of custom) {
+      if (!all.find(v => v.name === vc.name)) {
+        all.push({ name: vc.name, category: vc.type || 'restaurant' })
+      }
+    }
+    return {
+      restaurant: all.filter(v => v.category === 'restaurant'),
+      beach_club: all.filter(v => v.category === 'beach_club'),
+      night_club: all.filter(v => v.category === 'night_club'),
+    }
+  })()
+
   const filteredEstOptions = selectedDest && establishments
     ? establishments
         .filter(e => e.destination === selectedDest)
@@ -378,15 +399,39 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
           )}
 
           <label className={labelClass}>
-            {selectedDest ? 'Restaurant / Venue *' : 'Choisissez votre établissement *'}
+            {selectedDest ? 'Établissement *' : 'Choisissez votre établissement *'}
           </label>
           <select {...register('establishment')} className={`${inputClass} cursor-pointer`}>
-            <option value="" disabled className="bg-[#141414]">
-              {selectedDest ? `Restaurants disponibles...` : 'Sélectionner...'}
-            </option>
-            {filteredEstOptions.map(opt => (
-              <option key={opt.value} value={opt.value} className="bg-[#141414]">{opt.label}</option>
-            ))}
+            <option value="" disabled className="bg-[#141414]">Sélectionner...</option>
+            {groupedVenues ? (
+              <>
+                {groupedVenues.restaurant.length > 0 && (
+                  <optgroup label="🍽️ Restaurants">
+                    {groupedVenues.restaurant.map(v => (
+                      <option key={v.name} value={v.name} className="bg-[#141414]">{v.name}</option>
+                    ))}
+                  </optgroup>
+                )}
+                {groupedVenues.beach_club.length > 0 && (
+                  <optgroup label="🏖️ Beach Clubs">
+                    {groupedVenues.beach_club.map(v => (
+                      <option key={v.name} value={v.name} className="bg-[#141414]">{v.name}</option>
+                    ))}
+                  </optgroup>
+                )}
+                {groupedVenues.night_club.length > 0 && (
+                  <optgroup label="🎉 Night Clubs">
+                    {groupedVenues.night_club.map(v => (
+                      <option key={v.name} value={v.name} className="bg-[#141414]">{v.name}</option>
+                    ))}
+                  </optgroup>
+                )}
+              </>
+            ) : (
+              estOptions.map(opt => (
+                <option key={opt.value} value={opt.value} className="bg-[#141414]">{opt.label}</option>
+              ))
+            )}
           </select>
           {errors.establishment && <p className={errorClass}>{errors.establishment.message}</p>}
         </div>
