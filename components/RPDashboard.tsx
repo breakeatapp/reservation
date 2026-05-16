@@ -195,6 +195,7 @@ export default function RPDashboard({ profile }: Props) {
   const [editClientProducts, setEditClientProducts] = useState<string[]>([])
   const [editClientNote, setEditClientNote] = useState('')
   const [savingClientProfile, setSavingClientProfile] = useState(false)
+  const [resendingWelcome, setResendingWelcome] = useState<string | null>(null)
 
   // Ajout client
   const [addClientOpen, setAddClientOpen] = useState(false)
@@ -746,6 +747,26 @@ export default function RPDashboard({ profile }: Props) {
     )
   }
 
+  // ── Renvoyer l'email de bienvenue ────────────────────────────
+  const resendWelcomeEmail = async (c: RPClientNote) => {
+    setResendingWelcome(c.client_email)
+    try {
+      await fetch(`/api/rp/${profile.slug}/clients`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-rp-password': password },
+        body: JSON.stringify({
+          clientEmail: c.client_email,
+          clientName: c.client_name,
+          vipTag: c.vip_tag,
+          internalNote: c.internal_note,
+          sendWelcome: true,
+          forceWelcome: true,
+        }),
+      })
+    } catch { /* ignore */ }
+    finally { setTimeout(() => setResendingWelcome(null), 2000) }
+  }
+
   // ── Sauvegarder le profil d'un client ────────────────────────
   const saveClientProfile = async (c: RPClientNote) => {
     setSavingClientProfile(true)
@@ -924,6 +945,34 @@ export default function RPDashboard({ profile }: Props) {
         )}
 
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 pb-24">
+
+          {/* ── Lien d'invitation ── */}
+          <div className="bg-[#141414] border border-[#5B3DF5]/20 p-5">
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-3">Votre lien d'invitation</p>
+            <p className="text-[#F5F5F3]/30 text-xs mb-4 leading-relaxed">
+              Partagez ce lien à vos guests — ils entrent leur email pour accéder à votre espace.
+            </p>
+            <div className="bg-[#0B0B0B] border border-white/8 px-4 py-3 flex items-center justify-between gap-3">
+              <span className="text-[#5B3DF5] text-sm font-mono truncate">
+                {typeof window !== 'undefined' ? window.location.origin : 'https://reservation-4gk2.vercel.app'}/{profile.slug}
+              </span>
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}/${profile.slug}`
+                  navigator.clipboard.writeText(url)
+                  setCopied('invite')
+                  setTimeout(() => setCopied(null), 2000)
+                }}
+                className="text-[9px] tracking-[0.2em] uppercase text-[#5B3DF5]/60 hover:text-[#5B3DF5] transition-colors flex-shrink-0 border border-[#5B3DF5]/20 hover:border-[#5B3DF5]/50 px-3 py-1.5"
+              >
+                {copied === 'invite' ? '✓ Copié' : 'Copier'}
+              </button>
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-[#F5F5F3]/20 text-[10px]">
+              <span>Dashboard RP :</span>
+              <span className="font-mono text-[#F5F5F3]/30">/{profile.slug}/dashboard</span>
+            </div>
+          </div>
 
           {/* ── Profil ── */}
           <div className="bg-[#141414] border border-white/5 p-5">
@@ -1574,6 +1623,13 @@ export default function RPDashboard({ profile }: Props) {
                             {savingClientProfile ? '...' : 'Sauvegarder'}
                           </button>
                         </div>
+                        <button
+                          onClick={() => resendWelcomeEmail(c)}
+                          disabled={resendingWelcome === c.client_email}
+                          className="w-full py-2 text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/20 hover:text-green-400/60 transition-colors border border-white/5 hover:border-green-500/20 disabled:opacity-40"
+                        >
+                          {resendingWelcome === c.client_email ? '✓ Email envoyé' : '↩ Renvoyer l\'email de bienvenue'}
+                        </button>
                       </div>
                     )}
                   </div>

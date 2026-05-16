@@ -59,7 +59,7 @@ export async function POST(
     return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 })
   }
 
-  const { clientEmail, clientName, vipTag, internalNote, sendWelcome } = await req.json()
+  const { clientEmail, clientName, vipTag, internalNote, sendWelcome, forceWelcome } = await req.json()
 
   if (!clientEmail) {
     return NextResponse.json({ error: 'Email client requis.' }, { status: 400 })
@@ -103,8 +103,8 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // ── Email de bienvenue si c'est un nouveau client ──
-  if (isNewClient && sendWelcome !== false) {
+  // ── Email de bienvenue si c'est un nouveau client (ou forceWelcome=true) ──
+  if ((isNewClient || forceWelcome) && sendWelcome !== false) {
     try {
       const rpProfile = await getRPProfile(slug)
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://reservation-4gk2.vercel.app'
