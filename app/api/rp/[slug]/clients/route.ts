@@ -104,6 +104,8 @@ export async function POST(
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // ── Email de bienvenue si c'est un nouveau client (ou forceWelcome=true) ──
+  let emailSent = false
+  let emailError = ''
   if ((isNewClient || forceWelcome) && sendWelcome !== false) {
     try {
       const rpProfile = await getRPProfile(slug)
@@ -117,10 +119,12 @@ export async function POST(
         rpSlug: slug,
         siteUrl,
       })
+      emailSent = true
     } catch (emailErr) {
+      emailError = String(emailErr)
       console.error('Welcome email error:', emailErr)
     }
   }
 
-  return NextResponse.json({ ...data, welcomeEmailSent: isNewClient })
+  return NextResponse.json({ ...data, welcomeEmailSent: emailSent, emailError: emailError || undefined })
 }

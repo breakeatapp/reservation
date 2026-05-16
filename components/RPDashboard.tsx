@@ -769,7 +769,7 @@ export default function RPDashboard({ profile }: Props) {
   const resendWelcomeEmail = async (c: RPClientNote) => {
     setResendingWelcome(c.client_email)
     try {
-      await fetch(`/api/rp/${profile.slug}/clients`, {
+      const res = await fetch(`/api/rp/${profile.slug}/clients`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-rp-password': password },
         body: JSON.stringify({
@@ -781,8 +781,19 @@ export default function RPDashboard({ profile }: Props) {
           forceWelcome: true,
         }),
       })
-    } catch { /* ignore */ }
-    finally { setTimeout(() => setResendingWelcome(null), 2000) }
+      const d = await res.json()
+      if (d.emailError) {
+        alert(`Erreur email : ${d.emailError}`)
+      } else if (d.welcomeEmailSent) {
+        // succès — l'état resendingWelcome affiche "✓ Envoyé"
+      } else {
+        alert('Email non envoyé — vérifiez la configuration Resend (RESEND_API_KEY)')
+      }
+    } catch (err) {
+      alert(`Erreur réseau : ${err}`)
+    } finally {
+      setTimeout(() => setResendingWelcome(null), 3000)
+    }
   }
 
   // ── Sauvegarder le profil d'un client ────────────────────────
@@ -968,7 +979,7 @@ export default function RPDashboard({ profile }: Props) {
           <div className="bg-[#141414] border border-[#5B3DF5]/20 p-5">
             <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-3">Votre lien d'invitation</p>
             <p className="text-[#F5F5F3]/30 text-xs mb-4 leading-relaxed">
-              Partagez ce lien à vos guests — ils entrent leur email pour accéder à votre espace.
+              Partagez ce lien à vos guests pour accéder à votre espace.
             </p>
             <div className="bg-[#0B0B0B] border border-white/8 px-4 py-3 flex items-center justify-between gap-3">
               <span className="text-[#5B3DF5] text-sm font-mono truncate">
