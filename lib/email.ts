@@ -861,13 +861,18 @@ export async function sendClientWelcomeEmail(data: ClientWelcomeData) {
 </body>
 </html>`
 
-  await resend.emails.send({
+  const result = await resend.emails.send({
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
     to: [data.clientEmail],
     subject: `✦ Votre accès ${rpName} est activé`,
     html,
     ...(data.rpEmail ? { reply_to: data.rpEmail } : {}),
   })
+
+  // Resend SDK v2 retourne {data, error} sans throw — on doit vérifier manuellement
+  if (result.error) {
+    throw new Error(`Resend: ${result.error.message} (${result.error.name}, code ${(result.error as {statusCode?: number}).statusCode ?? ''})`)
+  }
 }
 
 // ── Email au CLIENT quand il modifie ou annule sa réservation ──────────────

@@ -38,6 +38,14 @@ export default function RegisterPage() {
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
 
+  // Auto-redirect si déjà connecté en tant que RP
+  useEffect(() => {
+    const savedSlug = localStorage.getItem('itinera_rp_slug')
+    if (savedSlug) {
+      router.replace(`/${savedSlug}/dashboard`)
+    }
+  }, [router])
+
   // Auto-génère le slug depuis le nom
   useEffect(() => {
     if (!slugEdited && displayName) {
@@ -82,6 +90,8 @@ export default function RegisterPage() {
         return
       }
 
+      // Sauvegarder le slug pour auto-reconnexion
+      localStorage.setItem('itinera_rp_slug', slug)
       // Redirection directe vers le dashboard
       router.push(`/${slug}/dashboard`)
     } catch {
@@ -105,6 +115,8 @@ export default function RegisterPage() {
       })
       const data = await res.json()
       if (!res.ok) { setLoginError(data.error || 'Erreur.'); return }
+      // Sauvegarder le slug pour auto-reconnexion
+      localStorage.setItem('itinera_rp_slug', data.slug)
       router.push(`/${data.slug}/dashboard`)
     } catch {
       setLoginError('Erreur réseau.')
