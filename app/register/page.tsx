@@ -120,13 +120,62 @@ export default function RegisterPage() {
       <div className="text-center mb-12">
         <p className="text-[9px] tracking-[0.6em] text-[#F5F5F3]/20 uppercase mb-3">✦ ITINERA ✦</p>
         <h1 className="font-playfair text-3xl md:text-4xl text-[#F5F5F3] mb-2">
-          Créez votre espace RP
+          {showLogin ? 'Accéder à mon espace' : 'Créez votre espace RP'}
         </h1>
         <p className="text-[#F5F5F3]/30 text-sm">
-          Gratuit · Prêt en 60 secondes
+          {showLogin ? 'Connexion concierge' : 'Gratuit · Prêt en 60 secondes'}
         </p>
       </div>
 
+      {/* ── FORMULAIRE LOGIN ── */}
+      {showLogin ? (
+        <form onSubmit={handleLogin} className="w-full max-w-md space-y-4">
+          <div>
+            <label className="block text-[9px] tracking-[0.25em] uppercase text-[#F5F5F3]/30 mb-2">Email</label>
+            <input
+              type="email"
+              value={loginEmail}
+              onChange={e => setLoginEmail(e.target.value)}
+              placeholder="votre@email.com"
+              className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
+              required
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="block text-[9px] tracking-[0.25em] uppercase text-[#F5F5F3]/30 mb-2">Mot de passe dashboard</label>
+            <input
+              type="password"
+              value={loginPassword}
+              onChange={e => setLoginPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
+              required
+            />
+          </div>
+          {loginError && (
+            <p className="text-red-400/70 text-xs text-center border border-red-500/15 bg-red-500/5 px-4 py-3">
+              {loginError}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={loginLoading}
+            className="w-full py-4 bg-[#5B3DF5] text-white text-[11px] tracking-[0.3em] uppercase hover:bg-[#4930cc] transition-colors disabled:opacity-40"
+          >
+            {loginLoading ? 'Connexion...' : 'Accéder à mon dashboard →'}
+          </button>
+          <p className="text-center text-[10px] text-[#F5F5F3]/20 pt-1">
+            Pas encore inscrit ?{' '}
+            <button type="button" onClick={() => { setShowLogin(false); setLoginError('') }}
+              className="text-[#5B3DF5]/60 hover:text-[#5B3DF5] underline transition-colors">
+              Créer un compte
+            </button>
+          </p>
+        </form>
+      ) : (
+
+      /* ── FORMULAIRE INSCRIPTION ── */
       <form onSubmit={handleSubmit} className="w-full max-w-md space-y-5">
 
         {/* Nom */}
@@ -226,62 +275,19 @@ export default function RegisterPage() {
         </button>
 
         {/* Déjà inscrit */}
-        {!showLogin ? (
-          <p className="text-center text-[10px] text-[#F5F5F3]/20 pt-2">
-            Déjà inscrit ?{' '}
-            <button
-              type="button"
-              onClick={() => setShowLogin(true)}
-              className="text-[#5B3DF5]/60 hover:text-[#5B3DF5] underline transition-colors"
-            >
-              Accéder à mon dashboard →
-            </button>
-          </p>
-        ) : (
-          <div className="border border-[#5B3DF5]/20 bg-[#5B3DF5]/5 p-5 mt-2">
-            <p className="text-[9px] tracking-[0.3em] uppercase text-[#5B3DF5]/50 mb-4">Déjà inscrit</p>
-            <form onSubmit={handleLogin} className="space-y-3">
-              <input
-                type="email"
-                value={loginEmail}
-                onChange={e => setLoginEmail(e.target.value)}
-                placeholder="Votre email RP"
-                className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3 text-sm outline-none placeholder-[#F5F5F3]/20 focus:border-[#5B3DF5]/40 transition-colors"
-                required
-                autoFocus
-              />
-              <input
-                type="password"
-                value={loginPassword}
-                onChange={e => setLoginPassword(e.target.value)}
-                placeholder="Mot de passe dashboard"
-                className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3 text-sm outline-none placeholder-[#F5F5F3]/20 focus:border-[#5B3DF5]/40 transition-colors"
-                required
-              />
-              {loginError && (
-                <p className="text-red-400/70 text-xs">{loginError}</p>
-              )}
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setShowLogin(false); setLoginError('') }}
-                  className="flex-1 py-3 border border-white/10 text-[#F5F5F3]/30 text-[10px] tracking-[0.2em] uppercase hover:border-white/20 transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={loginLoading}
-                  className="flex-1 py-3 bg-[#5B3DF5] text-white text-[10px] tracking-[0.2em] uppercase hover:bg-[#4930cc] transition-colors disabled:opacity-40"
-                >
-                  {loginLoading ? '...' : 'Accéder →'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
+        <p className="text-center text-[10px] text-[#F5F5F3]/20 pt-2">
+          Déjà inscrit ?{' '}
+          <button
+            type="button"
+            onClick={() => setShowLogin(true)}
+            className="text-[#5B3DF5]/60 hover:text-[#5B3DF5] underline transition-colors"
+          >
+            Accéder à mon dashboard →
+          </button>
+        </p>
 
       </form>
+      )} {/* fin else inscription */}
     </div>
   )
 }
