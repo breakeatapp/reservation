@@ -154,7 +154,7 @@ export async function sendTripSummaryEmail(data: TripData) {
   const toRp = data.rpEmail || process.env.MANAGER_EMAIL || 'noreply@example.com'
 
   await resend.emails.send({
-    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
+    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [toRp],
     subject: `🗺️ Voyage — ${data.firstName} ${data.lastName} · ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''}`,
     html,
@@ -244,7 +244,7 @@ export async function sendTripClientConfirmationEmail(data: TripData) {
 </html>`
 
   await resend.emails.send({
-    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
+    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: `✦ Voyage reçu — ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''} · ${data.firstName} ${data.lastName}`,
     html,
@@ -391,7 +391,7 @@ export async function sendReservationEmail(data: ReservationData) {
   `
 
   await resend.emails.send({
-    from: `${managerName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
+    from: `${managerName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [managerEmail],
     subject: `🥂 Réservation — ${data.establishment} · ${data.date} · ${data.firstName} ${data.lastName}`,
     html: htmlContent,
@@ -547,7 +547,7 @@ export async function sendClientConfirmationEmail(data: ReservationData) {
   `
 
   await resend.emails.send({
-    from: `${managerName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
+    from: `${managerName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: `✦ Demande reçue — ${data.establishment} · ${data.date}`,
     html: clientHtml,
@@ -637,10 +637,10 @@ export async function sendModificationEmailToRP(data: ModificationData) {
 </body>
 </html>`
 
-  const toAddress = data.rpEmail || process.env.MANAGER_EMAIL || 'breakeat.app@breakeatapp.com'
+  const toAddress = data.rpEmail || process.env.MANAGER_EMAIL || 'contact@itinera.click'
 
   await resend.emails.send({
-    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
+    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [toAddress],
     subject: isCancel
       ? `✕ Annulation — ${data.establishment} · ${data.firstName} ${data.lastName}`
@@ -775,7 +775,7 @@ export async function sendStatusUpdateEmailToClient(data: StatusUpdateData) {
   const replyToAddress = data.rpEmail || process.env.MANAGER_EMAIL || undefined
 
   await resend.emails.send({
-    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
+    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: isConfirmed
       ? `✦ Confirmée — ${data.establishment} · ${data.date}`
@@ -862,7 +862,7 @@ export async function sendClientWelcomeEmail(data: ClientWelcomeData) {
 </html>`
 
   const result = await resend.emails.send({
-    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
+    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.clientEmail],
     subject: `✦ Votre accès ${rpName} est activé`,
     html,
@@ -972,7 +972,7 @@ export async function sendModificationAckToClient(data: ModificationAckData) {
 </html>`
 
   await resend.emails.send({
-    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'}>`,
+    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: isCancel
       ? `✕ Annulation confirmée — ${data.establishment}`

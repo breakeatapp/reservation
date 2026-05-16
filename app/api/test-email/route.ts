@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   if (!to) return NextResponse.json({ error: 'Paramètre ?to= requis' }, { status: 400 })
 
   const apiKey = process.env.RESEND_API_KEY
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'breakeat.app@breakeatapp.com'
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'
 
   if (!apiKey) {
     return NextResponse.json({
