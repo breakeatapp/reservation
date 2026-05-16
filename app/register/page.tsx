@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+const SITE_URL = typeof window !== 'undefined'
+  ? window.location.origin
+  : (process.env.NEXT_PUBLIC_SITE_URL || 'https://reservation-4gk2.vercel.app')
+
 function slugify(str: string) {
   return str
     .toLowerCase()
@@ -80,7 +84,7 @@ export default function RegisterPage() {
     }
   }
 
-  const inviteLink = slug ? `itinera.click/${slug}` : 'itinera.click/votre-nom'
+  const inviteLink = slug ? `${SITE_URL}/${slug}` : `${SITE_URL}/votre-nom`
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center px-6 py-16">
@@ -116,20 +120,20 @@ export default function RegisterPage() {
         {/* Lien d'invitation — affiché live */}
         <div className="bg-[#141414] border border-white/5 px-4 py-3.5">
           <p className="text-[9px] tracking-[0.25em] uppercase text-[#F5F5F3]/25 mb-1.5">
-            Lien d'invitation client
+            Identifiant unique — lien client
           </p>
-          <div className="flex items-center gap-2">
-            <span className="text-[#F5F5F3]/20 text-sm">itinera.click/</span>
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-[#F5F5F3]/20 text-xs truncate">{SITE_URL}/</span>
             <input
               type="text"
               value={slug}
               onChange={e => { setSlug(slugify(e.target.value)); setSlugEdited(true) }}
-              className="flex-1 bg-transparent text-[#5B3DF5] text-sm outline-none placeholder-[#5B3DF5]/30 border-b border-[#5B3DF5]/20 focus:border-[#5B3DF5]/50 transition-colors pb-0.5"
+              className="flex-1 bg-transparent text-[#5B3DF5] text-sm outline-none placeholder-[#5B3DF5]/30 border-b border-[#5B3DF5]/20 focus:border-[#5B3DF5]/50 transition-colors pb-0.5 min-w-0"
               placeholder="votre-nom"
             />
           </div>
-          <p className="text-[9px] text-[#F5F5F3]/15 mt-2">
-            Ce lien est partagé à vos clients pour accéder à votre espace
+          <p className="text-[9px] text-[#F5F5F3]/20 leading-relaxed">
+            👉 Partagez ce lien à vos guests — ils y accèdent directement avec leur email
           </p>
         </div>
 
@@ -197,9 +201,13 @@ export default function RegisterPage() {
         {/* Lien dashboard existant */}
         <p className="text-center text-[10px] text-[#F5F5F3]/20 pt-2">
           Déjà inscrit ?{' '}
-          <Link href="/" className="text-[#F5F5F3]/40 hover:text-[#F5F5F3]/70 underline transition-colors">
-            Accéder à mon dashboard
-          </Link>
+          {slug ? (
+            <Link href={`/${slug}/dashboard`} className="text-[#5B3DF5]/60 hover:text-[#5B3DF5] underline transition-colors">
+              Accéder à mon dashboard →
+            </Link>
+          ) : (
+            <span className="text-[#F5F5F3]/30">Entrez votre identifiant ci-dessus</span>
+          )}
         </p>
 
       </form>

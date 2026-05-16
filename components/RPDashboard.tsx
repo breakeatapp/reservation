@@ -1012,7 +1012,7 @@ export default function RPDashboard({ profile }: Props) {
             {/* ── Ajouter une ville ── */}
             <div className="mt-4 pt-4 border-t border-white/5">
               <p className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/30 mb-3">+ Ajouter une ville non listée</p>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
                   value={newCityName}
@@ -1021,20 +1021,22 @@ export default function RPDashboard({ profile }: Props) {
                   placeholder="Nom de la ville…"
                   className="flex-1 bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2 text-sm outline-none focus:border-white/25 placeholder-[#F5F5F3]/20 transition-colors"
                 />
-                <input
-                  type="text"
-                  value={newCityCountry}
-                  onChange={e => setNewCityCountry(e.target.value)}
-                  placeholder="Pays"
-                  className="w-28 bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2 text-sm outline-none focus:border-white/25 placeholder-[#F5F5F3]/20 transition-colors"
-                />
-                <button
-                  onClick={addCustomCity}
-                  disabled={!newCityName.trim()}
-                  className="px-4 py-2 border border-[#5B3DF5]/40 text-[#5B3DF5]/70 text-[11px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/8 transition-colors disabled:opacity-30 flex-shrink-0"
-                >
-                  Ajouter
-                </button>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newCityCountry}
+                    onChange={e => setNewCityCountry(e.target.value)}
+                    placeholder="Pays"
+                    className="flex-1 sm:w-28 bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2 text-sm outline-none focus:border-white/25 placeholder-[#F5F5F3]/20 transition-colors"
+                  />
+                  <button
+                    onClick={addCustomCity}
+                    disabled={!newCityName.trim()}
+                    className="px-4 py-2 border border-[#5B3DF5]/40 text-[#5B3DF5]/70 text-[11px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/8 transition-colors disabled:opacity-30 flex-shrink-0"
+                  >
+                    Ajouter
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1055,11 +1057,11 @@ export default function RPDashboard({ profile }: Props) {
             {/* ── Formulaire ajout venue ── */}
             <div className="bg-[#0B0B0B] border border-white/8 p-4 mb-4 space-y-3">
               {/* Ligne 1 : ville + nom */}
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <select
                   value={newVenueDest}
                   onChange={e => setNewVenueDest(e.target.value)}
-                  className="bg-[#141414] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 transition-colors w-44 flex-shrink-0"
+                  className="bg-[#141414] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 transition-colors sm:w-44 flex-shrink-0"
                 >
                   <option value="" className="bg-[#141414]">Ville…</option>
                   {configDests.length > 0
