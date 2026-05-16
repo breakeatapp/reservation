@@ -139,6 +139,7 @@ export default function RegisterPage() {
               placeholder="votre@email.com"
               className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
               required
+              autoComplete="email"
               autoFocus
             />
           </div>
@@ -151,6 +152,7 @@ export default function RegisterPage() {
               placeholder="••••••••"
               className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
               required
+              autoComplete="current-password"
             />
           </div>
           {loginError && (
@@ -255,6 +257,7 @@ export default function RegisterPage() {
             onChange={e => setPassword(e.target.value)}
             placeholder="6 caractères minimum"
             className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-white/25 transition-colors"
+            autoComplete="new-password"
           />
         </div>
 
