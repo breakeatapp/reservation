@@ -12,15 +12,17 @@ export default function LandingPage() {
   const [savedSession, setSavedSession] = useState<{ email: string; rp: string; name: string } | null>(null)
   const [rpPicker, setRpPicker] = useState<{ rps: { slug: string; displayName: string }[]; email: string; firstName: string } | null>(null)
 
-  // Vérifier si le client est déjà connecté
+  // Vérifier si le client est déjà connecté → redirection automatique
   useEffect(() => {
     const savedEmail = localStorage.getItem('itinera_guest_email')
     const savedRp = localStorage.getItem('itinera_guest_rp')
     const savedName = localStorage.getItem('itinera_guest_name')
     if (savedEmail && savedRp) {
       setSavedSession({ email: savedEmail, rp: savedRp, name: savedName || savedEmail })
+      // Rediriger directement sans attendre un clic
+      router.replace(`/${savedRp}/trip`)
     }
-  }, [])
+  }, [router])
 
   const handleAccess = async (e: React.FormEvent) => {
     e.preventDefault()
