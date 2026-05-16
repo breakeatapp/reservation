@@ -2,6 +2,16 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
+// Helper : throw si Resend retourne une erreur (SDK v2 ne throw pas)
+async function sendEmail(params: Parameters<typeof resend.emails.send>[0]) {
+  const result = await resend.emails.send(params)
+  if (result.error) {
+    const code = (result.error as { statusCode?: number }).statusCode ?? ''
+    throw new Error(`Resend error ${code}: ${result.error.message} (${result.error.name})`)
+  }
+  return result
+}
+
 // ── Formate un numéro de téléphone pour WhatsApp ───────────
 function toWaPhone(phone: string): string {
   const digits = phone.replace(/[^0-9]/g, '')
@@ -153,7 +163,7 @@ export async function sendTripSummaryEmail(data: TripData) {
 
   const toRp = data.rpEmail || process.env.MANAGER_EMAIL || 'noreply@example.com'
 
-  await resend.emails.send({
+  await sendEmail({
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [toRp],
     subject: `🗺️ Voyage — ${data.firstName} ${data.lastName} · ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''}`,
@@ -243,7 +253,7 @@ export async function sendTripClientConfirmationEmail(data: TripData) {
 </body>
 </html>`
 
-  await resend.emails.send({
+  await sendEmail({
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: `✦ Voyage reçu — ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''} · ${data.firstName} ${data.lastName}`,
@@ -390,7 +400,7 @@ export async function sendReservationEmail(data: ReservationData) {
 </html>
   `
 
-  await resend.emails.send({
+  await sendEmail({
     from: `${managerName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [managerEmail],
     subject: `🥂 Réservation — ${data.establishment} · ${data.date} · ${data.firstName} ${data.lastName}`,
@@ -546,7 +556,7 @@ export async function sendClientConfirmationEmail(data: ReservationData) {
 </html>
   `
 
-  await resend.emails.send({
+  await sendEmail({
     from: `${managerName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: `✦ Demande reçue — ${data.establishment} · ${data.date}`,
@@ -639,7 +649,7 @@ export async function sendModificationEmailToRP(data: ModificationData) {
 
   const toAddress = data.rpEmail || process.env.MANAGER_EMAIL || 'contact@itinera.click'
 
-  await resend.emails.send({
+  await sendEmail({
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [toAddress],
     subject: isCancel
@@ -774,7 +784,7 @@ export async function sendStatusUpdateEmailToClient(data: StatusUpdateData) {
 
   const replyToAddress = data.rpEmail || process.env.MANAGER_EMAIL || undefined
 
-  await resend.emails.send({
+  await sendEmail({
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: isConfirmed
@@ -861,18 +871,13 @@ export async function sendClientWelcomeEmail(data: ClientWelcomeData) {
 </body>
 </html>`
 
-  const result = await resend.emails.send({
+  await sendEmail({
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.clientEmail],
     subject: `✦ Votre accès ${rpName} est activé`,
     html,
     ...(data.rpEmail ? { reply_to: data.rpEmail } : {}),
   })
-
-  // Resend SDK v2 retourne {data, error} sans throw — on doit vérifier manuellement
-  if (result.error) {
-    throw new Error(`Resend: ${result.error.message} (${result.error.name}, code ${(result.error as {statusCode?: number}).statusCode ?? ''})`)
-  }
 }
 
 // ── Email au CLIENT quand il modifie ou annule sa réservation ──────────────
@@ -971,7 +976,7 @@ export async function sendModificationAckToClient(data: ModificationAckData) {
 </body>
 </html>`
 
-  await resend.emails.send({
+  await sendEmail({
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: isCancel
