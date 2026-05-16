@@ -158,6 +158,8 @@ const ALL_DESTINATIONS = [
   { slug: 'jeddah', name: 'Jeddah', emoji: '🌙' },
 ]
 
+const RP_STORAGE_KEY = (slug: string) => `itinera_rp_pw_${slug}`
+
 export default function RPDashboard({ profile }: Props) {
   const [password, setPassword] = useState('')
   const [authenticated, setAuthenticated] = useState(false)
@@ -315,14 +317,30 @@ export default function RPDashboard({ profile }: Props) {
     }
   }, [password, profile.slug])
 
+  // ── Auto-login depuis localStorage ───────────────────────────
+  useEffect(() => {
+    const saved = localStorage.getItem(RP_STORAGE_KEY(profile.slug))
+    if (saved && saved === profile.dashboard_password) {
+      setPassword(saved)
+      setAuthenticated(true)
+    }
+  }, [profile.slug, profile.dashboard_password])
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
     if (password === profile.dashboard_password) {
+      localStorage.setItem(RP_STORAGE_KEY(profile.slug), password)
       setAuthenticated(true)
       setAuthError(false)
     } else {
       setAuthError(true)
     }
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem(RP_STORAGE_KEY(profile.slug))
+    setAuthenticated(false)
+    setPassword('')
   }
 
   useEffect(() => {
@@ -954,7 +972,7 @@ export default function RPDashboard({ profile }: Props) {
             </p>
             <div className="bg-[#0B0B0B] border border-white/8 px-4 py-3 flex items-center justify-between gap-3">
               <span className="text-[#5B3DF5] text-sm font-mono truncate">
-                {typeof window !== 'undefined' ? window.location.origin : 'https://reservation-4gk2.vercel.app'}/{profile.slug}
+                …/{profile.slug}
               </span>
               <button
                 onClick={() => {
@@ -965,12 +983,16 @@ export default function RPDashboard({ profile }: Props) {
                 }}
                 className="text-[9px] tracking-[0.2em] uppercase text-[#5B3DF5]/60 hover:text-[#5B3DF5] transition-colors flex-shrink-0 border border-[#5B3DF5]/20 hover:border-[#5B3DF5]/50 px-3 py-1.5"
               >
-                {copied === 'invite' ? '✓ Copié' : 'Copier'}
+                {copied === 'invite' ? '✓ Copié !' : 'Copier le lien'}
               </button>
             </div>
-            <div className="mt-3 flex items-center gap-2 text-[#F5F5F3]/20 text-[10px]">
-              <span>Dashboard RP :</span>
-              <span className="font-mono text-[#F5F5F3]/30">/{profile.slug}/dashboard</span>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-[10px]">
+              <div className="text-[#F5F5F3]/20">
+                Lien guest : <span className="text-[#F5F5F3]/35 font-mono">/{profile.slug}</span>
+              </div>
+              <div className="text-[#F5F5F3]/20">
+                Dashboard : <span className="text-[#F5F5F3]/35 font-mono">/{profile.slug}/dashboard</span>
+              </div>
             </div>
           </div>
 
@@ -2340,6 +2362,13 @@ export default function RPDashboard({ profile }: Props) {
               : '↻'
             }
             <span className="hidden sm:inline">Actualiser</span>
+          </button>
+          <button
+            onClick={handleLogout}
+            className="text-[10px] tracking-[0.2em] uppercase text-white/30 hover:text-red-400/60 transition-colors px-2 py-2"
+            title="Se déconnecter"
+          >
+            ⏻
           </button>
         </div>
       </div>
