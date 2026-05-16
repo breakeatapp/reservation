@@ -842,8 +842,13 @@ export default function RPDashboard({ profile }: Props) {
       })
       if (res.ok) {
         const d = await res.json()
-        const emailSent = d.welcomeEmailSent ? ' · Email de bienvenue envoyé' : ''
-        setAddClientSuccess(`✓ ${addClientName || addClientEmail} ajouté${emailSent}`)
+        if (d.emailError) {
+          setAddClientSuccess(`✓ ${addClientName || addClientEmail} ajouté`)
+          setAddClientError(`Email non envoyé : ${d.emailError}`)
+        } else {
+          const emailSent = d.welcomeEmailSent ? ' · Email de bienvenue envoyé ✓' : ' (email non envoyé)'
+          setAddClientSuccess(`✓ ${addClientName || addClientEmail} ajouté${emailSent}`)
+        }
         setAddClientEmail('')
         setAddClientName('')
         setAddClientOpen(false)
