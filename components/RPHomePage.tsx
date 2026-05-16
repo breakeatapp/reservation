@@ -25,20 +25,37 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
   const [rpPickerTarget, setRpPickerTarget] = useState<'book' | 'trip'>('book')
 
   const handleCTA = (target: 'book' | 'trip') => {
-    setRpPickerTarget(target)
+    const dest = target === 'book' ? 'book' : 'trip'
+
     try {
       const stored = localStorage.getItem('itinera_guest_rps')
       let rps: { slug: string; displayName: string }[] = stored ? JSON.parse(stored) : []
-      // Toujours inclure le RP de la page courante s'il n'est pas déjà dans la liste
-      if (!rps.find((r: { slug: string }) => r.slug === slug)) {
+
+      // Filtrer les entrées invalides (localhost, http, URLs complètes)
+      rps = rps.filter(r =>
+        r.slug &&
+        !r.slug.includes('localhost') &&
+        !r.slug.startsWith('http') &&
+        /^[a-z0-9-]+$/.test(r.slug)
+      )
+
+      // Toujours inclure le RP courant
+      if (!rps.find(r => r.slug === slug)) {
         rps = [{ slug, displayName: profile.display_name }, ...rps]
       }
+
+      // Un seul RP → naviguer directement sans picker
+      if (rps.length === 1) {
+        localStorage.setItem('itinera_guest_rp', rps[0].slug)
+        router.push(`/${rps[0].slug}/${dest}`)
+        return
+      }
+
+      setRpPickerTarget(target)
       setRpPickerList(rps)
       setRpPickerOpen(true)
     } catch {
-      // Fallback : ouvrir le picker avec uniquement le RP courant
-      setRpPickerList([{ slug, displayName: profile.display_name }])
-      setRpPickerOpen(true)
+      router.push(`/${slug}/${dest}`)
     }
   }
 
