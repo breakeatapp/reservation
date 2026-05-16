@@ -109,7 +109,7 @@ export async function POST(
   if ((isNewClient || forceWelcome) && sendWelcome !== false) {
     try {
       const rpProfile = await getRPProfile(slug)
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://reservation-4gk2.vercel.app'
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'
       await sendClientWelcomeEmail({
         clientEmail: emailLower,
         clientName: clientName || '',
