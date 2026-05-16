@@ -31,6 +31,13 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // ── Déjà inscrit ──
+  const [showLogin, setShowLogin] = useState(false)
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [loginError, setLoginError] = useState('')
+
   // Auto-génère le slug depuis le nom
   useEffect(() => {
     if (!slugEdited && displayName) {
@@ -85,6 +92,26 @@ export default function RegisterPage() {
   }
 
   const inviteLink = slug ? `${SITE_URL}/${slug}` : `${SITE_URL}/votre-nom`
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoginError('')
+    setLoginLoading(true)
+    try {
+      const res = await fetch('/api/rp/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setLoginError(data.error || 'Erreur.'); return }
+      router.push(`/${data.slug}/dashboard`)
+    } catch {
+      setLoginError('Erreur réseau.')
+    } finally {
+      setLoginLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center px-6 py-16">
@@ -198,17 +225,61 @@ export default function RegisterPage() {
           {loading ? 'Création en cours...' : 'Créer mon espace'}
         </button>
 
-        {/* Lien dashboard existant */}
-        <p className="text-center text-[10px] text-[#F5F5F3]/20 pt-2">
-          Déjà inscrit ?{' '}
-          {slug ? (
-            <Link href={`/${slug}/dashboard`} className="text-[#5B3DF5]/60 hover:text-[#5B3DF5] underline transition-colors">
+        {/* Déjà inscrit */}
+        {!showLogin ? (
+          <p className="text-center text-[10px] text-[#F5F5F3]/20 pt-2">
+            Déjà inscrit ?{' '}
+            <button
+              type="button"
+              onClick={() => setShowLogin(true)}
+              className="text-[#5B3DF5]/60 hover:text-[#5B3DF5] underline transition-colors"
+            >
               Accéder à mon dashboard →
-            </Link>
-          ) : (
-            <span className="text-[#F5F5F3]/30">Entrez votre identifiant ci-dessus</span>
-          )}
-        </p>
+            </button>
+          </p>
+        ) : (
+          <div className="border border-[#5B3DF5]/20 bg-[#5B3DF5]/5 p-5 mt-2">
+            <p className="text-[9px] tracking-[0.3em] uppercase text-[#5B3DF5]/50 mb-4">Déjà inscrit</p>
+            <form onSubmit={handleLogin} className="space-y-3">
+              <input
+                type="email"
+                value={loginEmail}
+                onChange={e => setLoginEmail(e.target.value)}
+                placeholder="Votre email RP"
+                className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3 text-sm outline-none placeholder-[#F5F5F3]/20 focus:border-[#5B3DF5]/40 transition-colors"
+                required
+                autoFocus
+              />
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={e => setLoginPassword(e.target.value)}
+                placeholder="Mot de passe dashboard"
+                className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3 text-sm outline-none placeholder-[#F5F5F3]/20 focus:border-[#5B3DF5]/40 transition-colors"
+                required
+              />
+              {loginError && (
+                <p className="text-red-400/70 text-xs">{loginError}</p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowLogin(false); setLoginError('') }}
+                  className="flex-1 py-3 border border-white/10 text-[#F5F5F3]/30 text-[10px] tracking-[0.2em] uppercase hover:border-white/20 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={loginLoading}
+                  className="flex-1 py-3 bg-[#5B3DF5] text-white text-[10px] tracking-[0.2em] uppercase hover:bg-[#4930cc] transition-colors disabled:opacity-40"
+                >
+                  {loginLoading ? '...' : 'Accéder →'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
       </form>
     </div>
