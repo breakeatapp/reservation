@@ -12,6 +12,13 @@ export default function LandingPage() {
   const [savedSession, setSavedSession] = useState<{ email: string; rp: string; name: string } | null>(null)
   const [rpPicker, setRpPicker] = useState<{ rps: { slug: string; displayName: string }[]; email: string; firstName: string } | null>(null)
 
+  // Formulaire code d'invitation
+  const [showCodeForm, setShowCodeForm] = useState(false)
+  const [codeEmail, setCodeEmail] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
+  const [codeLoading, setCodeLoading] = useState(false)
+  const [codeError, setCodeError] = useState('')
+
   // Vérifier si le client est déjà connecté → redirection automatique
   useEffect(() => {
     const savedEmail = localStorage.getItem('itinera_guest_email')
@@ -50,6 +57,39 @@ export default function LandingPage() {
       setError('Erreur réseau. Veuillez réessayer.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCodeAccess = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const trimmedEmail = codeEmail.trim().toLowerCase()
+    const trimmedCode = inviteCode.trim().toLowerCase()
+    if (!trimmedEmail || !trimmedCode) return
+    setCodeLoading(true)
+    setCodeError('')
+
+    try {
+      // Vérifier que l'email est bien enregistré pour ce RP
+      const res = await fetch(`/api/client/rps?email=${encodeURIComponent(trimmedEmail)}`)
+      const data = await res.json()
+
+      const matchedRP = data.rps?.find((rp: { slug: string; displayName: string }) => rp.slug === trimmedCode)
+
+      if (matchedRP) {
+        localStorage.setItem('itinera_guest_email', trimmedEmail)
+        localStorage.setItem('itinera_guest_rp', matchedRP.slug)
+        localStorage.setItem('itinera_guest_rps', JSON.stringify(data.rps))
+        if (data.firstName) localStorage.setItem('itinera_guest_name', data.firstName)
+        router.push(`/${matchedRP.slug}/mon-espace`)
+      } else if (data.rps?.length > 0) {
+        setCodeError('Code non reconnu pour cet email. Vérifiez le code envoyé par votre concierge.')
+      } else {
+        setCodeError('Email non reconnu. Vérifiez votre adresse ou contactez votre concierge.')
+      }
+    } catch {
+      setCodeError('Erreur réseau. Veuillez réessayer.')
+    } finally {
+      setCodeLoading(false)
     }
   }
 
@@ -184,13 +224,65 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              {/* Message nouveaux guests */}
-              <div className="border border-white/8 p-5">
-                <p className="text-[#F5F7FA]/40 text-xs leading-relaxed">
-                  Accès sur invitation uniquement.<br />
-                  <span className="text-[#F5F7FA]/55">Contactez votre RP pour rejoindre le réseau.</span>
-                </p>
-              </div>
+              {/* Code d'invitation */}
+              {showCodeForm ? (
+                <div className="border border-[#6E5BFF]/30 bg-[#6E5BFF]/5 p-5">
+                  <p className="text-[10px] tracking-[0.4em] uppercase text-[#6E5BFF]/70 mb-4">
+                    Code d'invitation
+                  </p>
+                  <form onSubmit={handleCodeAccess} className="space-y-2">
+                    <input
+                      type="email"
+                      value={codeEmail}
+                      onChange={e => setCodeEmail(e.target.value)}
+                      placeholder="votre@email.com"
+                      autoComplete="email"
+                      className="w-full bg-[#0F1115] border border-white/12 text-[#F5F7FA] px-4 py-3 text-sm focus:border-[#6E5BFF]/50 outline-none placeholder-[#F5F7FA]/30 transition-colors"
+                      required
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={inviteCode}
+                        onChange={e => setInviteCode(e.target.value)}
+                        placeholder="code (ex: honore)"
+                        autoComplete="off"
+                        className="flex-1 bg-[#0F1115] border border-white/12 text-[#F5F7FA] px-4 py-3 text-sm focus:border-[#6E5BFF]/50 outline-none placeholder-[#F5F7FA]/30 transition-colors"
+                        required
+                      />
+                      <button
+                        type="submit"
+                        disabled={codeLoading}
+                        className="px-5 py-3 text-white text-[11px] tracking-[0.2em] uppercase bg-[#6E5BFF] hover:bg-[#5B3DF5] transition-colors disabled:opacity-40 flex-shrink-0"
+                      >
+                        {codeLoading ? '...' : '→'}
+                      </button>
+                    </div>
+                  </form>
+                  {codeError && (
+                    <p className="text-red-400/70 text-xs mt-3 leading-relaxed">{codeError}</p>
+                  )}
+                  <button
+                    onClick={() => { setShowCodeForm(false); setCodeError('') }}
+                    className="text-[#F5F7FA]/25 text-[10px] hover:text-[#F5F7FA]/50 transition-colors mt-4 block"
+                  >
+                    ← Accéder par email
+                  </button>
+                </div>
+              ) : (
+                <div className="border border-white/8 p-5 text-center">
+                  <p className="text-[#F5F7FA]/40 text-xs leading-relaxed mb-3">
+                    Accès sur invitation uniquement.<br />
+                    <span className="text-[#F5F7FA]/55">Contactez votre RP pour rejoindre le réseau.</span>
+                  </p>
+                  <button
+                    onClick={() => setShowCodeForm(true)}
+                    className="text-[#6E5BFF]/60 text-[10px] hover:text-[#6E5BFF] transition-colors underline"
+                  >
+                    Vous avez un code d'invitation ?
+                  </button>
+                </div>
+              )}
             </>
           )}
 
