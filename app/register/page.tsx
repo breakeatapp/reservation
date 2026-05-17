@@ -46,11 +46,26 @@ export default function RegisterPage() {
   const [forgotError, setForgotError] = useState('')
 
   // Auto-redirect si déjà connecté en tant que RP
+  // Vérifie que le profil existe encore avant de rediriger (au cas où il aurait été supprimé)
   useEffect(() => {
     const savedSlug = localStorage.getItem('itinera_rp_slug')
-    if (savedSlug) {
-      router.replace(`/${savedSlug}/dashboard`)
-    }
+    if (!savedSlug) return
+
+    fetch(`/api/rp/exists?slug=${encodeURIComponent(savedSlug)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.exists) {
+          router.replace(`/${savedSlug}/dashboard`)
+        } else {
+          // Profil supprimé → nettoyer localStorage pour pouvoir s'inscrire à nouveau
+          localStorage.removeItem('itinera_rp_slug')
+          localStorage.removeItem(`itinera_rp_pw_${savedSlug}`)
+        }
+      })
+      .catch(() => {
+        // Erreur réseau → on redirige quand même (sécurité)
+        router.replace(`/${savedSlug}/dashboard`)
+      })
   }, [router])
 
   // Auto-génère le slug depuis le nom
