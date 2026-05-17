@@ -306,13 +306,14 @@ export default function ClientDashboard({ profile }: Props) {
     setError('')
     setEditingId(null)
     setCancelConfirmId(null)
+    setReservations([])
+    setScreen('reservations') // naviguer immédiatement, sans attendre le fetch
     try {
       const res = await fetch(
         `/api/client/reservations?email=${encodeURIComponent(email)}&rpSlug=${rp.slug}`
       )
       const data = await res.json()
       setReservations(Array.isArray(data) ? data : [])
-      setScreen('reservations')
     } catch {
       setError('Erreur lors du chargement.')
     } finally {
