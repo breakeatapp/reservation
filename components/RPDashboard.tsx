@@ -1024,6 +1024,15 @@ export default function RPDashboard({ profile }: Props) {
     setConfigVenues(prev => prev.filter(v => v !== raw))
   }
 
+  const toggleVenueActive = (raw: string) => {
+    setConfigVenues(prev => prev.map(v => {
+      if (v !== raw) return v
+      const vc = parseVenueEntry(v)
+      const updated = { ...vc, active: vc.active === false ? undefined : false }
+      return serializeVenueEntry(updated)
+    }))
+  }
+
   const toggleNewVenueService = (s: string) => {
     setNewVenueServices(prev =>
       prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
@@ -1398,14 +1407,15 @@ export default function RPDashboard({ profile }: Props) {
                       <div className="space-y-1.5">
                         {group.map((raw, idx) => {
                           const vc = parseVenueEntry(raw)
+                          const isActive = vc.active !== false
                           return (
-                            <div key={idx} className="flex items-center gap-3 bg-[#0B0B0B] border border-white/5 px-3 py-2.5">
+                            <div key={idx} className={`flex items-center gap-3 border px-3 py-2.5 transition-all ${isActive ? 'bg-[#0B0B0B] border-white/5' : 'bg-[#0B0B0B]/40 border-white/3 opacity-50'}`}>
                               {vc.destination && (
                                 <span className="text-[9px] tracking-[0.15em] uppercase text-[#5B3DF5]/50 flex-shrink-0 hidden sm:block">
                                   {vc.destination.replace(/-/g, ' ')}
                                 </span>
                               )}
-                              <span className="text-[#F5F5F3]/70 text-sm flex-1 truncate">{vc.name}</span>
+                              <span className={`text-sm flex-1 truncate ${isActive ? 'text-[#F5F5F3]/70' : 'text-[#F5F5F3]/25 line-through'}`}>{vc.name}</span>
                               {vc.services && vc.services.length > 0 ? (
                                 <span className="text-[9px] text-[#F5F5F3]/25 flex-shrink-0">
                                   {vc.services.length} créneau{vc.services.length > 1 ? 'x' : ''}
@@ -1413,11 +1423,21 @@ export default function RPDashboard({ profile }: Props) {
                               ) : (
                                 <span className="text-[9px] text-[#F5F5F3]/15 flex-shrink-0">tous</span>
                               )}
+                              {/* Toggle actif/inactif */}
+                              <button
+                                onClick={() => toggleVenueActive(raw)}
+                                title={isActive ? 'Désactiver' : 'Activer'}
+                                className={`flex-shrink-0 w-8 h-4 rounded-full transition-all relative ${isActive ? 'bg-[#5B3DF5]' : 'bg-white/10'}`}
+                              >
+                                <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${isActive ? 'right-0.5' : 'left-0.5'}`} />
+                              </button>
+                              {/* Supprimer définitivement */}
                               <button
                                 onClick={() => removeVenue(raw)}
-                                className="text-[#F5F5F3]/20 hover:text-red-400/60 transition-colors text-lg flex-shrink-0 ml-1"
+                                title="Supprimer définitivement"
+                                className="text-[#F5F5F3]/15 hover:text-red-400/60 transition-colors text-base flex-shrink-0"
                               >
-                                ×
+                                🗑
                               </button>
                             </div>
                           )

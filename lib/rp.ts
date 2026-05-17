@@ -95,8 +95,8 @@ export function getRPEstablishments(rp: RPProfile): Establishment[] {
     : establishments
 
   if (rpVenues.length > 0) {
-    // Parser toutes les entrées (JSON ou plain string)
-    const venueConfigs = rpVenues.map(parseVenueEntry)
+    // Parser toutes les entrées (JSON ou plain string) — exclure les venues désactivées
+    const venueConfigs = rpVenues.map(parseVenueEntry).filter(v => v.active !== false)
     const venueNames = venueConfigs.map(v => v.name)
 
     // Venues qui existent dans les données globales (on enrichit avec services si configurés)
@@ -139,6 +139,7 @@ export function getRPVenueServices(rp: RPProfile): Record<string, string[]> {
   const map: Record<string, string[]> = {}
   for (const raw of rp.activated_venues ?? []) {
     const vc = parseVenueEntry(raw)
+    if (vc.active === false) continue  // ignorer les venues désactivées
     if (vc.services && vc.services.length > 0) {
       map[vc.name] = vc.services
     }

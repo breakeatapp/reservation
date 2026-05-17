@@ -8,6 +8,7 @@ export type VenueConfig = {
   destination?: string   // slug de la destination (ex: 'saint-tropez')
   services?: string[]    // créneaux dispo (undefined = tous par défaut)
   type?: VenueType       // catégorie de la venue
+  active?: boolean       // undefined/true = actif, false = désactivé (mais conservé)
 }
 
 // ── Créneaux par catégorie ────────────────────────────────────────────────────

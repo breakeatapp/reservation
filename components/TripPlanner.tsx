@@ -737,9 +737,9 @@ export default function TripPlanner({
               </p>
             </div>
 
-            {/* Profil voyageur */}
+            {/* Profil guest */}
             <div className="bg-[#0B0B0B] border border-white/5 p-5 mb-6">
-              <p className="text-[9px] tracking-[0.3em] text-[#F5F5F3]/30 uppercase mb-3">Voyageur</p>
+              <p className="text-[9px] tracking-[0.3em] text-[#F5F5F3]/30 uppercase mb-3">Guest</p>
               <div className="flex flex-wrap gap-x-8 gap-y-2">
                 <div>
                   <span className="text-[#F5F5F3]/80 text-sm font-medium">{trip.firstName} {trip.lastName}</span>
