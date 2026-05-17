@@ -926,8 +926,10 @@ export default function ClientDashboard({ profile }: Props) {
                     </div>
 
                     <div className="px-5 py-4">
-                      <p className="font-playfair text-lg text-[#F5F5F3] mb-0.5">{r.establishment}</p>
-                      <p className="text-white/55 text-[10px] uppercase tracking-wider mb-4">{r.destination}</p>
+                      <p className="font-playfair text-lg text-[#F5F5F3] mb-4">
+                        {r.establishment}
+                        {r.destination ? <span className="font-sans font-normal text-white/35 text-xs"> · {r.destination}</span> : ''}
+                      </p>
 
                       {!isEditing && !isConfirmingCancel ? (
                         <>

@@ -767,18 +767,11 @@ export default function RPDashboard({ profile }: Props) {
             </div>
             <div className="space-y-2">
               <a
-                href={whatsappToEstablishment(selected)}
+                href={whatsappShare(selected)}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full bg-[#25D366] text-white text-[11px] tracking-[0.2em] uppercase py-3.5 hover:opacity-90 transition-opacity"
               >
-                <WhatsAppIcon /> Envoyer à {selected.establishment}
-              </a>
-              <a
-                href={whatsappShare(selected)}
-                target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full border border-[#25D366]/30 text-[#25D366]/70 text-[11px] tracking-[0.2em] uppercase py-3 hover:bg-[#25D366]/5 transition-colors"
-              >
-                <WhatsAppIcon /> Choisir le contact
+                <WhatsAppIcon /> Transférer à mon contact
               </a>
               <button
                 onClick={() => copyMessage(selected)}
