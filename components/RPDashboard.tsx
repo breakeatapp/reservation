@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import type { RPProfile, Reservation, ReservationStatus, RPClientNote } from '@/lib/supabase'
 import { parseVenueEntry, serializeVenueEntry, SERVICES_BY_TYPE, type VenueType } from '@/lib/venue-utils'
 
@@ -161,6 +162,7 @@ const ALL_DESTINATIONS = [
 const RP_STORAGE_KEY = (slug: string) => `itinera_rp_pw_${slug}`
 
 export default function RPDashboard({ profile }: Props) {
+  const router = useRouter()
   const [password, setPassword] = useState('')
   const [authenticated, setAuthenticated] = useState(false)
   const [authError, setAuthError] = useState(false)
@@ -341,8 +343,10 @@ export default function RPDashboard({ profile }: Props) {
 
   const handleLogout = () => {
     localStorage.removeItem(RP_STORAGE_KEY(profile.slug))
+    localStorage.removeItem('itinera_rp_slug')
     setAuthenticated(false)
     setPassword('')
+    router.replace('/register')
   }
 
   useEffect(() => {
