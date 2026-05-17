@@ -106,13 +106,24 @@ export default function TripPlanner({
   const [checkLoading, setCheckLoading] = useState(false)
   const [accessDenied, setAccessDenied] = useState(false)
 
-  // Auto-login depuis localStorage
+  // Auto-login + pré-remplissage depuis localStorage
   useEffect(() => {
     if (!rpSlug) { setStep('info'); return }
     const saved = localStorage.getItem('itinera_guest_email')
     const savedRp = localStorage.getItem('itinera_guest_rp')
     if (saved && savedRp === rpSlug) {
       setAccessEmail(saved)
+      // Pré-remplir les infos du profil
+      const firstName = localStorage.getItem('itinera_guest_name') || ''
+      const lastName = localStorage.getItem('itinera_guest_lastname') || ''
+      const phone = localStorage.getItem('itinera_guest_phone') || ''
+      setTrip(t => ({
+        ...t,
+        email: saved,
+        firstName,
+        lastName,
+        phone,
+      }))
       setStep('info')
     }
   }, [rpSlug])
@@ -253,6 +264,10 @@ export default function TripPlanner({
         }),
       })
       if (!res.ok) throw new Error('Erreur lors de l\'envoi')
+      // Sauvegarder les infos pour pré-remplir la prochaine fois
+      localStorage.setItem('itinera_guest_name', trip.firstName)
+      localStorage.setItem('itinera_guest_lastname', trip.lastName)
+      localStorage.setItem('itinera_guest_phone', trip.phone)
       setStep('success')
     } catch (err) {
       setError('Une erreur est survenue. Veuillez réessayer.')

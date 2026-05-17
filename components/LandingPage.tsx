@@ -220,7 +220,11 @@ export default function LandingPage() {
                   <p className="text-red-400/70 text-xs mt-3 leading-relaxed">{error}</p>
                 )}
                 <p className="text-[#F5F7FA]/35 text-[11px] mt-3">
-                  Entrez l'email avec lequel votre RP vous a invité
+                  Entrez l'email avec lequel votre concierge vous a invité
+                </p>
+                <p className="text-[#F5F7FA]/20 text-[10px] mt-1">
+                  Email oublié ?{' '}
+                  <span className="text-[#F5F7FA]/35">Contactez directement votre concierge, il vous rappellera l'adresse utilisée.</span>
                 </p>
               </div>
 

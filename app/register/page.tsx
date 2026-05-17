@@ -38,6 +38,13 @@ export default function RegisterPage() {
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
 
+  // ── Mot de passe oublié ──
+  const [showForgot, setShowForgot] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotSent, setForgotSent] = useState(false)
+  const [forgotError, setForgotError] = useState('')
+
   // Auto-redirect si déjà connecté en tant que RP
   useEffect(() => {
     const savedSlug = localStorage.getItem('itinera_rp_slug')
@@ -103,6 +110,24 @@ export default function RegisterPage() {
 
   const inviteLink = slug ? `${SITE_URL}/${slug}` : `${SITE_URL}/votre-nom`
 
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setForgotError('')
+    setForgotLoading(true)
+    try {
+      await fetch('/api/rp/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail.trim().toLowerCase() }),
+      })
+      setForgotSent(true)
+    } catch {
+      setForgotError('Erreur réseau. Réessayez.')
+    } finally {
+      setForgotLoading(false)
+    }
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoginError('')
@@ -141,6 +166,62 @@ export default function RegisterPage() {
 
       {/* ── FORMULAIRE LOGIN ── */}
       {showLogin ? (
+        showForgot ? (
+          /* ── Mot de passe oublié ── */
+          <div className="w-full max-w-md space-y-4">
+            {forgotSent ? (
+              <div className="text-center border border-green-500/20 bg-green-500/5 px-6 py-8">
+                <p className="text-green-400 text-sm mb-2">✓ Email envoyé</p>
+                <p className="text-[#F5F5F3]/40 text-xs leading-relaxed">
+                  Si cet email est associé à un compte, vous recevrez un lien de réinitialisation valable 1 heure.
+                </p>
+                <button
+                  onClick={() => { setShowForgot(false); setForgotSent(false) }}
+                  className="text-[#5B3DF5]/60 text-[10px] hover:text-[#5B3DF5] underline transition-colors mt-4 block mx-auto"
+                >
+                  ← Retour à la connexion
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgot} className="space-y-4">
+                <div>
+                  <label className="block text-[9px] tracking-[0.25em] uppercase text-[#F5F5F3]/30 mb-2">
+                    Votre email de compte
+                  </label>
+                  <input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={e => setForgotEmail(e.target.value)}
+                    placeholder="votre@email.com"
+                    autoComplete="email"
+                    autoFocus
+                    className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
+                    required
+                  />
+                </div>
+                {forgotError && (
+                  <p className="text-red-400/70 text-xs text-center border border-red-500/15 bg-red-500/5 px-4 py-3">
+                    {forgotError}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={forgotLoading}
+                  className="w-full py-4 bg-[#5B3DF5] text-white text-[11px] tracking-[0.3em] uppercase hover:bg-[#4930cc] transition-colors disabled:opacity-40"
+                >
+                  {forgotLoading ? 'Envoi...' : 'Recevoir le lien de réinitialisation →'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowForgot(false); setForgotError('') }}
+                  className="w-full text-center text-[10px] text-[#F5F5F3]/20 hover:text-[#F5F5F3]/40 transition-colors"
+                >
+                  ← Retour à la connexion
+                </button>
+              </form>
+            )}
+          </div>
+        ) : (
         <form onSubmit={handleLogin} className="w-full max-w-md space-y-4">
           <div>
             <label className="block text-[9px] tracking-[0.25em] uppercase text-[#F5F5F3]/30 mb-2">Email</label>
@@ -179,14 +260,24 @@ export default function RegisterPage() {
           >
             {loginLoading ? 'Connexion...' : 'Accéder à mon dashboard →'}
           </button>
-          <p className="text-center text-[10px] text-[#F5F5F3]/20 pt-1">
-            Pas encore inscrit ?{' '}
-            <button type="button" onClick={() => { setShowLogin(false); setLoginError('') }}
-              className="text-[#5B3DF5]/60 hover:text-[#5B3DF5] underline transition-colors">
-              Créer un compte
+          <div className="flex items-center justify-between pt-1">
+            <p className="text-[10px] text-[#F5F5F3]/20">
+              Pas encore inscrit ?{' '}
+              <button type="button" onClick={() => { setShowLogin(false); setLoginError('') }}
+                className="text-[#5B3DF5]/60 hover:text-[#5B3DF5] underline transition-colors">
+                Créer un compte
+              </button>
+            </p>
+            <button
+              type="button"
+              onClick={() => { setShowForgot(true); setForgotEmail(loginEmail); setLoginError('') }}
+              className="text-[10px] text-[#F5F5F3]/20 hover:text-[#F5F5F3]/50 underline transition-colors"
+            >
+              Mot de passe oublié ?
             </button>
-          </p>
+          </div>
         </form>
+        )
       ) : (
 
       /* ── FORMULAIRE INSCRIPTION ── */
