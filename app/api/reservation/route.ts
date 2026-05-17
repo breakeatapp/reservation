@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       occasion, seating, specialRequests,
       nationality,
       rpSlug,             // identifiant du RP (ex: "remi", "antoine")
+      destination: bodyDestination, // passé par le formulaire pour les venues custom
       // vipLevel & budgetLevel supprimés côté client — gérés par le RP dans son dashboard
     } = body
 
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
     const est = establishments.find(e => e.name === establishment)
     const destination = est
       ? est.destination.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-      : ''
+      : (bodyDestination || '')
 
     const formattedDate = new Date(date).toLocaleDateString('fr-FR', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',

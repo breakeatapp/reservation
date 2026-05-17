@@ -53,7 +53,7 @@ const SERVICES = [
 const STATUS_CONFIG = {
   pending: {
     label: 'En attente',
-    sublabel: 'Notre équipe revient vers vous sous 24h',
+    sublabel: 'Notre équipe revient vers vous au plus vite',
     color: 'text-amber-400',
     bg: 'bg-amber-500/8',
     border: 'border-amber-500/20',
@@ -292,6 +292,22 @@ export default function ClientDashboard({ profile }: Props) {
     finally { setDeleteLoading(false) }
     resetIdentity()
   }
+
+  // ── Auto-redirect vers réservations dès que l'identité est connue ───────────
+  useEffect(() => {
+    if (!autoLoginDone || !email || showEmailForm || screen !== 'home') return
+    const savedPhone = localStorage.getItem('itinera_guest_phone') || ''
+    if (!clientFirstName || !savedPhone) return // profil à compléter en priorité
+    const rpSummary: RPSummary = rpList.find(r => r.slug === profile.slug) ?? {
+      slug: profile.slug,
+      displayName: profile.display_name,
+      accentColor: accent,
+      logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
+      totalCount: 0, pendingCount: 0, confirmedCount: 0,
+    }
+    selectRP(rpSummary)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoLoginDone, email, clientFirstName])
 
   // ── Sélection d'un RP → charger ses réservations ─────────────
   const selectRP = async (rp: RPSummary) => {
@@ -600,23 +616,6 @@ export default function ClientDashboard({ profile }: Props) {
                 <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/60 transition-colors text-xl">→</span>
               </button>
 
-              <button onClick={() => {
-                  setProfileFirstName(clientFirstName)
-                  setProfileLastName(localStorage.getItem('itinera_guest_lastname') || '')
-                  setProfilePhone(localStorage.getItem('itinera_guest_phone') || '')
-                  setProfileEmail(email)
-                  setProfileSaved(false)
-                  setScreen('profile')
-                }}
-                className="flex items-center justify-between w-full border border-white/10 hover:border-white/25 bg-[#141414] hover:bg-[#1a1a1a] p-5 transition-all group text-left">
-                <div>
-                  <p className="text-[9px] tracking-[0.3em] uppercase mb-1" style={{ color: accent }}>Compte</p>
-                  <p className="text-[#F5F5F3] text-base font-light">Mon profil</p>
-                  <p className="text-[#F5F5F3]/30 text-xs mt-0.5">Nom, email, téléphone</p>
-                </div>
-                <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/60 transition-colors text-xl">→</span>
-              </button>
-
             </div>
 
             {/* Déconnexion */}
@@ -737,17 +736,27 @@ export default function ClientDashboard({ profile }: Props) {
 
       <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/8 px-4 py-4 flex items-center gap-3">
         <button
-          onClick={() => { setScreen('home'); setViewingRp(null); setError('') }}
+          onClick={() => router.push(`/${profile.slug}`)}
           className="flex items-center gap-2 text-white font-semibold transition-colors text-sm border border-white/40 hover:border-white/70 bg-white/5 hover:bg-white/10 px-4 py-2 flex-shrink-0"
         >
-          ← Retour
+          ← {profile.display_name}
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] tracking-[0.3em] uppercase truncate" style={{ color: (viewingRp?.accentColor ?? accent) }}>
-            {viewingRp?.displayName ?? profile.display_name}
-          </p>
           <p className="text-sm text-white/75 truncate">{clientFirstName || email}</p>
         </div>
+        <button
+          onClick={() => {
+            setProfileFirstName(clientFirstName)
+            setProfileLastName(localStorage.getItem('itinera_guest_lastname') || '')
+            setProfilePhone(localStorage.getItem('itinera_guest_phone') || '')
+            setProfileEmail(email)
+            setProfileSaved(false)
+            setScreen('profile')
+          }}
+          className="flex-shrink-0 text-[#F5F5F3]/30 hover:text-[#F5F5F3]/70 transition-colors text-[10px] tracking-[0.15em] uppercase border border-white/10 hover:border-white/25 px-3 py-2"
+        >
+          Mon profil
+        </button>
         {resaLoading && (
           <svg className="animate-spin w-4 h-4 text-[#F5F5F3]/20 flex-shrink-0" viewBox="0 0 24 24" fill="none">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>

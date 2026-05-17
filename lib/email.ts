@@ -461,14 +461,14 @@ export async function sendClientConfirmationEmail(data: ReservationData) {
 
       <p class="intro">
         Bonjour <strong>${data.firstName}</strong>,<br><br>
-        Nous avons bien reçu votre demande de réservation. Notre équipe la traite actuellement avec la plus grande attention et reviendra vers vous <strong>sous 24 heures</strong> pour confirmer votre table.
+        Nous avons bien reçu votre demande de réservation. Notre équipe la traite actuellement avec la plus grande attention et reviendra vers vous <strong>au plus vite</strong> pour confirmer votre table.
       </p>
 
       <div class="promise">
         <div class="promise-icon">⏱</div>
         <p class="promise-text">
           Votre conciergerie est à l'œuvre pour vous garantir la meilleure expérience.<br>
-          <strong>Confirmation attendue sous 24h.</strong>
+          <strong>Confirmation attendue au plus vite.</strong>
         </p>
       </div>
 
@@ -531,14 +531,20 @@ export async function sendClientConfirmationEmail(data: ReservationData) {
             <span>${data.phone}</span>
           </div>
         </div>
+        <div class="row">
+          <div class="field">
+            <label>Email</label>
+            <span>${data.email}</span>
+          </div>
+        </div>
       </div>
 
       ${data.rpWhatsapp ? `
       <!-- Contact concierge -->
       <div style="text-align: center; margin-top: 16px;">
-        <a href="https://wa.me/${toWaPhone(data.rpWhatsapp)}?text=${encodeURIComponent(`Bonjour, j'ai une question concernant ma réservation chez ${data.establishment} le ${data.date}.`)}"
+        <a href="https://wa.me/${toWaPhone(data.rpWhatsapp)}?text=${encodeURIComponent(`Bonjour, j'ai une question concernant ma réservation chez ${data.establishment}${data.destination ? ` à ${data.destination}` : ''} le ${data.date} pour ${data.guests} personne${data.guests > 1 ? 's' : ''}.`)}"
            style="display:inline-block;background:#25D366;color:white;padding:14px 32px;text-decoration:none;font-size:13px;letter-spacing:1px;">
-          💬 Contacter votre concierge
+          💬 Contacter votre RP
         </a>
       </div>` : ''}
 
@@ -959,14 +965,14 @@ export async function sendModificationAckToClient(data: ModificationAckData) {
       ${isCancel ? `
       <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);padding:20px;text-align:center;margin-bottom:24px;">
         <p style="color:#888;font-size:13px;line-height:1.7;margin:0;">
-          Besoin d'une autre réservation ? Votre concierge est disponible.
+          Besoin d'une autre réservation ? Votre RP est disponible.
         </p>
       </div>` : ''}
 
       ${whatsappLink ? `
       <div style="text-align:center;margin-top:8px;">
         <a href="${whatsappLink}" style="display:inline-block;background:#25D366;color:white;text-decoration:none;font-size:13px;letter-spacing:1px;padding:14px 32px;">
-          💬 Contacter votre concierge
+          💬 Contacter votre RP
         </a>
       </div>` : ''}
     </div>

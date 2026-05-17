@@ -201,7 +201,7 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
       const res = await fetch('/api/reservation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, rpSlug }),
+        body: JSON.stringify({ ...data, rpSlug, destination: selectedDest }),
       })
       if (!res.ok) throw new Error()
       setStatus('success')
