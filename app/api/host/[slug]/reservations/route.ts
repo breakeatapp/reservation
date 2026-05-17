@@ -31,15 +31,16 @@ export async function GET(
       return Response.json({ error: 'Établissement introuvable.' }, { status: 401 })
     }
 
-    // Filter by establishment name, and optionally by destination
+    // Filter by establishment name (case-insensitive), and optionally by destination
+    // ilike without wildcards = exact match ignoring case
     let query = supabaseAdmin
       .from('reservations')
       .select('*')
-      .eq('establishment', host.venue_name)
+      .ilike('establishment', host.venue_name)
       .order('date', { ascending: true })
 
     if (host.destination) {
-      query = query.eq('destination', host.destination)
+      query = query.ilike('destination', host.destination)
     }
 
     const { data, error } = await query
@@ -101,15 +102,15 @@ export async function PATCH(
       return Response.json({ error: 'Non autorisé.' }, { status: 401 })
     }
 
-    // Verify the reservation belongs to this venue (+ destination if set)
+    // Verify the reservation belongs to this venue (case-insensitive, + destination if set)
     let verifyQuery = supabaseAdmin
       .from('reservations')
       .select('id, establishment, destination')
       .eq('id', id)
-      .eq('establishment', host.venue_name)
+      .ilike('establishment', host.venue_name)
 
     if (host.destination) {
-      verifyQuery = verifyQuery.eq('destination', host.destination)
+      verifyQuery = verifyQuery.ilike('destination', host.destination)
     }
 
     const { data: existing, error: fetchError } = await verifyQuery.single()
