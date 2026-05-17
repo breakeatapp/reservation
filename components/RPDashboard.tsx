@@ -994,11 +994,11 @@ export default function RPDashboard({ profile }: Props) {
             </p>
             <div className="bg-[#0B0B0B] border border-white/8 px-4 py-3 flex items-center justify-between gap-3">
               <span className="text-[#5B3DF5] text-sm font-mono truncate">
-                …/{profile.slug}
+                …/{profile.slug}/mon-espace
               </span>
               <button
                 onClick={() => {
-                  const url = `${window.location.origin}/${profile.slug}`
+                  const url = `${window.location.origin}/${profile.slug}/mon-espace`
                   navigator.clipboard.writeText(url)
                   setCopied('invite')
                   setTimeout(() => setCopied(null), 2000)
@@ -1010,7 +1010,7 @@ export default function RPDashboard({ profile }: Props) {
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2 text-[10px]">
               <div className="text-[#F5F5F3]/20">
-                Lien guest : <span className="text-[#F5F5F3]/35 font-mono">/{profile.slug}</span>
+                Lien guest : <span className="text-[#F5F5F3]/35 font-mono">/{profile.slug}/mon-espace</span>
               </div>
               <div className="text-[#F5F5F3]/20">
                 Dashboard : <span className="text-[#F5F5F3]/35 font-mono">/{profile.slug}/dashboard</span>
@@ -1505,7 +1505,7 @@ export default function RPDashboard({ profile }: Props) {
                 {/* WhatsApp */}
                 <a
                   href={`https://wa.me/?text=${encodeURIComponent(
-                    `Bonjour${lastAddedClient.name ? ` ${lastAddedClient.name.split(' ')[0]}` : ''} 👋\n\nJe vous invite à accéder à votre espace de conciergerie privée.\n\nVos réservations et votre suivi sont disponibles ici :\n👉 ${process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'}/${profile.slug}\n\nEntrez simplement votre email (${lastAddedClient.email}) pour vous connecter.`
+                    `Bonjour${lastAddedClient.name ? ` ${lastAddedClient.name.split(' ')[0]}` : ''} 👋\n\nJe vous invite à accéder à votre espace de conciergerie privée.\n\nAccédez directement ici :\n👉 ${process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'}/${profile.slug}/mon-espace\n\nEntrez votre email (${lastAddedClient.email}) pour vous connecter.`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1521,7 +1521,7 @@ export default function RPDashboard({ profile }: Props) {
                 {/* Copier le lien */}
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'}/${profile.slug}`)
+                    navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'}/${profile.slug}/mon-espace`)
                     setInviteLinkCopied(true)
                     setTimeout(() => setInviteLinkCopied(false), 2500)
                   }}
