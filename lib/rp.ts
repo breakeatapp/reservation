@@ -9,12 +9,15 @@ const FALLBACK_PROFILES: Record<string, RPProfile> = {}
 // ── Fetch un profil RP par slug ────────────────────────────
 // Priorité : Supabase → fallback local
 export async function getRPProfile(slug: string): Promise<RPProfile | null> {
+  // Normaliser le slug en minuscules (l'URL peut avoir des majuscules)
+  const normalizedSlug = slug.toLowerCase().trim()
+
   // 1. Essayer Supabase en premier
   try {
     const { data, error } = await supabase
       .from('rp_profiles')
       .select('*')
-      .eq('slug', slug)
+      .eq('slug', normalizedSlug)
       .eq('active', true)
       .single()
 
@@ -44,7 +47,7 @@ export async function getRPProfile(slug: string): Promise<RPProfile | null> {
   }
 
   // 2. Fallback : profil codé en dur
-  return FALLBACK_PROFILES[slug] ?? null
+  return FALLBACK_PROFILES[normalizedSlug] ?? null
 }
 
 // ── Destinations accessibles pour un RP ───────────────────
