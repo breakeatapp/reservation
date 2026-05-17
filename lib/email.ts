@@ -26,7 +26,8 @@ function senderName(rpDisplayName?: string): string {
 }
 
 // ── Parse la note interne (JSON ou texte brut) ─────────────
-function formatInternalNote(raw: string): string {
+function formatInternalNote(raw: string | undefined | null): string {
+  if (!raw) return ''
   try {
     const parsed = JSON.parse(raw)
     if (parsed && typeof parsed === 'object') {
@@ -39,7 +40,7 @@ function formatInternalNote(raw: string): string {
       return parts.length > 0 ? parts.join(' · ') : raw
     }
   } catch { /* texte brut */ }
-  return raw
+  return raw ?? ''
 }
 
 // ── Type pour un voyage complet ────────────────────────────

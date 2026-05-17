@@ -18,7 +18,6 @@ const schema = z.object({
   time: z.string().min(1, 'Service requis'),
   guests: z.string().min(1, 'Nombre requis'),
   occasion: z.string().optional(),
-  seating: z.string().optional(),
   specialRequests: z.string().optional(),
 })
 
@@ -69,7 +68,6 @@ const SERVICES = [
 ]
 
 const OCCASIONS = ['Anniversaire', 'Romantique', 'Dîner d\'affaires', 'Célébration', 'Soirée VIP', 'Fête', 'Autre']
-const SEATINGS = ['Terrasse', 'Table coucher de soleil', 'Premier rang', 'Table DJ', 'Vue mer', 'Privé / Semi-privé', 'Sans préférence']
 
 export default function RPReservationForm({ estOptions, defaultVenue, defaultDestination, rpSlug, rpProfile, venueServices, destinations, establishments, venueConfigs }: Props) {
   const accent = rpProfile?.accent_color || '#5B3DF5'

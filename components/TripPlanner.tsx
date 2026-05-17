@@ -44,9 +44,6 @@ const SERVICES = [
 ]
 
 const OCCASIONS = ['Anniversaire', 'Romantique', 'Dîner d\'affaires', 'Célébration', 'Fête', 'Soirée VIP']
-const SEATINGS = ['Terrasse', 'Table coucher de soleil', 'Premier rang', 'Table DJ', 'Vue mer', 'Privé / Semi-privé']
-const VIP_LEVELS = ['Standard', 'VIP', 'VVIP — Grand dépensier', 'Célébrité / Personnalité publique']
-const BUDGETS = ['Standard', 'Élevé (500€+/pers.)', 'Premium (1000€+/pers.)', 'Ultra (Sans limite)']
 
 const inputClass = `w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] placeholder-[#F5F5F3]/20 px-3 py-2.5 text-sm focus:border-violet-500 outline-none transition-colors`
 const labelClass = `block text-[9px] tracking-[0.25em] text-[#F5F5F3]/40 uppercase mb-1.5`
@@ -256,7 +253,6 @@ export default function TripPlanner({
             time: b.time,
             guests: b.guests,
             occasion: b.occasion,
-            seating: '',
             specialRequests: b.specialRequests,
           })),
           rpSlug: rpSlug || '',

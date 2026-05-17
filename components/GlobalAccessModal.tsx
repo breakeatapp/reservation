@@ -147,7 +147,13 @@ export default function GlobalAccessModal({ rpSlug, rpPassword, onClose }: Props
       </div>
 
       {/* ── Map + Panel ── */}
-      <div className="flex-1 relative overflow-hidden">
+      <div
+        className="flex-1 relative overflow-hidden"
+        onClick={e => {
+          // Close the side panel when clicking the map background (not the panel itself)
+          if (selectedCity && e.target === e.currentTarget) setSelectedCity(null)
+        }}
+      >
 
         {/* World map background image */}
         <div
@@ -162,6 +168,17 @@ export default function GlobalAccessModal({ rpSlug, rpPassword, onClose }: Props
 
         {/* Subtle vignette */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#080B12]/60 via-transparent to-[#080B12]/80 pointer-events-none" />
+
+        {/* Empty state when no cities */}
+        {visibleCities.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <p className="text-[10px] tracking-[0.4em] uppercase text-white/15">
+                {partnersOnly ? 'Aucun partenaire actif' : 'Aucun opérateur disponible'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* City dots */}
         {visibleCities.map(city => {

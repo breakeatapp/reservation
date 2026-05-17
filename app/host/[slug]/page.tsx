@@ -202,7 +202,15 @@ export default function HostDashboardPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-20 text-center">
-            <p className="text-[#F5F7FA]/20 text-xs tracking-[0.3em] uppercase">Aucune réservation</p>
+            <p className="text-[#F5F7FA]/20 text-xs tracking-[0.3em] uppercase">
+              {filter === 'pending'
+                ? 'Aucune réservation en attente'
+                : filter === 'confirmed'
+                ? 'Aucune réservation confirmée'
+                : filter === 'declined'
+                ? 'Aucune réservation déclinée'
+                : 'Aucune réservation'}
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
