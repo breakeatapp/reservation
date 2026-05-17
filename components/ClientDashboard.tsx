@@ -139,6 +139,12 @@ export default function ClientDashboard({ profile }: Props) {
   const [emailInputError, setEmailInputError] = useState('')
   const [showEmailForm, setShowEmailForm] = useState(false)
 
+  // Auto-inscription (email inconnu → proposer de s'inscrire)
+  const [showRegisterForm, setShowRegisterForm] = useState(false)
+  const [registerFirstName, setRegisterFirstName] = useState('')
+  const [registerLoading, setRegisterLoading] = useState(false)
+  const [registerError, setRegisterError] = useState('')
+
   const handleEmailAccess = async (e: React.FormEvent) => {
     e.preventDefault()
     const trimmed = emailInput.trim().toLowerCase()
@@ -152,15 +158,44 @@ export default function ClientDashboard({ profile }: Props) {
         localStorage.setItem('itinera_guest_email', trimmed)
         localStorage.setItem('itinera_guest_rp', profile.slug)
         if (data.clientName) localStorage.setItem('itinera_guest_name', data.clientName.split(' ')[0])
-        // Recharger pour déclencher l'auto-login
         window.location.reload()
       } else {
-        setEmailInputError('Adresse email non reconnue. Contactez votre concierge.')
+        // Email inconnu → proposer l'inscription
+        setShowRegisterForm(true)
       }
     } catch {
       setEmailInputError('Erreur réseau. Veuillez réessayer.')
     } finally {
       setEmailInputLoading(false)
+    }
+  }
+
+  const handleSelfRegister = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!emailInput.trim()) return
+    setRegisterLoading(true)
+    setRegisterError('')
+    try {
+      const res = await fetch('/api/client/self-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: emailInput.trim().toLowerCase(),
+          firstName: registerFirstName.trim(),
+          rpSlug: profile.slug,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setRegisterError(data.error || 'Erreur.'); return }
+      // Inscription réussie → connexion automatique
+      localStorage.setItem('itinera_guest_email', emailInput.trim().toLowerCase())
+      localStorage.setItem('itinera_guest_rp', profile.slug)
+      if (registerFirstName.trim()) localStorage.setItem('itinera_guest_name', registerFirstName.trim())
+      window.location.reload()
+    } catch {
+      setRegisterError('Erreur réseau. Veuillez réessayer.')
+    } finally {
+      setRegisterLoading(false)
     }
   }
 
@@ -365,31 +400,73 @@ export default function ClientDashboard({ profile }: Props) {
             <div className="text-center mb-10">
               <p className="text-[9px] tracking-[0.5em] text-[#F5F5F3]/20 uppercase mb-3">✦ Espace privé</p>
               <h1 className="font-playfair text-3xl text-[#F5F5F3] mb-2">{profile.display_name}</h1>
-              <p className="text-[#F5F5F3]/30 text-xs">Entrez votre email pour accéder à votre espace</p>
+              <p className="text-[#F5F5F3]/30 text-xs">
+                {showRegisterForm ? 'Créez votre accès en quelques secondes' : 'Entrez votre email pour accéder à votre espace'}
+              </p>
             </div>
-            <form onSubmit={handleEmailAccess} className="space-y-4">
-              <input
-                type="email"
-                value={emailInput}
-                onChange={e => setEmailInput(e.target.value)}
-                placeholder="votre@email.com"
-                autoFocus
-                required
-                className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
-              />
-              {emailInputError && (
-                <p className="text-red-400/70 text-xs text-center border border-red-500/15 bg-red-500/5 px-4 py-3">
-                  {emailInputError}
-                </p>
-              )}
-              <button
-                type="submit"
-                disabled={emailInputLoading}
-                className="w-full py-4 bg-[#5B3DF5] text-white text-[11px] tracking-[0.3em] uppercase hover:bg-[#4930cc] transition-colors disabled:opacity-40"
-              >
-                {emailInputLoading ? 'Vérification...' : 'Accéder à mon espace →'}
-              </button>
-            </form>
+
+            {showRegisterForm ? (
+              /* ── Formulaire d'inscription ── */
+              <form onSubmit={handleSelfRegister} className="space-y-3">
+                <div className="bg-[#141414] border border-[#5B3DF5]/20 px-4 py-3 mb-2">
+                  <p className="text-[9px] tracking-[0.3em] uppercase text-[#5B3DF5]/60 mb-1">Email</p>
+                  <p className="text-[#F5F5F3]/70 text-sm">{emailInput}</p>
+                </div>
+                <input
+                  type="text"
+                  value={registerFirstName}
+                  onChange={e => setRegisterFirstName(e.target.value)}
+                  placeholder="Votre prénom"
+                  autoFocus
+                  className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
+                />
+                {registerError && (
+                  <p className="text-red-400/70 text-xs text-center border border-red-500/15 bg-red-500/5 px-4 py-3">
+                    {registerError}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={registerLoading}
+                  className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase transition-colors disabled:opacity-40"
+                  style={{ background: accent }}
+                >
+                  {registerLoading ? 'Création...' : 'Rejoindre l\'espace →'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowRegisterForm(false); setRegisterError('') }}
+                  className="w-full text-center text-[10px] text-[#F5F5F3]/20 hover:text-[#F5F5F3]/40 transition-colors py-2"
+                >
+                  ← Utiliser un autre email
+                </button>
+              </form>
+            ) : (
+              /* ── Formulaire email ── */
+              <form onSubmit={handleEmailAccess} className="space-y-4">
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={e => setEmailInput(e.target.value)}
+                  placeholder="votre@email.com"
+                  autoFocus
+                  required
+                  className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
+                />
+                {emailInputError && (
+                  <p className="text-red-400/70 text-xs text-center border border-red-500/15 bg-red-500/5 px-4 py-3">
+                    {emailInputError}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={emailInputLoading}
+                  className="w-full py-4 bg-[#5B3DF5] text-white text-[11px] tracking-[0.3em] uppercase hover:bg-[#4930cc] transition-colors disabled:opacity-40"
+                >
+                  {emailInputLoading ? 'Vérification...' : 'Accéder à mon espace →'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )
