@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
           status: 'pending',
           establishment_phone: b.establishmentPhone,
           establishment_email: b.establishmentEmail,
-          rp_slug: rpSlug || 'remi',
+          rp_slug: rpSlug || '',
         }))
 
         const { error: sbError } = await supabase.from('reservations').insert(rows)

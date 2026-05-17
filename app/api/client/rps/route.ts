@@ -9,31 +9,47 @@ export async function GET(req: NextRequest) {
   if (!email) return NextResponse.json({ error: 'Email requis' }, { status: 400 })
 
   try {
-    // Toutes les réservations de ce client (toutes destinations confondues)
-    const { data, error } = await supabaseAdmin
+    // 1. Réservations de ce client
+    const { data: resaData } = await supabaseAdmin
       .from('reservations')
       .select('first_name, rp_slug, status')
       .ilike('email', email)
       .order('created_at', { ascending: false })
 
-    if (error || !data) return NextResponse.json({ firstName: '', rps: [] })
+    // 2. RPs qui ont ajouté ce client manuellement (même sans resa)
+    const { data: clientNotes } = await supabaseAdmin
+      .from('rp_client_notes')
+      .select('rp_slug, client_name')
+      .ilike('client_email', email)
 
-    if (data.length === 0) return NextResponse.json({ firstName: '', rps: [] })
+    // Prénom : depuis les resas ou depuis client_notes
+    const firstName = resaData?.[0]?.first_name
+      || clientNotes?.[0]?.client_name?.split(' ')[0]
+      || ''
 
-    // Prénom depuis la première réservation trouvée
-    const firstName = data[0]?.first_name ?? ''
-
-    // Grouper par rp_slug
+    // Grouper les resas par rp_slug
     const grouped: Record<string, { total: number; pending: number; confirmed: number }> = {}
-    for (const r of data) {
-      const slug = r.rp_slug || 'unknown'
+    for (const r of resaData ?? []) {
+      const slug = r.rp_slug
+      if (!slug) continue
       if (!grouped[slug]) grouped[slug] = { total: 0, pending: 0, confirmed: 0 }
       grouped[slug].total++
       if (r.status === 'pending')   grouped[slug].pending++
       if (r.status === 'confirmed') grouped[slug].confirmed++
     }
 
-    // Enrichir avec le nom d'affichage du RP (Supabase → fallback local)
+    // Ajouter les RPs depuis client_notes (ceux qui n'ont pas encore de resa)
+    for (const note of clientNotes ?? []) {
+      if (note.rp_slug && !grouped[note.rp_slug]) {
+        grouped[note.rp_slug] = { total: 0, pending: 0, confirmed: 0 }
+      }
+    }
+
+    if (Object.keys(grouped).length === 0) {
+      return NextResponse.json({ firstName: '', rps: [] })
+    }
+
+    // Enrichir avec le nom d'affichage du RP
     const rps = await Promise.all(
       Object.entries(grouped).map(async ([slug, counts]) => {
         const rpProfile = await getRPProfile(slug)
@@ -49,9 +65,7 @@ export async function GET(req: NextRequest) {
       })
     )
 
-    // Trier par nombre total décroissant
     rps.sort((a, b) => b.totalCount - a.totalCount)
-
     return NextResponse.json({ firstName, rps })
   } catch {
     return NextResponse.json({ firstName: '', rps: [] })

@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
           status: 'pending',
           establishment_phone: est?.phone || '',
           establishment_email: est?.email || '',
-          rp_slug: rpSlug || 'remi',  // rattacher au RP
+          rp_slug: rpSlug || '',  // rattacher au RP
         })
         if (sbError) console.error('Supabase error:', sbError.message)
       }
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
     let rpDisplayName: string | undefined
     let rpWhatsapp: string | undefined
     try {
-      const rpProfile = await getRPProfile(rpSlug || 'remi')
+      const rpProfile = rpSlug ? await getRPProfile(rpSlug) : null
       rpEmail = rpProfile?.email
       rpDisplayName = rpProfile?.display_name
       rpWhatsapp = rpProfile?.whatsapp
