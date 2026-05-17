@@ -998,11 +998,11 @@ export default function RPDashboard({ profile }: Props) {
             </p>
             <div className="bg-[#0B0B0B] border border-white/8 px-4 py-3 flex items-center justify-between gap-3">
               <span className="text-[#5B3DF5] text-sm font-mono truncate">
-                …/{profile.slug}/mon-espace
+                itinera.click/{profile.slug}/mon-espace
               </span>
               <button
                 onClick={() => {
-                  const url = `${window.location.origin}/${profile.slug}/mon-espace`
+                  const url = `itinera.click/${profile.slug}/mon-espace`
                   navigator.clipboard.writeText(url)
                   setCopied('invite')
                   setTimeout(() => setCopied(null), 2000)
@@ -1509,7 +1509,7 @@ export default function RPDashboard({ profile }: Props) {
                 {/* WhatsApp */}
                 <a
                   href={`https://wa.me/?text=${encodeURIComponent(
-                    `Bonjour${lastAddedClient.name ? ` ${lastAddedClient.name.split(' ')[0]}` : ''} 👋\n\nJe vous invite à accéder à votre espace de conciergerie privée.\n\nAccédez directement ici :\n👉 ${window.location.origin}/${profile.slug}/mon-espace\n\nEntrez votre email (${lastAddedClient.email}) pour vous connecter.`
+                    `Bonjour${lastAddedClient.name ? ` ${lastAddedClient.name.split(' ')[0]}` : ''} 👋\n\nJe vous invite à accéder à votre espace de conciergerie privée.\n\nAccédez directement ici :\n👉 itinera.click/${profile.slug}/mon-espace\n\nEntrez votre email (${lastAddedClient.email}) pour vous connecter.`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1525,7 +1525,7 @@ export default function RPDashboard({ profile }: Props) {
                 {/* Copier le lien */}
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/${profile.slug}/mon-espace`)
+                    navigator.clipboard.writeText(`itinera.click/${profile.slug}/mon-espace`)
                     setInviteLinkCopied(true)
                     setTimeout(() => setInviteLinkCopied(false), 2500)
                   }}

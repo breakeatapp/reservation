@@ -19,14 +19,13 @@ export default function LandingPage() {
   const [codeLoading, setCodeLoading] = useState(false)
   const [codeError, setCodeError] = useState('')
 
-  // Vérifier si le client est déjà connecté → redirection automatique
+  // Vérifier si le client est déjà connecté → redirection automatique vers son espace
   useEffect(() => {
     const savedEmail = localStorage.getItem('itinera_guest_email')
     const savedRp = localStorage.getItem('itinera_guest_rp')
     const savedName = localStorage.getItem('itinera_guest_name')
     if (savedEmail && savedRp) {
       setSavedSession({ email: savedEmail, rp: savedRp, name: savedName || savedEmail })
-      // Rediriger directement sans attendre un clic
       router.replace(`/${savedRp}/mon-espace`)
     }
   }, [router])
@@ -254,7 +253,7 @@ export default function LandingPage() {
                       type="text"
                       value={inviteCode}
                       onChange={e => setInviteCode(e.target.value)}
-                      placeholder="itinera.click/honore/mon-espace"
+                      placeholder="itinera.click/votre-lien/mon-espace"
                       autoComplete="off"
                       autoFocus
                       className="flex-1 bg-[#0F1115] border border-white/12 text-[#F5F7FA] px-4 py-3 text-sm focus:border-[#6E5BFF]/50 outline-none placeholder-[#F5F7FA]/20 transition-colors"
