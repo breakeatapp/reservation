@@ -39,7 +39,7 @@ const VIP_COLORS: Record<string, string> = {
   Blacklist: 'text-red-400',
 }
 
-function buildWhatsAppMessage(r: Reservation, profile: RPProfile): string {
+function buildWhatsAppMessage(r: Reservation, profile: RPProfile, internalNote?: string): string {
   const extras = [
     r.occasion ? `🎉 Occasion : ${r.occasion}` : '',
     r.seating ? `🪑 Placement : ${r.seating}` : '',
@@ -63,6 +63,8 @@ function buildWhatsAppMessage(r: Reservation, profile: RPProfile): string {
     ...extras,
     r.special_requests ? `` : '',
     r.special_requests ? `📝 "${r.special_requests}"` : '',
+    internalNote ? `` : '',
+    internalNote ? `💡 Note : "${internalNote}"` : '',
   ].filter(l => l !== undefined).join('\n')
 }
 
@@ -499,7 +501,7 @@ export default function RPDashboard({ profile }: Props) {
 
   // ── VUE DÉTAIL ────────────────────────────────────────────────
   if (selected) {
-    const msg = buildWhatsAppMessage(selected, profile)
+    const msg = buildWhatsAppMessage(selected, profile, clientNote?.internal_note || undefined)
     const vipColor = VIP_COLORS[editVipTag] || 'text-[#F5F5F3]/20'
 
     return (

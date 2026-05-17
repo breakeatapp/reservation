@@ -782,6 +782,13 @@ export default function ClientDashboard({ profile }: Props) {
     <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
 
       <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-5 py-3 flex items-center gap-2">
+        <button
+          onClick={() => setScreen('home')}
+          className="flex-shrink-0 text-[#F5F5F3]/25 hover:text-[#F5F5F3]/60 transition-colors text-lg leading-none pr-1"
+          aria-label="Retour"
+        >
+          ←
+        </button>
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="font-playfair italic text-white/70 text-xl leading-none flex-shrink-0">{profile.display_name}</span>
           <span className="text-white/15 text-base flex-shrink-0">·</span>

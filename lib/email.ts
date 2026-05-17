@@ -148,7 +148,7 @@ export async function sendTripSummaryEmail(data: TripData) {
 
       <!-- WhatsApp -->
       <div style="text-align: center; margin-top: 32px;">
-        <a href="https://wa.me/${process.env.MANAGER_WHATSAPP}?text=Voyage%20reçu%20pour%20${encodeURIComponent(data.firstName + ' ' + data.lastName)}%20-%20${data.bookings.length}%20réservation${data.bookings.length > 1 ? 's' : ''}"
+        <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, j'ai bien reçu votre demande de voyage — ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''}. Je traite votre itinéraire et reviens vers vous rapidement.`)}"
            style="display: inline-block; background: #25D366; color: white; padding: 12px 28px; text-decoration: none; font-size: 14px; margin-top: 8px;">
           💬 Répondre via WhatsApp
         </a>
@@ -241,6 +241,15 @@ export async function sendTripClientConfirmationEmail(data: TripData) {
       </div>
 
       ${bookingCards}
+
+      ${data.rpWhatsapp ? `
+      <!-- Contact concierge -->
+      <div style="text-align: center; margin-top: 8px; padding-bottom: 16px;">
+        <a href="https://wa.me/${toWaPhone(data.rpWhatsapp)}?text=${encodeURIComponent(`Bonjour, j'ai bien reçu la confirmation de mon voyage — ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''}. Merci pour votre prise en charge !`)}"
+           style="display:inline-block;background:#25D366;color:white;padding:14px 32px;text-decoration:none;font-size:13px;letter-spacing:1px;">
+          💬 Contacter votre RP
+        </a>
+      </div>` : ''}
     </div>
 
     <div style="padding: 28px 40px; text-align: center; border-top: 1px solid #1e1e1e;">
@@ -257,7 +266,7 @@ export async function sendTripClientConfirmationEmail(data: TripData) {
   await sendEmail({
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
-    subject: `✦ Voyage reçu — ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''} · ${data.firstName} ${data.lastName}`,
+    subject: `ITINERA · ✦ Voyage reçu — ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''} · ${data.firstName} ${data.lastName}`,
     html,
   })
 }
@@ -559,7 +568,7 @@ export async function sendClientConfirmationEmail(data: ReservationData) {
   await sendEmail({
     from: `${managerName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
-    subject: `✦ Demande reçue — ${data.establishment}${data.destination ? ` · ${data.destination}` : ''} · ${data.date}`,
+    subject: `ITINERA · ✦ Demande reçue — ${data.establishment}${data.destination ? ` · ${data.destination}` : ''} · ${data.date}`,
     html: clientHtml,
   })
 }
@@ -730,7 +739,7 @@ export async function sendRPModificationToClient(data: RPModificationData) {
   await sendEmail({
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
-    subject: `✎ Réservation modifiée — ${data.establishment}`,
+    subject: `ITINERA · ✎ Réservation modifiée — ${data.establishment}`,
     html,
     ...(data.rpEmail ? { reply_to: data.rpEmail } : {}),
   })
@@ -864,8 +873,8 @@ export async function sendStatusUpdateEmailToClient(data: StatusUpdateData) {
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: isConfirmed
-      ? `✦ Confirmée — ${data.establishment} · ${data.date}`
-      : `Votre demande — ${data.establishment}`,
+      ? `ITINERA · ✦ Confirmée — ${data.establishment} · ${data.date}`
+      : `ITINERA · Votre demande — ${data.establishment}`,
     html,
     ...(replyToAddress ? { reply_to: replyToAddress } : {}),
   })
@@ -952,7 +961,7 @@ export async function sendClientWelcomeEmail(data: ClientWelcomeData) {
   await sendEmail({
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.clientEmail],
-    subject: `Votre espace de conciergerie est prêt — ${rpName}`,
+    subject: `ITINERA · Votre espace de conciergerie est prêt — ${rpName}`,
     html,
     text: plainText,
     ...(data.rpEmail ? { reply_to: data.rpEmail } : {}),
@@ -1059,8 +1068,8 @@ export async function sendModificationAckToClient(data: ModificationAckData) {
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: isCancel
-      ? `✕ Annulation confirmée — ${data.establishment}`
-      : `✎ Modification transmise — ${data.establishment}`,
+      ? `ITINERA · ✕ Annulation confirmée — ${data.establishment}`
+      : `ITINERA · ✎ Modification transmise — ${data.establishment}`,
     html,
     ...(data.rpEmail ? { reply_to: data.rpEmail } : {}),
   })
