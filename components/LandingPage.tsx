@@ -243,7 +243,7 @@ export default function LandingPage() {
               {showCodeForm ? (
                 <div className="border border-[#6E5BFF]/30 bg-[#6E5BFF]/5 p-5">
                   <p className="text-[10px] tracking-[0.4em] uppercase text-[#6E5BFF]/70 mb-1">
-                    Rejoindre un espace
+                    Rejoindre un RP
                   </p>
                   <p className="text-[#F5F7FA]/30 text-[11px] mb-4">
                     Collez le lien envoyé par votre concierge
