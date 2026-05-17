@@ -25,7 +25,17 @@
       "Bash(Select-Object -Last 25)",
       "Bash(find app/[rp] -type f)",
       "Bash(dir /s /b \"app\\\\[rp]\")",
-      "Bash(dir \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\" /s /b /a:d)"
+      "Bash(dir \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\" /s /b /a:d)",
+      "Bash(findstr /i \"vercel\\\\|build\\\\|deploy\\\\|start\")",
+      "Bash(npx vercel *)",
+      "Bash(vercel --prod)",
+      "PowerShell(cd \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\"; $env:VERCEL_TOKEN = $null; npx vercel@latest --prod --yes 2>&1 | Select-Object -First 30)",
+      "Bash(node \"C:\\\\Program Files\\\\nodejs\\\\node_modules\\\\npm\\\\bin\\\\npx-cli.js\" vercel --prod --yes)",
+      "Bash(ls \"C:\\\\Users\\\\notta\\\\.vercel\\\\\" 2>/dev/null || echo \"No .vercel dir\")",
+      "Bash(ls /c/Users/notta/.vercel/ 2>/dev/null || echo \"No .vercel dir\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\\\\api\\\\host\\\\[slug]\\\\reservations\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\\\\api\\\\host\\\\confirm\\\\[id]\")",
+      "Bash(node \"C:\\\\Users\\\\notta\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\vercel\\\\dist\\\\index.js\" --prod --yes)"
     ]
   }
 }

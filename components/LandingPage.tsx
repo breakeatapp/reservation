@@ -106,14 +106,12 @@ export default function LandingPage() {
 
           {/* Headline */}
           <h1 className="font-playfair text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#F5F7FA] mb-5 text-center leading-snug tracking-wide px-4">
-            Private access to the<br />
-            Hospitality Planning<br />
-            <span className="text-[#F5F7FA]/70">Between RPs &amp; Guests</span>
+            Private access to structured hospitality.
           </h1>
 
           {/* Sub */}
           <p className="text-[11px] tracking-[0.25em] uppercase leading-relaxed mb-12 max-w-xs mx-auto" style={{ color: '#6E5BFF' }}>
-            From WhatsApp chaos to structured hospitality management.
+            From WhatsApp chaos to modern hospitality planning.
           </p>
 
           {/* ── Session active (guest connecté) ── */}
@@ -264,28 +262,74 @@ export default function LandingPage() {
             </>
 
           ) : (
-            /* ── Choix initial GUEST / RP ── */
-            <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+            /* ── Choix initial GUEST / RP / HOST ── */
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
+
+              {/* GUEST */}
               <button
                 onClick={() => setUserType('guest')}
-                className="group border border-white/10 hover:border-[#6E5BFF]/60 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 backdrop-blur-sm p-8 transition-all duration-300 flex flex-col items-center justify-center gap-3"
+                className="group border border-white/10 hover:border-[#6E5BFF]/60 bg-[#181C23] hover:bg-[#6E5BFF]/8 p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 text-center"
               >
-                <span className="font-playfair text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
-                  GUEST
-                </span>
+                <span className="text-2xl opacity-50 group-hover:opacity-80 transition-opacity">👤</span>
+                <div>
+                  <span className="font-playfair text-xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors block mb-1">
+                    GUEST
+                  </span>
+                  <span className="text-[10px] tracking-[0.15em] uppercase text-[#F5F7FA]/30 group-hover:text-[#F5F7FA]/50 transition-colors">
+                    Book access to experiences
+                  </span>
+                </div>
                 <span className="w-6 h-px bg-[#6E5BFF]/0 group-hover:bg-[#6E5BFF]/60 transition-all duration-300" />
               </button>
 
+              {/* RP */}
               <button
                 onClick={() => router.push('/register')}
-                className="group border border-white/10 hover:border-[#6E5BFF]/60 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 backdrop-blur-sm p-8 transition-all duration-300 flex flex-col items-center justify-center gap-3"
+                className="group border border-white/10 hover:border-[#6E5BFF]/60 bg-[#181C23] hover:bg-[#6E5BFF]/8 p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 text-center"
               >
-                <span className="font-playfair text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
-                  RP
-                </span>
+                <span className="text-2xl opacity-50 group-hover:opacity-80 transition-opacity">👥</span>
+                <div>
+                  <span className="font-playfair text-xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors block mb-1">
+                    RP
+                  </span>
+                  <span className="text-[10px] tracking-[0.15em] uppercase text-[#F5F7FA]/30 group-hover:text-[#F5F7FA]/50 transition-colors">
+                    Manage access for your guests
+                  </span>
+                </div>
                 <span className="w-6 h-px bg-[#6E5BFF]/0 group-hover:bg-[#6E5BFF]/60 transition-all duration-300" />
               </button>
+
+              {/* ITINERA HOST */}
+              <button
+                onClick={() => router.push('/host')}
+                className="group border border-white/10 hover:border-[#6E5BFF]/60 bg-[#181C23] hover:bg-[#6E5BFF]/8 p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 text-center"
+              >
+                <span className="text-2xl opacity-50 group-hover:opacity-80 transition-opacity">🔔</span>
+                <div>
+                  <span className="font-playfair text-xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors block mb-1">
+                    HOST
+                  </span>
+                  <span className="text-[10px] tracking-[0.15em] uppercase text-[#F5F7FA]/30 group-hover:text-[#F5F7FA]/50 transition-colors">
+                    Manage reservations for your venue
+                  </span>
+                </div>
+                <span className="w-6 h-px bg-[#6E5BFF]/0 group-hover:bg-[#6E5BFF]/60 transition-all duration-300" />
+              </button>
+
             </div>
+          )}
+
+          {/* Sign in hint — shown only on selection screen */}
+          {!userType && !savedSession && !rpPicker && (
+            <p className="mt-8 text-[10px] tracking-[0.25em] uppercase text-[#F5F7FA]/25">
+              Already have an account?{' '}
+              <button
+                onClick={() => setUserType('guest')}
+                className="text-[#F5F7FA]/40 hover:text-[#F5F7FA]/70 transition-colors underline underline-offset-2"
+              >
+                Sign in
+              </button>
+            </p>
           )}
 
         </div>

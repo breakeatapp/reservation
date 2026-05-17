@@ -456,6 +456,36 @@ export default function RPDashboard({ profile }: Props) {
   const whatsappShare = (r: Reservation) =>
     `https://wa.me/?text=${encodeURIComponent(buildWhatsAppMessage(r, profile))}`
 
+  const buildRestaurantWhatsAppMessage = (r: Reservation): string => {
+    const confirmUrl = `https://itinera.click/host/confirm/${r.id}`
+    const lines = [
+      `Bonjour,`,
+      ``,
+      `Vous avez une demande de réservation ITINERA :`,
+      ``,
+      `👤 ${r.first_name} ${r.last_name}`,
+      `📅 ${r.date} à ${r.time}`,
+      `👥 ${r.guests} personne${r.guests > 1 ? 's' : ''}`,
+      r.occasion ? `🎉 ${r.occasion}` : '',
+      r.special_requests ? `📝 ${r.special_requests}` : '',
+      ``,
+      `✅ Confirmez ou déclinez ici :`,
+      confirmUrl,
+      ``,
+      `Merci,`,
+      `ITINERA`,
+    ].filter(l => l !== undefined)
+    return lines.join('\n')
+  }
+
+  const whatsappToRestaurant = (r: Reservation) => {
+    const phone = r.establishment_phone?.replace(/[^0-9]/g, '')
+    const msg = buildRestaurantWhatsAppMessage(r)
+    return phone
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`
+  }
+
   const filtered = filter === 'all' ? reservations : reservations.filter(r => r.status === filter)
   const counts = {
     all: reservations.length,
@@ -511,7 +541,7 @@ export default function RPDashboard({ profile }: Props) {
           <button onClick={() => setSelected(null)} className="text-[#F5F5F3]/40 hover:text-[#F5F5F3] p-1 text-lg">←</button>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-[#F5F5F3] truncate">{selected.first_name} {selected.last_name}</p>
-            <p className="text-[10px] text-[#F5F5F3]/30 truncate">{selected.establishment} · {selected.date}</p>
+            <p className="text-[10px] text-[#F5F5F3]/30 truncate">{selected.establishment}{selected.destination ? ` · ${selected.destination}` : ''} · {selected.date}</p>
           </div>
           <span className={`text-[9px] tracking-wider uppercase border px-2 py-1 flex-shrink-0 ${STATUS_STYLES[selected.status]}`}>
             {STATUS_LABELS[selected.status]}
@@ -596,8 +626,10 @@ export default function RPDashboard({ profile }: Props) {
               </div>
             ) : (
               <>
-                <p className="font-playfair text-xl text-[#F5F5F3] mb-0.5">{selected.establishment}</p>
-                <p className="text-[#F5F5F3]/25 text-xs uppercase tracking-wider mb-4">{selected.destination}</p>
+                <p className="font-playfair text-xl text-[#F5F5F3] mb-0.5">
+                  {selected.establishment}
+                  {selected.destination && <span className="text-[#F5F5F3]/30 text-base font-normal"> · {selected.destination}</span>}
+                </p>
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { label: 'Date', value: selected.date },
@@ -644,12 +676,21 @@ export default function RPDashboard({ profile }: Props) {
                 <span>✉️</span><span className="text-sm">{selected.email}</span>
               </a>
             </div>
-            {clientNote?.internal_note && (
-              <div className="mt-3 pt-3 border-t border-white/5 border-l-2 border-l-amber-500/30 pl-3">
-                <p className="text-[8px] tracking-wider text-amber-400/40 uppercase mb-1">Note privée</p>
-                <p className="text-[#F5F5F3]/40 text-xs italic">"{clientNote.internal_note}"</p>
-              </div>
-            )}
+            {clientNote?.internal_note && (() => {
+              const cp = parseClientProfile(clientNote.internal_note)
+              return (
+                <div className="mt-3 pt-3 border-t border-white/5 border-l-2 border-l-amber-500/30 pl-3">
+                  <p className="text-[8px] tracking-wider text-amber-400/40 uppercase mb-1">Note privée</p>
+                  {cp.note && <p className="text-[#F5F5F3]/40 text-xs italic mb-1">"{cp.note}"</p>}
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                    {cp.nationality && <span className="text-[10px] text-[#F5F5F3]/30">🌍 {cp.nationality}</span>}
+                    {cp.products.map(p => (
+                      <span key={p} className="text-[10px] text-amber-400/70">🍾 {p}</span>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
 
           {/* ── FICHE CLIENT ── */}
@@ -782,6 +823,21 @@ export default function RPDashboard({ profile }: Props) {
                 {copied === selected.id ? '✓ Copié !' : '📋 Copier le message'}
               </button>
             </div>
+          </div>
+
+          {/* Envoyer au restaurant */}
+          <div className="bg-[#141414] border border-white/5 p-5">
+            <p className="text-[9px] tracking-[0.3em] text-green-500/40 uppercase mb-3">Envoyer au restaurant</p>
+            <div className="bg-[#0B0B0B] p-3 rounded mb-3 font-mono text-[10px] text-[#F5F5F3]/30 leading-relaxed whitespace-pre-wrap max-h-32 overflow-y-auto">
+              {buildRestaurantWhatsAppMessage(selected)}
+            </div>
+            <a
+              href={whatsappToRestaurant(selected)}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full bg-green-700/80 hover:bg-green-700 text-white text-[11px] tracking-[0.2em] uppercase py-3.5 transition-opacity hover:opacity-90"
+            >
+              <WhatsAppIcon /> Envoyer au restaurant
+            </a>
           </div>
 
           {/* Actions statut — masqué seulement si annulé par le client */}
@@ -2021,9 +2077,20 @@ export default function RPDashboard({ profile }: Props) {
                             ✦ {bfcSelectedClient.vip_tag}
                           </p>
                         )}
-                        {bfcSelectedClient.internal_note && (
-                          <p className="text-[10px] text-amber-400/60 italic">"{bfcSelectedClient.internal_note}"</p>
-                        )}
+                        {bfcSelectedClient.internal_note && (() => {
+                          const cp = parseClientProfile(bfcSelectedClient.internal_note)
+                          return (
+                            <>
+                              {cp.note && <p className="text-[10px] text-amber-400/60 italic">"{cp.note}"</p>}
+                              <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
+                                {cp.nationality && <span className="text-[9px] text-[#F5F5F3]/30">🌍 {cp.nationality}</span>}
+                                {cp.products.map(p => (
+                                  <span key={p} className="text-[9px] text-amber-400/70">🍾 {p}</span>
+                                ))}
+                              </div>
+                            </>
+                          )
+                        })()}
                       </div>
                     )}
                   </div>
@@ -2751,7 +2818,7 @@ export default function RPDashboard({ profile }: Props) {
                         {STATUS_LABELS[r.status]}
                       </span>
                     </div>
-                    <p className="text-[#F5F5F3]/40 text-xs truncate mb-1">{r.establishment}</p>
+                    <p className="text-[#F5F5F3]/40 text-xs truncate mb-1">{r.establishment}{r.destination ? ` · ${r.destination}` : ''}</p>
                     <div className="flex items-center gap-2 text-[#F5F5F3]/20 text-[10px]">
                       <span>{r.date}</span>
                       <span>·</span>
