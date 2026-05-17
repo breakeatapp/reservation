@@ -44,10 +44,10 @@ export default function LandingPage() {
         if (data.firstName) localStorage.setItem('itinera_guest_name', data.firstName)
         router.push(`/${rp.slug}`)
       } else {
-        setError('No access found. Check your email or contact your RP.')
+        setError('Email non reconnu. Vérifiez votre adresse ou contactez votre concierge.')
       }
     } catch {
-      setError('An error occurred. Please try again.')
+      setError('Erreur réseau. Veuillez réessayer.')
     } finally {
       setLoading(false)
     }

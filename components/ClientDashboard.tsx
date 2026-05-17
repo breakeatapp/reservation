@@ -133,14 +133,46 @@ export default function ClientDashboard({ profile }: Props) {
   const [editGuests, setEditGuests] = useState('')
   const [editNotes, setEditNotes] = useState('')
 
+  // Formulaire email (pour les guests sans session)
+  const [emailInput, setEmailInput] = useState('')
+  const [emailInputLoading, setEmailInputLoading] = useState(false)
+  const [emailInputError, setEmailInputError] = useState('')
+  const [showEmailForm, setShowEmailForm] = useState(false)
+
+  const handleEmailAccess = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const trimmed = emailInput.trim().toLowerCase()
+    if (!trimmed) return
+    setEmailInputLoading(true)
+    setEmailInputError('')
+    try {
+      const res = await fetch(`/api/client/check?email=${encodeURIComponent(trimmed)}&rp=${profile.slug}`)
+      const data = await res.json()
+      if (data.registered) {
+        localStorage.setItem('itinera_guest_email', trimmed)
+        localStorage.setItem('itinera_guest_rp', profile.slug)
+        if (data.clientName) localStorage.setItem('itinera_guest_name', data.clientName.split(' ')[0])
+        // Recharger pour déclencher l'auto-login
+        window.location.reload()
+      } else {
+        setEmailInputError('Adresse email non reconnue. Contactez votre concierge.')
+      }
+    } catch {
+      setEmailInputError('Erreur réseau. Veuillez réessayer.')
+    } finally {
+      setEmailInputLoading(false)
+    }
+  }
+
   // ── Auto-login depuis localStorage ───────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem('itinera_guest_email')
     const savedName = localStorage.getItem('itinera_guest_name')
     const savedRp = localStorage.getItem('itinera_guest_rp')
     if (!saved || savedRp !== profile.slug) {
-      // Pas de session → retour à la landing page
-      router.replace('/')
+      // Pas de session → afficher le formulaire email directement
+      setShowEmailForm(true)
+      setAutoLoginDone(true)
       return
     }
 
@@ -320,6 +352,44 @@ export default function ClientDashboard({ profile }: Props) {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
             </svg>
             <p className="text-[#F5F5F3]/20 text-xs tracking-wider">Reconnexion...</p>
+          </div>
+        </div>
+      )
+    }
+
+    // Pas de session → formulaire email directement sur cette page
+    if (showEmailForm) {
+      return (
+        <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center px-6">
+          <div className="w-full max-w-sm">
+            <div className="text-center mb-10">
+              <p className="text-[9px] tracking-[0.5em] text-[#F5F5F3]/20 uppercase mb-3">✦ Espace privé</p>
+              <h1 className="font-playfair text-3xl text-[#F5F5F3] mb-2">{profile.display_name}</h1>
+              <p className="text-[#F5F5F3]/30 text-xs">Entrez votre email pour accéder à votre espace</p>
+            </div>
+            <form onSubmit={handleEmailAccess} className="space-y-4">
+              <input
+                type="email"
+                value={emailInput}
+                onChange={e => setEmailInput(e.target.value)}
+                placeholder="votre@email.com"
+                autoFocus
+                required
+                className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
+              />
+              {emailInputError && (
+                <p className="text-red-400/70 text-xs text-center border border-red-500/15 bg-red-500/5 px-4 py-3">
+                  {emailInputError}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={emailInputLoading}
+                className="w-full py-4 bg-[#5B3DF5] text-white text-[11px] tracking-[0.3em] uppercase hover:bg-[#4930cc] transition-colors disabled:opacity-40"
+              >
+                {emailInputLoading ? 'Vérification...' : 'Accéder à mon espace →'}
+              </button>
+            </form>
           </div>
         </div>
       )
