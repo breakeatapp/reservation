@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { RPProfile, Reservation, ReservationStatus, RPClientNote } from '@/lib/supabase'
 import { parseVenueEntry, serializeVenueEntry, SERVICES_BY_TYPE, type VenueType } from '@/lib/venue-utils'
+import GlobalAccessModal from './GlobalAccessModal'
 
 type Props = { profile: RPProfile }
 
@@ -168,6 +169,7 @@ export default function RPDashboard({ profile }: Props) {
   const [password, setPassword] = useState('')
   const [authenticated, setAuthenticated] = useState(false)
   const [authError, setAuthError] = useState(false)
+  const [showNetwork, setShowNetwork] = useState(false)
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState<'all' | ReservationStatus>('all')
@@ -2636,6 +2638,14 @@ export default function RPDashboard({ profile }: Props) {
 
   // ── LISTE RÉSERVATIONS ────────────────────────────────────────
   return (
+    <>
+    {showNetwork && (
+      <GlobalAccessModal
+        rpSlug={profile.slug}
+        rpPassword={password}
+        onClose={() => setShowNetwork(false)}
+      />
+    )}
     <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
 
       {/* Header — desktop : 1 ligne / mobile : 2 lignes */}
@@ -2692,14 +2702,11 @@ export default function RPDashboard({ profile }: Props) {
             <span className="text-[8px] tracking-wider uppercase leading-tight">Clients</span>
           </button>
           <button
-            onClick={fetchReservations}
-            className="flex flex-col items-center justify-center gap-1 text-white/70 hover:text-white transition-colors border border-white/15 hover:border-white/40 py-2.5 px-1 text-center"
+            onClick={() => setShowNetwork(true)}
+            className="flex flex-col items-center justify-center gap-1 text-white/70 hover:text-[#5B3DF5] transition-colors border border-white/15 hover:border-[#5B3DF5]/40 py-2.5 px-1 text-center"
           >
-            {loading
-              ? <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-              : <span className="text-base">↻</span>
-            }
-            <span className="text-[8px] tracking-wider uppercase leading-tight">Actualiser</span>
+            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            <span className="text-[8px] tracking-wider uppercase leading-tight">Réseau</span>
           </button>
         </div>
 
@@ -2735,14 +2742,10 @@ export default function RPDashboard({ profile }: Props) {
             👤 Clients
           </button>
           <button
-            onClick={fetchReservations}
-            className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-white/70 hover:text-white transition-colors border border-white/20 hover:border-white/50 px-3 py-2"
+            onClick={() => setShowNetwork(true)}
+            className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-white/70 hover:text-[#5B3DF5] transition-colors border border-white/20 hover:border-[#5B3DF5]/40 px-3 py-2"
           >
-            {loading
-              ? <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-              : '↻'
-            }
-            Actualiser
+            🌐 Réseau
           </button>
         </div>
 
@@ -2834,6 +2837,7 @@ export default function RPDashboard({ profile }: Props) {
         )}
       </div>
     </div>
+    </>
   )
 }
 
