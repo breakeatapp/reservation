@@ -1505,7 +1505,7 @@ export default function RPDashboard({ profile }: Props) {
                 {/* WhatsApp */}
                 <a
                   href={`https://wa.me/?text=${encodeURIComponent(
-                    `Bonjour${lastAddedClient.name ? ` ${lastAddedClient.name.split(' ')[0]}` : ''} 👋\n\nJe vous invite à accéder à votre espace de conciergerie privée.\n\nAccédez directement ici :\n👉 ${process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'}/${profile.slug}/mon-espace\n\nEntrez votre email (${lastAddedClient.email}) pour vous connecter.`
+                    `Bonjour${lastAddedClient.name ? ` ${lastAddedClient.name.split(' ')[0]}` : ''} 👋\n\nJe vous invite à accéder à votre espace de conciergerie privée.\n\nAccédez directement ici :\n👉 ${window.location.origin}/${profile.slug}/mon-espace\n\nEntrez votre email (${lastAddedClient.email}) pour vous connecter.`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -1521,7 +1521,7 @@ export default function RPDashboard({ profile }: Props) {
                 {/* Copier le lien */}
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'}/${profile.slug}/mon-espace`)
+                    navigator.clipboard.writeText(`${window.location.origin}/${profile.slug}/mon-espace`)
                     setInviteLinkCopied(true)
                     setTimeout(() => setInviteLinkCopied(false), 2500)
                   }}

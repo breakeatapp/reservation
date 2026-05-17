@@ -63,8 +63,20 @@ export default function LandingPage() {
   const handleCodeAccess = async (e: React.FormEvent) => {
     e.preventDefault()
     const trimmedEmail = codeEmail.trim().toLowerCase()
-    const trimmedCode = inviteCode.trim().toLowerCase()
+    let trimmedCode = inviteCode.trim().toLowerCase()
     if (!trimmedEmail || !trimmedCode) return
+
+    // Accepter un lien complet (https://itinera.click/honore/mon-espace) → extraire le slug
+    if (trimmedCode.includes('/')) {
+      try {
+        const url = new URL(trimmedCode.startsWith('http') ? trimmedCode : `https://itinera.click/${trimmedCode}`)
+        const slug = url.pathname.split('/').filter(Boolean)[0]
+        if (slug) trimmedCode = slug
+      } catch {
+        trimmedCode = trimmedCode.split('/').filter(Boolean)[0] || trimmedCode
+      }
+    }
+
     setCodeLoading(true)
     setCodeError('')
 

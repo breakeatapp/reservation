@@ -871,11 +871,14 @@ export async function sendClientWelcomeEmail(data: ClientWelcomeData) {
 </body>
 </html>`
 
+  const plainText = `Bonjour${firstName ? ` ${firstName}` : ''},\n\n${rpName} vous a donné accès à votre espace de conciergerie privée sur ITINERA.\n\nConnectez-vous ici : ${loginUrl}\n\nVotre identifiant : ${data.clientEmail}\n\nIl vous suffit d'entrer votre adresse email pour accéder à votre espace.\n\n---\n${rpName} · Conciergerie privée`
+
   await sendEmail({
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.clientEmail],
-    subject: `✦ Votre accès ${rpName} est activé`,
+    subject: `Votre espace de conciergerie est prêt — ${rpName}`,
     html,
+    text: plainText,
     ...(data.rpEmail ? { reply_to: data.rpEmail } : {}),
   })
 }
