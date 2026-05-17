@@ -24,9 +24,16 @@ export default function LandingPage() {
     const savedEmail = localStorage.getItem('itinera_guest_email')
     const savedRp = localStorage.getItem('itinera_guest_rp')
     const savedName = localStorage.getItem('itinera_guest_name')
-    if (savedEmail && savedRp) {
-      setSavedSession({ email: savedEmail, rp: savedRp, name: savedName || savedEmail })
+    // Valider que le slug ne contient pas de point (évite les slugs corrompus comme "itinera.click")
+    const isValidSlug = savedRp && /^[a-z0-9-]+$/.test(savedRp)
+    if (savedEmail && isValidSlug) {
+      setSavedSession({ email: savedEmail, rp: savedRp!, name: savedName || savedEmail })
       router.replace(`/${savedRp}/mon-espace`)
+    } else if (savedRp && !isValidSlug) {
+      // Nettoyer un slug corrompu
+      localStorage.removeItem('itinera_guest_rp')
+      localStorage.removeItem('itinera_guest_email')
+      localStorage.removeItem('itinera_guest_name')
     }
   }, [router])
 
@@ -65,10 +72,11 @@ export default function LandingPage() {
     let trimmedCode = inviteCode.trim().toLowerCase()
     if (!trimmedEmail || !trimmedCode) return
 
-    // Accepter un lien complet (https://itinera.click/honore/mon-espace) → extraire le slug
+    // Accepter un lien complet (itinera.click/honore/mon-espace ou https://...) → extraire le slug
     if (trimmedCode.includes('/')) {
       try {
-        const url = new URL(trimmedCode.startsWith('http') ? trimmedCode : `https://itinera.click/${trimmedCode}`)
+        const fullUrl = trimmedCode.startsWith('http') ? trimmedCode : `https://${trimmedCode}`
+        const url = new URL(fullUrl)
         const slug = url.pathname.split('/').filter(Boolean)[0]
         if (slug) trimmedCode = slug
       } catch {
@@ -265,7 +273,8 @@ export default function LandingPage() {
                         // Extraire le slug depuis une URL complète
                         if (code.includes('/')) {
                           try {
-                            const url = new URL(code.startsWith('http') ? code : `https://itinera.click/${code}`)
+                            const fullUrl = code.startsWith('http') ? code : `https://${code}`
+                            const url = new URL(fullUrl)
                             code = url.pathname.split('/').filter(Boolean)[0] || code
                           } catch {
                             code = code.split('/').filter(Boolean)[0] || code
