@@ -120,6 +120,7 @@ export default function ClientDashboard({ profile }: Props) {
   // Réservations
   const [reservations, setReservations] = useState<ClientReservation[]>([])
   const [resaLoading, setResaLoading] = useState(false)
+  const [resaFilter, setResaFilter] = useState<'all' | 'pending' | 'confirmed' | 'declined'>('all')
 
   // Édition
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -182,7 +183,10 @@ export default function ClientDashboard({ profile }: Props) {
 
   const handleProfileComplete = (e: React.FormEvent) => {
     e.preventDefault()
-    if (profileFirstName.trim()) localStorage.setItem('itinera_guest_name', profileFirstName.trim())
+    if (profileFirstName.trim()) {
+      localStorage.setItem('itinera_guest_name', profileFirstName.trim())
+      setClientFirstName(profileFirstName.trim())
+    }
     if (profileLastName.trim()) localStorage.setItem('itinera_guest_lastname', profileLastName.trim())
     if (profilePhone.trim()) localStorage.setItem('itinera_guest_phone', profilePhone.trim())
     setShowProfileCompletion(false)
@@ -293,21 +297,7 @@ export default function ClientDashboard({ profile }: Props) {
     resetIdentity()
   }
 
-  // ── Auto-redirect vers réservations dès que l'identité est connue ───────────
-  useEffect(() => {
-    if (!autoLoginDone || !email || showEmailForm || screen !== 'home') return
-    const savedPhone = localStorage.getItem('itinera_guest_phone') || ''
-    if (!clientFirstName || !savedPhone) return // profil à compléter en priorité
-    const rpSummary: RPSummary = rpList.find(r => r.slug === profile.slug) ?? {
-      slug: profile.slug,
-      displayName: profile.display_name,
-      accentColor: accent,
-      logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
-      totalCount: 0, pendingCount: 0, confirmedCount: 0,
-    }
-    selectRP(rpSummary)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoLoginDone, email, clientFirstName])
+  // (auto-redirect supprimé — le menu accueil gère la navigation)
 
   // ── Sélection d'un RP → charger ses réservations ─────────────
   const selectRP = async (rp: RPSummary) => {
@@ -571,9 +561,70 @@ export default function ClientDashboard({ profile }: Props) {
       )
     }
 
-    // ── 4. Identifié + profil complet → spinner pendant l'auto-redirect ──
-    // (useEffect appelle selectRP → screen passe à 'reservations')
-    return <Spinner label="Chargement de vos réservations..." />
+    // ── 4. Identifié + profil complet → menu principal ──────────────
+    const goToReservations = () => {
+      const rpSummary: RPSummary = rpList.find(r => r.slug === profile.slug) ?? {
+        slug: profile.slug,
+        displayName: profile.display_name,
+        accentColor: accent,
+        logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
+        totalCount: 0, pendingCount: 0, confirmedCount: 0,
+      }
+      selectRP(rpSummary)
+    }
+
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center px-6">
+        <div className="w-full max-w-sm">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <p className="text-[9px] tracking-[0.5em] text-[#F5F5F3]/20 uppercase mb-3">✦ Espace privé</p>
+            <h1 className="font-playfair text-3xl text-[#F5F5F3] mb-2">{profile.display_name}</h1>
+            <p className="font-playfair text-base text-[#F5F5F3]/30 italic">
+              Bonjour, <span style={{ color: accent }}>{clientFirstName}</span>
+            </p>
+          </div>
+
+          {/* Menu cards */}
+          <div className="space-y-3">
+            {/* Mes réservations */}
+            <button
+              onClick={goToReservations}
+              className="w-full text-left bg-[#141414] border border-white/8 hover:border-white/20 px-6 py-5 transition-all group"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] tracking-[0.35em] uppercase mb-1" style={{ color: accent + 'aa' }}>Espace</p>
+                  <p className="text-[#F5F5F3] text-base font-medium">Mes réservations</p>
+                </div>
+                <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/50 transition-colors text-lg">→</span>
+              </div>
+            </button>
+
+            {/* Mon compte */}
+            <button
+              onClick={() => {
+                setProfileFirstName(clientFirstName)
+                setProfileLastName(localStorage.getItem('itinera_guest_lastname') || '')
+                setProfilePhone(localStorage.getItem('itinera_guest_phone') || '')
+                setProfileEmail(email)
+                setProfileSaved(false)
+                setScreen('profile')
+              }}
+              className="w-full text-left bg-[#141414] border border-white/8 hover:border-white/20 px-6 py-5 transition-all group"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] tracking-[0.35em] uppercase mb-1" style={{ color: accent + 'aa' }}>Compte</p>
+                  <p className="text-[#F5F5F3] text-base font-medium">Mon compte</p>
+                </div>
+                <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/50 transition-colors text-lg">→</span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -584,19 +635,12 @@ export default function ClientDashboard({ profile }: Props) {
       <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
         <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/8 px-4 py-4 flex items-center gap-3">
           <button
-            onClick={() => {
-              const rpSummary: RPSummary = rpList.find(r => r.slug === profile.slug) ?? {
-                slug: profile.slug, displayName: profile.display_name,
-                accentColor: accent, logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
-                totalCount: 0, pendingCount: 0, confirmedCount: 0,
-              }
-              selectRP(rpSummary)
-            }}
+            onClick={() => setScreen('home')}
             className="flex items-center gap-2 text-white font-semibold transition-colors text-sm border border-white/40 hover:border-white/70 bg-white/5 hover:bg-white/10 px-4 py-2"
           >
-            ← Mes réservations
+            ← Retour
           </button>
-          <p className="text-[10px] tracking-[0.3em] uppercase" style={{ color: accent }}>Mon profil</p>
+          <p className="text-[10px] tracking-[0.3em] uppercase" style={{ color: accent }}>Mon compte</p>
         </div>
 
         <div className="max-w-md mx-auto px-5 py-10 space-y-4">
@@ -665,6 +709,45 @@ export default function ClientDashboard({ profile }: Props) {
           >
             Enregistrer
           </button>
+
+          {/* Déconnexion + Suppression */}
+          <div className="pt-6 border-t border-white/8 mt-6 space-y-2">
+            <button
+              onClick={resetIdentity}
+              className="w-full py-3.5 text-[#F5F5F3]/30 hover:text-[#F5F5F3]/60 text-[11px] tracking-[0.3em] uppercase transition-colors border border-white/8 hover:border-white/20"
+            >
+              Se déconnecter
+            </button>
+
+            {!deleteConfirm ? (
+              <button
+                onClick={() => setDeleteConfirm(true)}
+                className="w-full py-3 text-[10px] tracking-[0.2em] uppercase border border-white/5 text-[#F5F5F3]/15 hover:border-red-500/20 hover:text-red-400/40 transition-all"
+              >
+                🗑 Supprimer mon compte
+              </button>
+            ) : (
+              <div className="border border-red-500/20 bg-red-500/5 p-4 space-y-3">
+                <p className="text-red-400/70 text-sm text-center font-medium">Supprimer définitivement votre compte ?</p>
+                <p className="text-[#F5F5F3]/25 text-xs text-center">Toutes vos données seront effacées. Action irréversible.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setDeleteConfirm(false)}
+                    className="py-2.5 text-[10px] tracking-[0.15em] uppercase border border-white/10 text-[#F5F5F3]/30 hover:border-white/20 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={deleteLoading}
+                    className="py-2.5 text-[10px] tracking-[0.15em] uppercase bg-red-500/80 hover:bg-red-500 text-white transition-colors disabled:opacity-40"
+                  >
+                    {deleteLoading ? '...' : 'Confirmer'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -676,29 +759,16 @@ export default function ClientDashboard({ profile }: Props) {
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
 
-      <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/8 px-4 py-4 flex items-center gap-3">
+      <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-5 py-3 flex items-center gap-2">
         <button
-          onClick={() => router.push(`/${profile.slug}`)}
-          className="flex items-center gap-2 text-white font-semibold transition-colors text-sm border border-white/40 hover:border-white/70 bg-white/5 hover:bg-white/10 px-4 py-2 flex-shrink-0"
+          onClick={() => setScreen('home')}
+          className="flex items-center gap-2 hover:opacity-60 transition-opacity flex-shrink-0"
         >
-          ← {profile.display_name}
+          <span className="text-white/25 text-sm leading-none">←</span>
+          <span className="font-playfair italic text-white/85 text-xl leading-none">{profile.display_name}</span>
         </button>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm text-white/75 truncate">{clientFirstName || email}</p>
-        </div>
-        <button
-          onClick={() => {
-            setProfileFirstName(clientFirstName)
-            setProfileLastName(localStorage.getItem('itinera_guest_lastname') || '')
-            setProfilePhone(localStorage.getItem('itinera_guest_phone') || '')
-            setProfileEmail(email)
-            setProfileSaved(false)
-            setScreen('profile')
-          }}
-          className="flex-shrink-0 text-[#F5F5F3]/30 hover:text-[#F5F5F3]/70 transition-colors text-[10px] tracking-[0.15em] uppercase border border-white/10 hover:border-white/25 px-3 py-2"
-        >
-          Mon profil
-        </button>
+        <span className="text-white/15 text-base flex-shrink-0">·</span>
+        <p className="font-playfair italic text-lg text-white/35 truncate capitalize flex-1">{clientFirstName}</p>
         {resaLoading && (
           <svg className="animate-spin w-4 h-4 text-[#F5F5F3]/20 flex-shrink-0" viewBox="0 0 24 24" fill="none">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -719,6 +789,46 @@ export default function ClientDashboard({ profile }: Props) {
             {error}
           </div>
         )}
+
+        {/* Onglets filtre par statut — comme le dashboard RP */}
+        {!resaLoading && reservations.length > 0 && (() => {
+          const counts = {
+            all: reservations.length,
+            pending: reservations.filter(r => r.status === 'pending').length,
+            confirmed: reservations.filter(r => r.status === 'confirmed').length,
+            declined: reservations.filter(r => r.status === 'declined').length,
+          }
+          return (
+            <div className="grid grid-cols-4 border border-white/5 mb-5 -mx-4">
+              {(['all', 'pending', 'confirmed', 'declined'] as const).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setResaFilter(s)}
+                  className={`py-4 text-center transition-all border-b-2 ${resaFilter === s ? 'border-[#5B3DF5] bg-[#5B3DF5]/5' : 'border-transparent hover:bg-white/3'}`}
+                >
+                  <div className={`text-2xl font-light ${
+                    resaFilter === s ? 'text-white' :
+                    s === 'pending' ? 'text-amber-300/80' :
+                    s === 'confirmed' ? 'text-green-300/80' :
+                    s === 'declined' ? 'text-red-300/60' :
+                    'text-white/70'
+                  }`}>
+                    {counts[s]}
+                  </div>
+                  <div className={`text-[8px] tracking-wider uppercase mt-0.5 ${
+                    resaFilter === s ? 'text-white/70' :
+                    s === 'pending' ? 'text-amber-300/50' :
+                    s === 'confirmed' ? 'text-green-300/50' :
+                    s === 'declined' ? 'text-red-300/40' :
+                    'text-white/40'
+                  }`}>
+                    {s === 'all' ? 'Total' : s === 'pending' ? 'En attente' : s === 'confirmed' ? 'Confirmé' : 'Refusé'}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )
+        })()}
 
         {resaLoading ? (
           <div className="flex items-center justify-center h-40 text-[#F5F5F3]/20 text-sm">Chargement…</div>
@@ -749,12 +859,17 @@ export default function ClientDashboard({ profile }: Props) {
           </div>
         ) : (
           <>
-            <p className="text-white/65 text-sm mb-5">
-              {reservations.length} réservation{reservations.length > 1 ? 's' : ''}
-            </p>
-
+            {(() => {
+              const filtered = resaFilter === 'all' ? reservations : reservations.filter(r => r.status === resaFilter)
+              if (filtered.length === 0) return (
+                <div className="flex flex-col items-center justify-center h-40 gap-3 text-center">
+                  <span className="text-3xl opacity-10">✦</span>
+                  <p className="text-[#F5F5F3]/20 text-sm">Aucune réservation dans ce filtre.</p>
+                </div>
+              )
+              return (
             <div className="space-y-4">
-              {reservations.map(r => {
+              {filtered.map(r => {
                 const cfg = STATUS_CONFIG[r.status] ?? STATUS_CONFIG.declined
                 const isEditing = editingId === r.id
                 const isConfirmingCancel = cancelConfirmId === r.id
@@ -762,11 +877,19 @@ export default function ClientDashboard({ profile }: Props) {
                 return (
                   <div key={r.id} className={`border ${cfg.border} ${cfg.bg}`}>
 
-                    <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5">
+                    {/* Status bar */}
+                    <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/5">
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${cfg.dot}`} />
                       <div className="flex-1">
                         <p className={`text-xs font-medium ${cfg.color}`}>{cfg.label}</p>
                         <p className="text-[#F5F5F3]/20 text-[10px]">{cfg.sublabel}</p>
+                      </div>
+                      {/* RP tag */}
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <span className="text-[8px] tracking-[0.2em] uppercase text-[#F5F5F3]/20">via</span>
+                        <span className="font-playfair italic text-sm leading-none" style={{ color: accent + 'cc' }}>
+                          {profile.display_name}
+                        </span>
                       </div>
                     </div>
 
@@ -815,6 +938,26 @@ export default function ClientDashboard({ profile }: Props) {
                               )}
                             </div>
                           )}
+
+                          {/* WhatsApp direct RP */}
+                          {r.status !== 'cancelled' && (() => {
+                            const waPhone = profile.whatsapp?.replace(/[^0-9]/g, '') || ''
+                            const waText = encodeURIComponent(`Bonjour ${profile.display_name}, je souhaitais vous contacter concernant ma réservation chez ${r.establishment} le ${r.date}.`)
+                            const waHref = waPhone
+                              ? `https://wa.me/${waPhone}?text=${waText}`
+                              : `https://wa.me/?text=${waText}`
+                            return (
+                              <a
+                                href={waHref}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-2 w-full mt-3 py-3 border border-[#25D366]/20 text-[#25D366]/60 text-[10px] tracking-[0.2em] uppercase hover:bg-[#25D366]/5 hover:border-[#25D366]/35 hover:text-[#25D366]/80 transition-all"
+                              >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.534 5.858L0 24l6.335-1.512A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.003-1.368l-.36-.214-3.722.888.923-3.63-.235-.374A9.818 9.818 0 0 1 2.182 12c0-5.42 4.398-9.818 9.818-9.818 5.42 0 9.818 4.398 9.818 9.818 0 5.42-4.398 9.818-9.818 9.818z"/></svg>
+                                Contacter {profile.display_name}
+                              </a>
+                            )
+                          })()}
                         </>
                       ) : isConfirmingCancel ? (
                         <div className="space-y-4">
@@ -893,15 +1036,9 @@ export default function ClientDashboard({ profile }: Props) {
                 )
               })}
             </div>
+              )
+            })()}
 
-            <div className="mt-8 pt-6 border-t border-white/5">
-              <Link href={`/${profile.slug}/book`}
-                className="flex items-center justify-center gap-3 border border-white/12 hover:border-white/25 py-4 transition-colors text-center w-full"
-                style={{ color: accent + 'cc' }}>
-                <span className="text-lg">🍽️</span>
-                <span className="text-[11px] tracking-[0.2em] uppercase">Faire une réservation unique</span>
-              </Link>
-            </div>
           </>
         )}
       </div>

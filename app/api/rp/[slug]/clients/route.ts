@@ -128,3 +128,27 @@ export async function POST(
 
   return NextResponse.json({ ...data, welcomeEmailSent: emailSent, emailError: emailError || undefined })
 }
+
+// ── DELETE /api/rp/[slug]/clients ────────────────────────────────────────────
+// Supprime la fiche d'un client (email passé en query param)
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { slug: string } }
+) {
+  const { slug } = params
+  if (!(await auth(req, slug))) {
+    return NextResponse.json({ error: 'Non autorisé.' }, { status: 401 })
+  }
+
+  const email = req.nextUrl.searchParams.get('email')
+  if (!email) return NextResponse.json({ error: 'Email requis.' }, { status: 400 })
+
+  const { error } = await supabaseAdmin
+    .from('rp_client_notes')
+    .delete()
+    .eq('rp_slug', slug)
+    .eq('client_email', email.toLowerCase())
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ success: true })
+}

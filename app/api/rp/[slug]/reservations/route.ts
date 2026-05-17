@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { getRPProfile } from '@/lib/rp'
-import { sendStatusUpdateEmailToClient } from '@/lib/email'
+import { sendStatusUpdateEmailToClient, sendRPModificationToClient } from '@/lib/email'
 
 const supabase = supabaseAdmin
 
@@ -75,6 +75,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 
   // ── Mise à jour des champs de la réservation (modification RP) ──
   if (establishment !== undefined || date !== undefined || time !== undefined || guests !== undefined) {
+    // Récupérer la réservation AVANT modification pour l'email
+    const { data: beforeUpdate } = await supabase
+      .from('reservations')
+      .select('*')
+      .eq('id', id)
+      .single()
+
     const updateData: Record<string, unknown> = {}
     if (establishment) updateData.establishment = establishment
     if (date) updateData.date = date
@@ -88,6 +95,29 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       .eq('rp_slug', params.slug)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // Envoyer email au client pour l'informer de la modification (non-bloquant)
+    if (beforeUpdate) {
+      try {
+        const rpProfile = await getRPProfile(params.slug)
+        await sendRPModificationToClient({
+          firstName: beforeUpdate.first_name,
+          email: beforeUpdate.email,
+          establishment: establishment || beforeUpdate.establishment,
+          destination: beforeUpdate.destination,
+          originalDate: beforeUpdate.date,
+          newDate: date || undefined,
+          newTime: time || undefined,
+          newGuests: guests ? parseInt(guests) : undefined,
+          rpDisplayName: rpProfile?.display_name,
+          rpWhatsapp: rpProfile?.whatsapp,
+          rpEmail: rpProfile?.email,
+        })
+      } catch (emailErr) {
+        console.error('Email notification modification RP (non-bloquant):', emailErr)
+      }
+    }
+
     return NextResponse.json({ success: true })
   }
 

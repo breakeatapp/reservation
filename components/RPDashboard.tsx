@@ -200,6 +200,8 @@ export default function RPDashboard({ profile }: Props) {
   const [editClientNote, setEditClientNote] = useState('')
   const [savingClientProfile, setSavingClientProfile] = useState(false)
   const [resendingWelcome, setResendingWelcome] = useState<string | null>(null)
+  const [deletingClient, setDeletingClient] = useState(false)
+  const [deleteClientConfirm, setDeleteClientConfirm] = useState(false)
 
   // Ajout client
   const [addClientOpen, setAddClientOpen] = useState(false)
@@ -361,6 +363,7 @@ export default function RPDashboard({ profile }: Props) {
       loadClientNote(selected.email)
       setNoteSaved(false)
       setEditingResa(false)
+      setDeleteClientConfirm(false)
       setResaEdit({ venue: selected.establishment, date: '', time: selected.time, guests: String(selected.guests) })
     }
   }, [selected, loadClientNote])
@@ -519,7 +522,7 @@ export default function RPDashboard({ profile }: Props) {
           <div className="bg-[#141414] border border-white/5 p-5">
             <div className="flex items-start justify-between mb-3">
               <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">Réservation</p>
-              {selected.status === 'pending' && !editingResa && (
+              {selected.status !== 'cancelled' && !editingResa && (
                 <button
                   onClick={() => {
                     setResaEdit({ venue: selected.establishment, date: '', time: selected.time, guests: String(selected.guests) })
@@ -694,6 +697,66 @@ export default function RPDashboard({ profile }: Props) {
                 {clientNote.total_resas} réservation{clientNote.total_resas > 1 ? 's' : ''} au total avec ce RP
               </p>
             )}
+
+            {/* ── Bloquer / Supprimer ── */}
+            <div className="mt-5 pt-4 border-t border-white/5 space-y-2">
+              {/* Blacklister */}
+              <button
+                onClick={() => {
+                  setEditVipTag('Blacklist')
+                  setTimeout(() => saveClientNote(), 50)
+                }}
+                disabled={savingNote || editVipTag === 'Blacklist'}
+                className="w-full py-2.5 text-[9px] tracking-[0.2em] uppercase border border-red-500/15 text-red-400/40 hover:bg-red-500/5 hover:border-red-500/30 hover:text-red-400/70 transition-all disabled:opacity-25"
+              >
+                {editVipTag === 'Blacklist' ? '✕ Client blacklisté' : '✕ Blacklister ce client'}
+              </button>
+
+              {/* Supprimer la fiche */}
+              {!deleteClientConfirm ? (
+                <button
+                  onClick={() => setDeleteClientConfirm(true)}
+                  className="w-full py-2.5 text-[9px] tracking-[0.2em] uppercase border border-white/5 text-[#F5F5F3]/15 hover:border-red-500/20 hover:text-red-400/30 transition-all"
+                >
+                  🗑 Supprimer la fiche client
+                </button>
+              ) : (
+                <div className="border border-red-500/20 bg-red-500/5 p-3 space-y-2">
+                  <p className="text-red-400/70 text-xs text-center">Supprimer définitivement la fiche de {selected.first_name} {selected.last_name} ?</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setDeleteClientConfirm(false)}
+                      className="py-2 text-[9px] tracking-[0.15em] uppercase border border-white/10 text-[#F5F5F3]/30 hover:border-white/20 transition-colors"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      disabled={deletingClient}
+                      onClick={async () => {
+                        setDeletingClient(true)
+                        try {
+                          await fetch(`/api/rp/${profile.slug}/clients?email=${encodeURIComponent(selected.email)}`, {
+                            method: 'DELETE',
+                            headers: { 'x-rp-password': password },
+                          })
+                          setClientNote(null)
+                          setClientNotes(prev => {
+                            const next = { ...prev }
+                            delete next[selected.email.toLowerCase()]
+                            return next
+                          })
+                          setDeleteClientConfirm(false)
+                        } catch { /* ignore */ }
+                        finally { setDeletingClient(false) }
+                      }}
+                      className="py-2 text-[9px] tracking-[0.15em] uppercase bg-red-500/80 hover:bg-red-500 text-white transition-colors disabled:opacity-40"
+                    >
+                      {deletingClient ? '...' : 'Confirmer'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* WhatsApp */}
@@ -918,14 +981,24 @@ export default function RPDashboard({ profile }: Props) {
     if (configDests.includes(slug)) return
     const isExisting = configDests.some(raw => { try { return JSON.parse(raw).slug === slug } catch { return false } })
     if (isExisting) return
-    const entry = JSON.stringify({ slug, name, country: newCityCountry.trim() || '', emoji: '📍' })
+    const entry = JSON.stringify({ slug, name, country: newCityCountry.trim() || '', emoji: '📍', active: true })
     setConfigDests(prev => [...prev, entry])
     setNewCityName('')
     setNewCityCountry('')
   }
 
-  const removeCustomCity = (entry: string) => {
-    setConfigDests(prev => prev.filter(d => d !== entry))
+  const toggleCustomCity = (slug: string) => {
+    setConfigDests(prev => prev.map(d => {
+      try {
+        const p = JSON.parse(d)
+        if (p?.slug !== slug) return d
+        return JSON.stringify({ ...p, active: p.active === false })
+      } catch { return d }
+    }))
+  }
+
+  const removeCustomCity = (raw: string) => {
+    setConfigDests(prev => prev.filter(d => d !== raw))
   }
 
   const addCustomVenue = () => {
@@ -1083,27 +1156,33 @@ export default function RPDashboard({ profile }: Props) {
                 )
               })}
 
-              {/* Villes personnalisées — même style que les prédéfinies, clic = supprimer */}
+              {/* Villes personnalisées — même comportement que les prédéfinies */}
               {configDests.map(raw => {
-                let city: { slug: string; name: string; country?: string; emoji?: string } | null = null
+                let city: { slug: string; name: string; country?: string; emoji?: string; active?: boolean } | null = null
                 try { const p = JSON.parse(raw); if (p?.slug && p?.name) city = p } catch {}
                 if (!city) return null
+                const isActive = city.active !== false
+                const citySlug = city.slug
                 return (
                   <button
-                    key={raw}
+                    key={citySlug}
                     type="button"
-                    onClick={() => removeCustomCity(raw)}
-                    title="Cliquer pour désactiver cette ville"
-                    className="flex items-center gap-3 p-3 border border-[#5B3DF5]/50 bg-[#5B3DF5]/8 text-[#F5F5F3] text-left transition-all hover:border-red-400/40 hover:bg-red-400/5 group"
+                    onClick={() => toggleCustomCity(citySlug)}
+                    className={`flex items-center gap-3 p-3 border text-left transition-all ${
+                      isActive
+                        ? 'border-[#5B3DF5]/50 bg-[#5B3DF5]/8 text-[#F5F5F3]'
+                        : 'border-white/5 text-[#F5F5F3]/30 hover:border-white/15'
+                    }`}
                   >
                     <span className="text-lg">{city.emoji || '📍'}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{city.name}</p>
                       {city.country && <p className="text-[9px] text-[#F5F5F3]/30 truncate">{city.country}</p>}
                     </div>
-                    <div className="w-4 h-4 flex-shrink-0 border border-[#5B3DF5] bg-[#5B3DF5] flex items-center justify-center group-hover:border-red-400/60 group-hover:bg-red-400/10 transition-all">
-                      <span className="text-white text-[10px] group-hover:hidden">✓</span>
-                      <span className="text-red-400/80 text-[10px] hidden group-hover:block">×</span>
+                    <div className={`w-4 h-4 flex-shrink-0 border flex items-center justify-center ${
+                      isActive ? 'border-[#5B3DF5] bg-[#5B3DF5]' : 'border-white/15'
+                    }`}>
+                      {isActive && <span className="text-white text-[10px]">✓</span>}
                     </div>
                   </button>
                 )
@@ -1113,6 +1192,29 @@ export default function RPDashboard({ profile }: Props) {
             <p className="text-[#F5F5F3]/20 text-[10px] mt-3">
               Si aucune destination n'est sélectionnée, toutes sont accessibles.
             </p>
+
+            {/* Supprimer une ville custom — section séparée, hors de la grille */}
+            {configDests.some(raw => { try { const p = JSON.parse(raw); return !!(p?.slug && p?.name) } catch { return false } }) && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {configDests.map(raw => {
+                  let city: { slug: string; name: string } | null = null
+                  try { const p = JSON.parse(raw); if (p?.slug && p?.name) city = p } catch {}
+                  if (!city) return null
+                  return (
+                    <button
+                      key={city.slug}
+                      type="button"
+                      onClick={() => removeCustomCity(raw)}
+                      className="flex items-center gap-1.5 text-[9px] text-[#F5F5F3]/25 hover:text-red-400/60 border border-white/8 hover:border-red-400/20 px-2 py-1 transition-colors"
+                    >
+                      <span>{city.name}</span>
+                      <span>✕</span>
+                    </button>
+                  )
+                })}
+                <p className="w-full text-[9px] text-[#F5F5F3]/15 mt-0.5">Cliquez sur une ville pour la supprimer définitivement</p>
+              </div>
+            )}
 
             {/* ── Ajouter une ville ── */}
             <div className="mt-4 pt-4 border-t border-white/5">
@@ -1745,7 +1847,7 @@ export default function RPDashboard({ profile }: Props) {
   if (mainView === 'book-for-client') {
     // Destinations actives
     const activeDests = configDests.map(raw => {
-      try { const p = JSON.parse(raw); if (p?.slug) return { slug: p.slug, name: p.name, emoji: p.emoji || '📍' } } catch {}
+      try { const p = JSON.parse(raw); if (p?.slug && p.active !== false) return { slug: p.slug, name: p.name, emoji: p.emoji || '📍' } } catch {}
       return ALL_DESTINATIONS.find(d => d.slug === raw) || null
     }).filter(Boolean) as { slug: string; name: string; emoji: string }[]
 
@@ -1786,6 +1888,7 @@ export default function RPDashboard({ profile }: Props) {
             establishment: bfcVenue, date: bfcDate, time: bfcTime,
             guests: bfcGuests, occasion: bfcOccasion, seating: bfcSeating,
             specialRequests: bfcNotes, rpSlug: profile.slug,
+            vipLevel: bfcSelectedClient?.vip_tag || '',
           }),
         })
         setBfcDone(res.ok ? 'success' : 'error')
@@ -1887,12 +1990,27 @@ export default function RPDashboard({ profile }: Props) {
                 />
                 {/* Client sélectionné */}
                 {bfcSelectedClient && (
-                  <div className="flex items-center justify-between bg-[#5B3DF5]/8 border border-[#5B3DF5]/30 px-3 py-2 mb-2">
-                    <div>
-                      <p className="text-sm text-[#F5F5F3]">{bfcSelectedClient.client_name || bfcSelectedClient.client_email}</p>
-                      <p className="text-[10px] text-[#F5F5F3]/40">{bfcSelectedClient.client_email}{bfcSelectedClient.vip_tag ? ` · ${bfcSelectedClient.vip_tag}` : ''}</p>
+                  <div className="bg-[#5B3DF5]/8 border border-[#5B3DF5]/30 px-3 py-3 mb-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <div>
+                        <p className="text-sm text-[#F5F5F3]">{bfcSelectedClient.client_name || bfcSelectedClient.client_email}</p>
+                        <p className="text-[10px] text-[#F5F5F3]/40">{bfcSelectedClient.client_email}</p>
+                      </div>
+                      <button type="button" onClick={() => setBfcSelectedClient(null)} className="text-[#F5F5F3]/25 hover:text-[#F5F5F3]/60 text-sm transition-colors ml-3">✕</button>
                     </div>
-                    <button type="button" onClick={() => setBfcSelectedClient(null)} className="text-[#F5F5F3]/25 hover:text-[#F5F5F3]/60 text-sm transition-colors ml-3">✕</button>
+                    {/* Notes internes du client */}
+                    {(bfcSelectedClient.vip_tag || bfcSelectedClient.internal_note) && (
+                      <div className="mt-2 pt-2 border-t border-[#5B3DF5]/15 space-y-1">
+                        {bfcSelectedClient.vip_tag && (
+                          <p className="text-[9px] tracking-[0.2em] uppercase" style={{ color: VIP_COLORS[bfcSelectedClient.vip_tag] || '#F5F5F3' }}>
+                            ✦ {bfcSelectedClient.vip_tag}
+                          </p>
+                        )}
+                        {bfcSelectedClient.internal_note && (
+                          <p className="text-[10px] text-amber-400/60 italic">"{bfcSelectedClient.internal_note}"</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
                 {/* Liste filtrée */}

@@ -144,14 +144,14 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
     const savedEmail = localStorage.getItem('itinera_guest_email')
     const savedRp = localStorage.getItem('itinera_guest_rp')
     const savedName = localStorage.getItem('itinera_guest_name')
+    const savedLastName = localStorage.getItem('itinera_guest_lastname')
+    const savedPhone = localStorage.getItem('itinera_guest_phone')
     if (savedEmail && savedRp === rpSlug) {
       setAccessEmail(savedEmail)
       setValue('email', savedEmail)
-      if (savedName) {
-        const parts = savedName.split(' ')
-        setValue('firstName', parts[0] || '')
-        setValue('lastName', parts.slice(1).join(' ') || '')
-      }
+      if (savedName) setValue('firstName', savedName)
+      if (savedLastName) setValue('lastName', savedLastName)
+      if (savedPhone) setValue('phone', savedPhone)
       setAccessStep('form')
     }
   }, [rpSlug, setValue])

@@ -35,31 +35,47 @@ export async function POST(req: NextRequest) {
 
     // Save to Supabase (non-bloquant — n'empêche pas l'email si erreur)
     let supabaseError: string | null = null
+
+    const baseInsert = {
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone,
+      establishment,
+      destination,
+      date: formattedDate,
+      time,
+      guests: parseInt(guests),
+      occasion: occasion || '',
+      seating: seating || '',
+      vip_level: '',      // défini par le RP dans son dashboard
+      budget_level: '',   // défini par le RP dans son dashboard
+      special_requests: specialRequests || '',
+      status: 'pending',
+      establishment_phone: est?.phone || '',
+      establishment_email: est?.email || '',
+      rp_slug: rpSlug || '',  // rattacher au RP
+    }
+
     try {
+      // Tentative avec nationality (colonne optionnelle ajoutée après le schéma initial)
       const { error: sbError } = await supabase.from('reservations').insert({
-        first_name: firstName,
-        last_name: lastName,
-        email,
-        phone,
-        establishment,
-        destination,
-        date: formattedDate,
-        time,
-        guests: parseInt(guests),
-        occasion: occasion || '',
-        seating: seating || '',
-        vip_level: '',      // défini par le RP dans son dashboard
-        budget_level: '',   // défini par le RP dans son dashboard
+        ...baseInsert,
         nationality: nationality || '',
-        special_requests: specialRequests || '',
-        status: 'pending',
-        establishment_phone: est?.phone || '',
-        establishment_email: est?.email || '',
-        rp_slug: rpSlug || '',  // rattacher au RP
       })
       if (sbError) {
-        supabaseError = sbError.message
-        console.error('Supabase insert error:', sbError.message, sbError.details, sbError.hint)
+        // Si l'erreur est liée à la colonne nationality manquante → réessayer sans
+        if (sbError.message?.includes('nationality') || sbError.code === '42703') {
+          console.warn('Colonne nationality manquante — insert sans nationality')
+          const { error: sbError2 } = await supabase.from('reservations').insert(baseInsert)
+          if (sbError2) {
+            supabaseError = sbError2.message
+            console.error('Supabase insert error (fallback):', sbError2.message, sbError2.details, sbError2.hint)
+          }
+        } else {
+          supabaseError = sbError.message
+          console.error('Supabase insert error:', sbError.message, sbError.details, sbError.hint)
+        }
       }
     } catch (sbErr) {
       supabaseError = String(sbErr)
@@ -77,6 +93,24 @@ export async function POST(req: NextRequest) {
       rpWhatsapp = rpProfile?.whatsapp
     } catch { /* non-bloquant */ }
 
+    // Récupérer la fiche client (VIP tag + note interne) pour enrichir l'email RP
+    let clientVipTag = ''
+    let clientInternalNote = ''
+    if (rpSlug && email) {
+      try {
+        const { data: clientNote } = await supabase
+          .from('rp_client_notes')
+          .select('vip_tag, internal_note')
+          .eq('rp_slug', rpSlug)
+          .eq('client_email', email.toLowerCase())
+          .single()
+        if (clientNote) {
+          clientVipTag = clientNote.vip_tag || ''
+          clientInternalNote = clientNote.internal_note || ''
+        }
+      } catch { /* non-bloquant */ }
+    }
+
     // Send email notification to RP
     await sendReservationEmail({
       firstName, lastName, email, phone,
@@ -92,6 +126,8 @@ export async function POST(req: NextRequest) {
       establishmentPhone: est?.phone || '',
       rpEmail,
       rpDisplayName,
+      vipLevel: clientVipTag || undefined,
+      internalNote: clientInternalNote || undefined,
     })
 
     // Send client confirmation email (non-blocking)

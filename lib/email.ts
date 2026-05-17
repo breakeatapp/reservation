@@ -166,7 +166,7 @@ export async function sendTripSummaryEmail(data: TripData) {
   await sendEmail({
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [toRp],
-    subject: `🗺️ Voyage — ${data.firstName} ${data.lastName} · ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''}`,
+    subject: `ITINERA · 🗺️ Voyage — ${data.firstName} ${data.lastName} · ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''}`,
     html,
     reply_to: data.email,
   })
@@ -272,6 +272,7 @@ export type ReservationData = {
   occasion?: string
   seating?: string
   vipLevel?: string
+  internalNote?: string
   budgetLevel?: string
   specialRequests?: string
   establishment: string
@@ -343,9 +344,13 @@ export async function sendReservationEmail(data: ReservationData) {
         </div>
         ${data.occasion ? `<div class="info-item"><label>Occasion</label><span>${data.occasion}</span></div>` : ''}
         ${data.seating ? `<div class="info-item"><label>Placement</label><span>${data.seating}</span></div>` : ''}
-        ${data.vipLevel ? `<div class="info-item"><label>Profil VIP</label><span style="color:#C8A96B">${data.vipLevel}</span></div>` : ''}
+        ${data.vipLevel ? `<div class="info-item"><label>Profil VIP</label><span style="color:#C8A96B">✦ ${data.vipLevel}</span></div>` : ''}
         ${data.budgetLevel ? `<div class="info-item"><label>Budget</label><span>${data.budgetLevel}</span></div>` : ''}
       </div>
+      ${data.internalNote ? `
+      <p class="section-title">Note privée client</p>
+      <div class="special" style="border-left-color:#C8A96B; color:#c4a96b;">"${data.internalNote}"</div>
+      ` : ''}
 
       <p class="section-title">Client</p>
       <div class="info-grid">
@@ -372,22 +377,10 @@ export async function sendReservationEmail(data: ReservationData) {
       <div class="special">"${data.specialRequests}"</div>
       ` : ''}
 
-      <p class="section-title">Contact établissement</p>
-      <div class="info-grid">
-        <div class="info-item">
-          <label>Téléphone</label>
-          <span>${data.establishmentPhone}</span>
-        </div>
-        <div class="info-item">
-          <label>Email</label>
-          <span>${data.establishmentEmail}</span>
-        </div>
-      </div>
-
-      <div style="text-align: center; margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+      <div style="text-align: center; margin-top: 32px;">
         <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, j'ai bien reçu votre demande de réservation chez ${data.establishment}.`)}"
-           class="whatsapp-btn" style="background:#25D366;">
-          💬 WhatsApp ${data.firstName}
+           class="whatsapp-btn" style="background:#25D366; padding: 14px 36px; font-size: 13px; letter-spacing: 1px;">
+          💬 Envoyer à mon contact
         </a>
       </div>
     </div>
@@ -403,7 +396,7 @@ export async function sendReservationEmail(data: ReservationData) {
   await sendEmail({
     from: `${managerName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [managerEmail],
-    subject: `🥂 Réservation — ${data.establishment} · ${data.date} · ${data.firstName} ${data.lastName}`,
+    subject: `ITINERA · 🥂 ${data.firstName} ${data.lastName} — ${data.establishment}${data.destination ? ` · ${data.destination}` : ''} · ${data.date}`,
     html: htmlContent,
     reply_to: data.email,
   })
@@ -565,7 +558,7 @@ export async function sendClientConfirmationEmail(data: ReservationData) {
   await sendEmail({
     from: `${managerName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
-    subject: `✦ Demande reçue — ${data.establishment} · ${data.date}`,
+    subject: `✦ Demande reçue — ${data.establishment}${data.destination ? ` · ${data.destination}` : ''} · ${data.date}`,
     html: clientHtml,
   })
 }
@@ -659,10 +652,86 @@ export async function sendModificationEmailToRP(data: ModificationData) {
     from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [toAddress],
     subject: isCancel
-      ? `✕ Annulation — ${data.establishment} · ${data.firstName} ${data.lastName}`
-      : `✎ Modification — ${data.establishment} · ${data.firstName} ${data.lastName}`,
+      ? `ITINERA · ✕ Annulation — ${data.establishment} · ${data.firstName} ${data.lastName}`
+      : `ITINERA · ✎ Modification — ${data.establishment} · ${data.firstName} ${data.lastName}`,
     html,
     reply_to: data.email,
+  })
+}
+
+// ── Email au CLIENT quand le RP modifie sa réservation ──────────────────────
+export type RPModificationData = {
+  firstName: string
+  email: string
+  establishment: string
+  destination: string
+  originalDate: string
+  newDate?: string
+  newTime?: string
+  newGuests?: number
+  rpDisplayName?: string
+  rpWhatsapp?: string
+  rpEmail?: string
+}
+
+export async function sendRPModificationToClient(data: RPModificationData) {
+  const rpName = data.rpDisplayName || process.env.MANAGER_NAME || 'ITINERA'
+
+  const changes = [
+    data.newDate ? `📅 Nouvelle date : <strong>${data.newDate}</strong>` : '',
+    data.newTime ? `🕐 Nouveau service : <strong>${data.newTime}</strong>` : '',
+    data.newGuests ? `👥 Personnes : <strong>${data.newGuests}</strong>` : '',
+  ].filter(Boolean)
+
+  const whatsappLink = data.rpWhatsapp
+    ? `https://wa.me/${data.rpWhatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Bonjour, j'ai une question concernant ma réservation modifiée chez ${data.establishment}.`)}`
+    : null
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: Georgia, serif; background: #0a0a0a; color: #f5f0e8; margin: 0; padding: 0;">
+  <div style="max-width: 600px; margin: 0 auto; background: #141414;">
+    <div style="background: linear-gradient(135deg, #0a0a0a, #1e1e1e); padding: 40px; text-align: center; border-bottom: 2px solid #5B3DF5;">
+      <div style="color: #5B3DF5; font-size: 10px; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 10px;">✎ Réservation mise à jour</div>
+      <h1 style="color: #f5f0e8; font-size: 24px; margin: 0; font-style: italic;">Votre réservation a été modifiée</h1>
+    </div>
+    <div style="padding: 36px 40px;">
+      <p style="color: #d4d4d4; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+        Bonjour <strong>${data.firstName}</strong>,<br><br>
+        Votre concierge <strong>${rpName}</strong> a mis à jour votre réservation chez <strong>${data.establishment}</strong>.
+      </p>
+      <div style="background: #1e1e1e; border: 1px solid rgba(91,61,245,0.25); border-left: 3px solid #5B3DF5; padding: 20px 24px; margin-bottom: 24px;">
+        <div style="color: #9a9a9a; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px;">Réservation d'origine</div>
+        <p style="color: #f5f0e8; font-size: 18px; font-style: italic; margin: 0 0 4px;">${data.establishment}</p>
+        <p style="color: #9a9a9a; font-size: 12px; margin: 0 0 12px;">${data.destination}</p>
+        <p style="color: #888; font-size: 13px; margin: 0;">Date précédente : ${data.originalDate}</p>
+      </div>
+      ${changes.length > 0 ? `
+      <div style="background: #1e1e1e; border-left: 3px solid #C9A84C; padding: 20px 24px; margin-bottom: 24px;">
+        <div style="color: #C9A84C; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 12px;">Nouvelles informations</div>
+        ${changes.map(c => `<p style="color: #d4d4d4; font-size: 14px; margin: 0 0 8px;">${c}</p>`).join('')}
+      </div>` : ''}
+      ${whatsappLink ? `
+      <div style="text-align: center; margin-top: 28px;">
+        <a href="${whatsappLink}" style="display: inline-block; background: #25D366; color: white; padding: 14px 32px; text-decoration: none; font-size: 13px; letter-spacing: 1px;">
+          💬 Contacter votre RP
+        </a>
+      </div>` : ''}
+    </div>
+    <div style="padding: 20px 40px; text-align: center; border-top: 1px solid #222;">
+      <p style="color: #444; font-size: 11px; margin: 0;">${rpName} — Conciergerie privée</p>
+    </div>
+  </div>
+</body>
+</html>`
+
+  await sendEmail({
+    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    to: [data.email],
+    subject: `✎ Réservation modifiée — ${data.establishment}`,
+    html,
+    ...(data.rpEmail ? { reply_to: data.rpEmail } : {}),
   })
 }
 
