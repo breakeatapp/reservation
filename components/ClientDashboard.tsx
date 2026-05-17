@@ -142,8 +142,17 @@ export default function ClientDashboard({ profile }: Props) {
   // Auto-inscription (email inconnu → proposer de s'inscrire)
   const [showRegisterForm, setShowRegisterForm] = useState(false)
   const [registerFirstName, setRegisterFirstName] = useState('')
+  const [registerLastName, setRegisterLastName] = useState('')
+  const [registerPhone, setRegisterPhone] = useState('')
   const [registerLoading, setRegisterLoading] = useState(false)
   const [registerError, setRegisterError] = useState('')
+
+  // Complétion de profil (prénom/téléphone manquants)
+  const [showProfileCompletion, setShowProfileCompletion] = useState(false)
+  const [profileFirstName, setProfileFirstName] = useState('')
+  const [profileLastName, setProfileLastName] = useState('')
+  const [profilePhone, setProfilePhone] = useState('')
+  const [profileLoading, setProfileLoading] = useState(false)
 
   const handleEmailAccess = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -160,7 +169,6 @@ export default function ClientDashboard({ profile }: Props) {
         if (data.clientName) localStorage.setItem('itinera_guest_name', data.clientName.split(' ')[0])
         window.location.reload()
       } else {
-        // Email inconnu → proposer l'inscription
         setShowRegisterForm(true)
       }
     } catch {
@@ -170,9 +178,17 @@ export default function ClientDashboard({ profile }: Props) {
     }
   }
 
+  const handleProfileComplete = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (profileFirstName.trim()) localStorage.setItem('itinera_guest_name', profileFirstName.trim())
+    if (profileLastName.trim()) localStorage.setItem('itinera_guest_lastname', profileLastName.trim())
+    if (profilePhone.trim()) localStorage.setItem('itinera_guest_phone', profilePhone.trim())
+    setShowProfileCompletion(false)
+  }
+
   const handleSelfRegister = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!emailInput.trim()) return
+    if (!emailInput.trim() || !registerFirstName.trim()) return
     setRegisterLoading(true)
     setRegisterError('')
     try {
@@ -181,16 +197,17 @@ export default function ClientDashboard({ profile }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: emailInput.trim().toLowerCase(),
-          firstName: registerFirstName.trim(),
+          firstName: `${registerFirstName.trim()} ${registerLastName.trim()}`.trim(),
           rpSlug: profile.slug,
         }),
       })
       const data = await res.json()
       if (!res.ok) { setRegisterError(data.error || 'Erreur.'); return }
-      // Inscription réussie → connexion automatique
       localStorage.setItem('itinera_guest_email', emailInput.trim().toLowerCase())
       localStorage.setItem('itinera_guest_rp', profile.slug)
-      if (registerFirstName.trim()) localStorage.setItem('itinera_guest_name', registerFirstName.trim())
+      localStorage.setItem('itinera_guest_name', registerFirstName.trim())
+      if (registerLastName.trim()) localStorage.setItem('itinera_guest_lastname', registerLastName.trim())
+      if (registerPhone.trim()) localStorage.setItem('itinera_guest_phone', registerPhone.trim())
       window.location.reload()
     } catch {
       setRegisterError('Erreur réseau. Veuillez réessayer.')
@@ -412,12 +429,29 @@ export default function ClientDashboard({ profile }: Props) {
                   <p className="text-[9px] tracking-[0.3em] uppercase text-[#5B3DF5]/60 mb-1">Email</p>
                   <p className="text-[#F5F5F3]/70 text-sm">{emailInput}</p>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={registerFirstName}
+                    onChange={e => setRegisterFirstName(e.target.value)}
+                    placeholder="Prénom *"
+                    autoFocus
+                    required
+                    className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
+                  />
+                  <input
+                    type="text"
+                    value={registerLastName}
+                    onChange={e => setRegisterLastName(e.target.value)}
+                    placeholder="Nom"
+                    className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
+                  />
+                </div>
                 <input
-                  type="text"
-                  value={registerFirstName}
-                  onChange={e => setRegisterFirstName(e.target.value)}
-                  placeholder="Votre prénom"
-                  autoFocus
+                  type="tel"
+                  value={registerPhone}
+                  onChange={e => setRegisterPhone(e.target.value)}
+                  placeholder="Téléphone (ex: +33 6 00 00 00 00)"
                   className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
                 />
                 {registerError && (
@@ -427,7 +461,7 @@ export default function ClientDashboard({ profile }: Props) {
                 )}
                 <button
                   type="submit"
-                  disabled={registerLoading}
+                  disabled={registerLoading || !registerFirstName.trim()}
                   className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase transition-colors disabled:opacity-40"
                   style={{ background: accent }}
                 >
@@ -472,306 +506,120 @@ export default function ClientDashboard({ profile }: Props) {
       )
     }
 
-    return (
-      <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
+    // ── Écran d'accueil guest avec menu ──────────────────────────
+    {
+      const savedPhone = localStorage.getItem('itinera_guest_phone') || ''
+      const needsProfile = !clientFirstName || !savedPhone
 
-        {/* Header */}
-        <div className="px-5 pt-10 pb-6 max-w-md mx-auto">
-          <Link
-            href={`/${profile.slug}`}
-            className="inline-flex items-center gap-2 text-[12px] tracking-[0.2em] text-white/70 uppercase hover:text-white transition-colors mb-8 border border-white/20 hover:border-white/40 px-4 py-2.5"
-          >
-            ← {profile.display_name}
-          </Link>
-
-          {isIdentified ? (
-            <div className="mb-8">
-              <p className="text-[10px] tracking-[0.5em] uppercase mb-2 text-white/50">
-                Mon espace
-              </p>
-              <h1 className="font-playfair text-4xl text-white leading-tight">
-                Bienvenue{clientFirstName ? ',' : ''}<br />
-                {clientFirstName && (
-                  <span style={{ color: accent }}>{clientFirstName}</span>
-                )}
-                {clientFirstName && <span className="text-white/30 text-3xl"> ✦</span>}
-              </h1>
-              <p className="text-white/60 text-sm mt-2">{email}</p>
-            </div>
-          ) : (
-            <div className="mb-8">
-              <p className="text-[10px] tracking-[0.5em] uppercase mb-2 text-white/50">
-                Mon espace
-              </p>
-              <h1 className="font-playfair text-4xl text-white leading-tight mb-2">
-                Bienvenue
-              </h1>
-              <p className="text-white/60 text-sm leading-relaxed">
-                Identifiez-vous pour accéder à vos réservations.
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="px-5 max-w-md mx-auto space-y-6 pb-20">
-
-          {/* ── Accès refusé (email non inscrit) ── */}
-          {notRegistered && (
-            <div className="bg-[#141414] border border-white/8 p-6">
-              <div className="text-center mb-6">
-                <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center border border-white/10"
-                  style={{ background: accent + '10' }}>
-                  <svg className="w-6 h-6 text-[#F5F5F3]/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
+      if (showProfileCompletion || needsProfile) {
+        return (
+          <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center px-6">
+            <div className="w-full max-w-sm">
+              <div className="text-center mb-10">
+                <p className="text-[9px] tracking-[0.5em] text-[#F5F5F3]/20 uppercase mb-3">✦ {profile.display_name}</p>
+                <h1 className="font-playfair text-3xl text-[#F5F5F3] mb-2">Complétez votre profil</h1>
+                <p className="text-[#F5F5F3]/30 text-xs">Ces informations seront pré-remplies dans vos réservations</p>
+              </div>
+              <form onSubmit={handleProfileComplete} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <input type="text" value={profileFirstName} onChange={e => setProfileFirstName(e.target.value)}
+                    placeholder="Prénom *" required autoFocus
+                    className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
+                  />
+                  <input type="text" value={profileLastName} onChange={e => setProfileLastName(e.target.value)}
+                    placeholder="Nom"
+                    className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
+                  />
                 </div>
-                <p className="text-[9px] tracking-[0.4em] uppercase text-[#F5F5F3]/20 mb-3">Accès réservé</p>
-                <h2 className="font-playfair text-xl text-[#F5F5F3] mb-2">Service sur invitation</h2>
-                <p className="text-[#F5F5F3]/30 text-sm leading-relaxed">
-                  <span className="text-[#F5F5F3]/50">{email}</span> n'est pas encore inscrit
-                  à notre service de conciergerie.
-                </p>
-              </div>
+                <input type="tel" value={profilePhone} onChange={e => setProfilePhone(e.target.value)}
+                  placeholder="Téléphone (ex: +33 6 00 00 00 00)" required
+                  className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
+                />
+                <button type="submit" disabled={profileLoading || !profileFirstName.trim() || !profilePhone.trim()}
+                  className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase transition-colors disabled:opacity-40"
+                  style={{ background: accent }}>
+                  Continuer vers mon espace →
+                </button>
+              </form>
+            </div>
+          </div>
+        )
+      }
 
-              <div className="border-t border-white/5 pt-5 space-y-2">
-                <p className="text-[9px] tracking-[0.3em] uppercase text-[#F5F5F3]/20 mb-3 text-center">
-                  Contactez {profile.display_name}
-                </p>
-                {profile.whatsapp && (
-                  <a
-                    href={`https://wa.me/${profile.whatsapp}?text=${encodeURIComponent(`Bonjour, je souhaite accéder au service de conciergerie. Mon email : ${email}`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 border border-white/8 hover:border-white/20 p-4 transition-all group"
-                  >
-                    <span className="text-xl">💬</span>
-                    <div className="flex-1">
-                      <p className="text-[#F5F5F3]/70 text-sm group-hover:text-[#F5F5F3] transition-colors">WhatsApp</p>
-                      <p className="text-[#F5F5F3]/20 text-xs">Demander un accès</p>
-                    </div>
-                    <span className="text-[#F5F5F3]/15 group-hover:text-[#F5F5F3]/40">›</span>
-                  </a>
-                )}
-                {profile.email && (
-                  <a
-                    href={`mailto:${profile.email}?subject=Demande%20d%27acc%C3%A8s%20conciergerie&body=Bonjour%2C%20je%20souhaite%20acc%C3%A9der%20au%20service.%20Mon%20email%20%3A%20${email}`}
-                    className="flex items-center gap-3 border border-white/8 hover:border-white/20 p-4 transition-all group"
-                  >
-                    <span className="text-xl">✉️</span>
-                    <div className="flex-1">
-                      <p className="text-[#F5F5F3]/70 text-sm group-hover:text-[#F5F5F3] transition-colors">Email</p>
-                      <p className="text-[#F5F5F3]/20 text-xs">Demander un accès</p>
-                    </div>
-                    <span className="text-[#F5F5F3]/15 group-hover:text-[#F5F5F3]/40">›</span>
-                  </a>
-                )}
-              </div>
+      return (
+        <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
+          <div className="max-w-md mx-auto px-5 pt-14 pb-20">
 
+            {/* Header */}
+            <div className="mb-12">
+              <p className="text-[9px] tracking-[0.5em] text-[#F5F5F3]/20 uppercase mb-4">✦ {profile.display_name}</p>
+              <h1 className="font-playfair text-4xl text-white leading-tight mb-1">
+                Bienvenue{clientFirstName ? ',' : ''}<br />
+                {clientFirstName && <span style={{ color: accent }}>{clientFirstName}</span>}
+              </h1>
+              <p className="text-white/30 text-sm">{email}</p>
+            </div>
+
+            {/* Menu principal */}
+            <div className="space-y-3">
+
+              <Link href={`/${profile.slug}/trip`}
+                className="flex items-center justify-between w-full border border-white/10 hover:border-white/25 bg-[#141414] hover:bg-[#1a1a1a] p-5 transition-all group">
+                <div>
+                  <p className="text-[9px] tracking-[0.3em] uppercase mb-1" style={{ color: accent }}>Planning</p>
+                  <p className="text-[#F5F5F3] text-base font-light">Planifier mon voyage</p>
+                  <p className="text-[#F5F5F3]/30 text-xs mt-0.5">Itinéraire complet sur plusieurs jours</p>
+                </div>
+                <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/60 transition-colors text-xl">→</span>
+              </Link>
+
+              <Link href={`/${profile.slug}/book`}
+                className="flex items-center justify-between w-full border border-white/10 hover:border-white/25 bg-[#141414] hover:bg-[#1a1a1a] p-5 transition-all group">
+                <div>
+                  <p className="text-[9px] tracking-[0.3em] uppercase mb-1" style={{ color: accent }}>Réservation</p>
+                  <p className="text-[#F5F5F3] text-base font-light">Réservation unique</p>
+                  <p className="text-[#F5F5F3]/30 text-xs mt-0.5">Un restaurant, beach club ou soirée</p>
+                </div>
+                <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/60 transition-colors text-xl">→</span>
+              </Link>
+
+              <button onClick={() => setScreen('reservations')}
+                className="flex items-center justify-between w-full border border-white/10 hover:border-white/25 bg-[#141414] hover:bg-[#1a1a1a] p-5 transition-all group text-left">
+                <div>
+                  <p className="text-[9px] tracking-[0.3em] uppercase mb-1" style={{ color: accent }}>Suivi</p>
+                  <p className="text-[#F5F5F3] text-base font-light">Mes réservations</p>
+                  <p className="text-[#F5F5F3]/30 text-xs mt-0.5">
+                    {rpList.find(r => r.slug === profile.slug)?.totalCount
+                      ? `${rpList.find(r => r.slug === profile.slug)?.totalCount} réservation(s)`
+                      : 'Historique et statuts'}
+                  </p>
+                </div>
+                <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/60 transition-colors text-xl">→</span>
+              </button>
+
+            </div>
+
+            {/* Déconnexion */}
+            <div className="mt-12 text-center">
               <button
-                onClick={resetIdentity}
-                className="mt-4 w-full text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/20 hover:text-[#F5F5F3]/40 transition-colors py-2 text-center"
+                onClick={() => {
+                  localStorage.removeItem('itinera_guest_email')
+                  localStorage.removeItem('itinera_guest_rp')
+                  localStorage.removeItem('itinera_guest_name')
+                  localStorage.removeItem('itinera_guest_lastname')
+                  localStorage.removeItem('itinera_guest_phone')
+                  window.location.reload()
+                }}
+                className="text-[#F5F5F3]/15 text-[10px] hover:text-[#F5F5F3]/40 transition-colors"
               >
-                ← Essayer un autre email
+                Se déconnecter
               </button>
             </div>
-          )}
-
-          {/* ── Sélection du RP ── */}
-          {isIdentified && (
-            <div>
-              <p className="text-[11px] tracking-[0.3em] text-white/70 uppercase mb-3">
-                Votre{rpList.length > 1 ? 's' : ''} RP
-              </p>
-              <div className="space-y-2">
-                {rpList.map(rp => (
-                  <button
-                    key={rp.slug}
-                    onClick={() => selectRP(rp)}
-                    disabled={resaLoading}
-                    className="w-full flex items-center gap-4 bg-[#141414] border border-white/12 hover:border-white/30 p-4 text-left transition-all group disabled:opacity-40"
-                  >
-                    <div
-                      className="w-11 h-11 flex items-center justify-center flex-shrink-0 text-white text-[10px] tracking-wider font-medium"
-                      style={{ background: `${rp.accentColor}30`, border: `1px solid ${rp.accentColor}60` }}
-                    >
-                      {rp.logoText?.slice(0, 2) ?? rp.slug.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-semibold mb-1">{rp.displayName}</p>
-                      {rp.totalCount > 0 ? (
-                        <div className="flex items-center gap-3 text-[11px]">
-                          <span className="text-white/65">{rp.totalCount} résa{rp.totalCount > 1 ? 's' : ''}</span>
-                          {rp.pendingCount > 0 && <span className="text-amber-400">· {rp.pendingCount} en attente</span>}
-                          {rp.confirmedCount > 0 && <span className="text-green-400">· {rp.confirmedCount} confirmée{rp.confirmedCount > 1 ? 's' : ''}</span>}
-                        </div>
-                      ) : (
-                        <p className="text-white/50 text-[11px]">Aucune réservation</p>
-                      )}
-                    </div>
-                    <span className="text-white/40 group-hover:text-white transition-colors flex-shrink-0 text-lg">›</span>
-                  </button>
-                ))}
-
-                {/* ── Ajouter un nouvel RP ── */}
-                {!showAddRP ? (
-                  <button
-                    onClick={() => setShowAddRP(true)}
-                    className="w-full flex items-center gap-4 border border-dashed border-white/15 hover:border-white/30 p-4 text-left transition-all group"
-                  >
-                    <div className="w-11 h-11 flex items-center justify-center flex-shrink-0 border border-white/10 text-[#F5F5F3]/40 group-hover:text-[#F5F5F3]/70 transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-[#F5F5F3]/50 text-sm group-hover:text-[#F5F5F3]/80 transition-colors">Ajouter un nouvel RP</p>
-                      <p className="text-[#F5F5F3]/30 text-[11px]">Connectez-vous à un autre concierge</p>
-                    </div>
-                  </button>
-                ) : (
-                  <div className="border border-white/15 p-4 bg-[#141414]">
-                    <p className="text-[10px] tracking-[0.3em] text-[#F5F5F3]/40 uppercase mb-3">Rejoindre un RP</p>
-                    <p className="text-[#F5F5F3]/50 text-xs mb-3 leading-relaxed">
-                      Entrez l'identifiant (slug) de votre RP — il vous l'aura communiqué.
-                    </p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={addRPInput}
-                        onChange={e => setAddRPInput(e.target.value.toLowerCase().trim())}
-                        placeholder="ex: remi, sophie..."
-                        className="flex-1 bg-[#0B0B0B] border border-white/12 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none placeholder-[#F5F5F3]/25 focus:border-white/25 transition-colors"
-                      />
-                      <button
-                        onClick={() => {
-                          if (addRPInput) {
-                            localStorage.setItem('itinera_guest_rp', addRPInput)
-                            router.push(`/${addRPInput}/mon-espace`)
-                          }
-                        }}
-                        className="px-4 py-2.5 text-white text-[11px] tracking-[0.2em] uppercase hover:opacity-90 transition-opacity flex-shrink-0"
-                        style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}
-                      >
-                        →
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => { setShowAddRP(false); setAddRPInput('') }}
-                      className="mt-2 text-[10px] text-[#F5F5F3]/30 hover:text-[#F5F5F3]/50 transition-colors"
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Menu compte */}
-              <div className="mt-4">
-                <button
-                  onClick={() => { setShowAccountMenu(v => !v); setDeleteConfirm(false) }}
-                  className="w-full text-[10px] tracking-[0.2em] uppercase text-white/45 hover:text-white/75 transition-colors py-2 text-center"
-                >
-                  ··· Options du compte
-                </button>
-
-                {showAccountMenu && (
-                  <div className="mt-2 bg-[#141414] border border-white/10 overflow-hidden">
-                    <button
-                      onClick={resetIdentity}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-white/65 hover:text-white hover:bg-white/5 transition-all text-sm border-b border-white/8"
-                    >
-                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                      <span>Se déconnecter</span>
-                    </button>
-
-                    {!deleteConfirm ? (
-                      <button
-                        onClick={() => setDeleteConfirm(true)}
-                        className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-red-400/30 hover:text-red-400/60 hover:bg-red-500/5 transition-all text-sm"
-                      >
-                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        <span>Supprimer mon compte</span>
-                      </button>
-                    ) : (
-                      <div className="px-4 py-4 bg-red-500/5 border-t border-red-500/10">
-                        <p className="text-red-400/70 text-xs mb-3">Confirmer la suppression ? Votre historique de réservations sera conservé.</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            onClick={() => setDeleteConfirm(false)}
-                            className="border border-white/10 text-[#F5F5F3]/30 text-[10px] tracking-[0.15em] uppercase py-2.5 hover:border-white/20 transition-colors"
-                          >
-                            Annuler
-                          </button>
-                          <button
-                            onClick={handleDeleteAccount}
-                            disabled={deleteLoading}
-                            className="bg-red-500/80 hover:bg-red-500 text-white text-[10px] tracking-[0.15em] uppercase py-2.5 transition-colors disabled:opacity-40"
-                          >
-                            {deleteLoading ? '...' : 'Confirmer'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* ── Faire une réservation — avec sélection du RP ── */}
-          {isIdentified && (
-            <div>
-              {!showRPPicker ? (
-                <button
-                  onClick={() => {
-                    if (rpList.length === 1) {
-                      router.push(`/${rpList[0].slug}/book`)
-                    } else {
-                      setShowRPPicker(true)
-                    }
-                  }}
-                  className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase hover:opacity-90 transition-opacity"
-                  style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}
-                >
-                  🍽️ &nbsp; Faire une réservation unique
-                </button>
-              ) : (
-                <div className="bg-[#141414] border border-white/12 p-5">
-                  <p className="text-white text-sm font-semibold mb-1">Avec qui souhaitez-vous réserver ?</p>
-                  <p className="text-white/50 text-xs mb-4">Choisissez votre RP</p>
-                  <div className="space-y-2 mb-3">
-                    {rpList.map(rp => (
-                      <button
-                        key={rp.slug}
-                        onClick={() => { setShowRPPicker(false); router.push(`/${rp.slug}/book`) }}
-                        className="w-full flex items-center gap-3 bg-[#0B0B0B] border border-white/10 hover:border-white/30 p-3.5 text-left transition-all group"
-                      >
-                        <div
-                          className="w-9 h-9 flex items-center justify-center flex-shrink-0 text-white text-[10px] font-semibold"
-                          style={{ background: `${rp.accentColor}30`, border: `1px solid ${rp.accentColor}60` }}
-                        >
-                          {rp.logoText?.slice(0, 2) ?? rp.slug.slice(0, 2).toUpperCase()}
-                        </div>
-                        <span className="text-white text-sm font-medium group-hover:text-white flex-1">{rp.displayName}</span>
-                        <span className="text-white/40 group-hover:text-white text-lg">›</span>
-                      </button>
-                    ))}
-                  </div>
-                  <button onClick={() => setShowRPPicker(false)} className="text-white/40 text-xs hover:text-white/70 transition-colors">
-                    Annuler
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          </div>
         </div>
-      </div>
-    )
+      )
+    }
+
   }
 
   // ════════════════════════════════════════════════════════════════

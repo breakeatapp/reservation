@@ -74,7 +74,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
     if (savedRp === rpSlug && (savedName || savedEmail)) {
       setConnectedName(savedName || savedEmail || '')
       // Déjà identifié pour ce RP → rediriger vers mon espace directement
-      router.replace(`/${rpSlug}/trip`)
+      router.replace(`/${rpSlug}/mon-espace`)
     }
   }, [profile.slug, router])
 

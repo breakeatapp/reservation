@@ -27,7 +27,7 @@ export default function LandingPage() {
     if (savedEmail && savedRp) {
       setSavedSession({ email: savedEmail, rp: savedRp, name: savedName || savedEmail })
       // Rediriger directement sans attendre un clic
-      router.replace(`/${savedRp}/trip`)
+      router.replace(`/${savedRp}/mon-espace`)
     }
   }, [router])
 
