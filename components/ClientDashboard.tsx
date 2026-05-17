@@ -93,7 +93,7 @@ const STATUS_CONFIG = {
   },
 }
 
-type Screen = 'home' | 'reservations'
+type Screen = 'home' | 'reservations' | 'profile'
 
 export default function ClientDashboard({ profile }: Props) {
   const accent = profile.accent_color || '#5B3DF5'
@@ -147,12 +147,14 @@ export default function ClientDashboard({ profile }: Props) {
   const [registerLoading, setRegisterLoading] = useState(false)
   const [registerError, setRegisterError] = useState('')
 
-  // Complétion de profil (prénom/téléphone manquants)
+  // Complétion / édition de profil
   const [showProfileCompletion, setShowProfileCompletion] = useState(false)
   const [profileFirstName, setProfileFirstName] = useState('')
   const [profileLastName, setProfileLastName] = useState('')
   const [profilePhone, setProfilePhone] = useState('')
+  const [profileEmail, setProfileEmail] = useState('')
   const [profileLoading, setProfileLoading] = useState(false)
+  const [profileSaved, setProfileSaved] = useState(false)
 
   const handleEmailAccess = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -425,10 +427,14 @@ export default function ClientDashboard({ profile }: Props) {
             {showRegisterForm ? (
               /* ── Formulaire d'inscription ── */
               <form onSubmit={handleSelfRegister} className="space-y-3">
-                <div className="bg-[#141414] border border-[#5B3DF5]/20 px-4 py-3 mb-2">
-                  <p className="text-[9px] tracking-[0.3em] uppercase text-[#5B3DF5]/60 mb-1">Email</p>
-                  <p className="text-[#F5F5F3]/70 text-sm">{emailInput}</p>
-                </div>
+                <input
+                  type="email"
+                  value={emailInput}
+                  onChange={e => setEmailInput(e.target.value)}
+                  placeholder="votre@email.com *"
+                  required
+                  className="w-full bg-[#141414] border border-[#5B3DF5]/30 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/60 transition-colors"
+                />
                 <div className="grid grid-cols-2 gap-3">
                   <input
                     type="text"
@@ -597,6 +603,23 @@ export default function ClientDashboard({ profile }: Props) {
                 <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/60 transition-colors text-xl">→</span>
               </button>
 
+              <button onClick={() => {
+                  setProfileFirstName(clientFirstName)
+                  setProfileLastName(localStorage.getItem('itinera_guest_lastname') || '')
+                  setProfilePhone(localStorage.getItem('itinera_guest_phone') || '')
+                  setProfileEmail(email)
+                  setProfileSaved(false)
+                  setScreen('profile')
+                }}
+                className="flex items-center justify-between w-full border border-white/10 hover:border-white/25 bg-[#141414] hover:bg-[#1a1a1a] p-5 transition-all group text-left">
+                <div>
+                  <p className="text-[9px] tracking-[0.3em] uppercase mb-1" style={{ color: accent }}>Compte</p>
+                  <p className="text-[#F5F5F3] text-base font-light">Mon profil</p>
+                  <p className="text-[#F5F5F3]/30 text-xs mt-0.5">Nom, email, téléphone</p>
+                </div>
+                <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/60 transition-colors text-xl">→</span>
+              </button>
+
             </div>
 
             {/* Déconnexion */}
@@ -620,6 +643,93 @@ export default function ClientDashboard({ profile }: Props) {
       )
     }
 
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // ── ÉCRAN PROFIL ─────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════════
+  if (screen === 'profile') {
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
+        <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/8 px-4 py-4 flex items-center gap-3">
+          <button
+            onClick={() => setScreen('home')}
+            className="flex items-center gap-2 text-[#F5F5F3]/55 hover:text-[#F5F5F3]/90 transition-colors text-sm border border-white/12 hover:border-white/25 px-3 py-1.5"
+          >
+            ← Retour
+          </button>
+          <p className="text-[10px] tracking-[0.3em] uppercase" style={{ color: accent }}>Mon profil</p>
+        </div>
+
+        <div className="max-w-md mx-auto px-5 py-10 space-y-4">
+          <div>
+            <label className="block text-[9px] tracking-[0.25em] uppercase text-[#F5F5F3]/30 mb-2">Email</label>
+            <input
+              type="email"
+              value={profileEmail}
+              onChange={e => setProfileEmail(e.target.value)}
+              className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-white/25 transition-colors"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[9px] tracking-[0.25em] uppercase text-[#F5F5F3]/30 mb-2">Prénom</label>
+              <input
+                type="text"
+                value={profileFirstName}
+                onChange={e => setProfileFirstName(e.target.value)}
+                className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-white/25 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="block text-[9px] tracking-[0.25em] uppercase text-[#F5F5F3]/30 mb-2">Nom</label>
+              <input
+                type="text"
+                value={profileLastName}
+                onChange={e => setProfileLastName(e.target.value)}
+                className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-white/25 transition-colors"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[9px] tracking-[0.25em] uppercase text-[#F5F5F3]/30 mb-2">Téléphone</label>
+            <input
+              type="tel"
+              value={profilePhone}
+              onChange={e => setProfilePhone(e.target.value)}
+              className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-white/25 transition-colors"
+            />
+          </div>
+
+          {profileSaved && (
+            <p className="text-green-400/80 text-xs text-center border border-green-500/15 bg-green-500/5 px-4 py-3">
+              ✓ Profil mis à jour
+            </p>
+          )}
+
+          <button
+            onClick={() => {
+              if (profileEmail.trim()) {
+                localStorage.setItem('itinera_guest_email', profileEmail.trim().toLowerCase())
+                setEmail(profileEmail.trim().toLowerCase())
+              }
+              if (profileFirstName.trim()) {
+                localStorage.setItem('itinera_guest_name', profileFirstName.trim())
+                setClientFirstName(profileFirstName.trim())
+              }
+              if (profileLastName.trim()) localStorage.setItem('itinera_guest_lastname', profileLastName.trim())
+              if (profilePhone.trim()) localStorage.setItem('itinera_guest_phone', profilePhone.trim())
+              setProfileSaved(true)
+              setTimeout(() => setProfileSaved(false), 3000)
+            }}
+            className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase transition-colors"
+            style={{ background: accent }}
+          >
+            Enregistrer
+          </button>
+        </div>
+      </div>
+    )
   }
 
   // ════════════════════════════════════════════════════════════════

@@ -44,13 +44,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
         rps = [{ slug, displayName: profile.display_name }, ...rps]
       }
 
-      // Un seul RP → naviguer directement sans picker
-      if (rps.length === 1) {
-        localStorage.setItem('itinera_guest_rp', rps[0].slug)
-        router.push(`/${rps[0].slug}/${dest}`)
-        return
-      }
-
+      // Toujours afficher le picker pour que le guest choisisse son RP
       setRpPickerTarget(target)
       setRpPickerList(rps)
       setRpPickerOpen(true)
