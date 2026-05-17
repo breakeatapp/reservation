@@ -21,6 +21,8 @@ export async function getRPProfile(slug: string): Promise<RPProfile | null> {
       .eq('active', true)
       .single()
 
+    console.log('[getRPProfile]', { slug: normalizedSlug, found: !!data, errorCode: error?.code, errorMsg: error?.message })
+
     if (!error && data) {
       const profile = data as RPProfile
       // Migration silencieuse : corriger les anciens libellés en base
