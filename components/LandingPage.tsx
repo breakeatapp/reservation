@@ -243,59 +243,63 @@ export default function LandingPage() {
               {/* Code d'invitation */}
               {showCodeForm ? (
                 <div className="border border-[#6E5BFF]/30 bg-[#6E5BFF]/5 p-5">
-                  <p className="text-[10px] tracking-[0.4em] uppercase text-[#6E5BFF]/70 mb-4">
-                    Code d'invitation
+                  <p className="text-[10px] tracking-[0.4em] uppercase text-[#6E5BFF]/70 mb-1">
+                    Rejoindre un espace
                   </p>
-                  <form onSubmit={handleCodeAccess} className="space-y-2">
+                  <p className="text-[#F5F7FA]/30 text-[11px] mb-4">
+                    Collez le lien envoyé par votre concierge
+                  </p>
+                  <div className="flex gap-2">
                     <input
-                      type="email"
-                      value={codeEmail}
-                      onChange={e => setCodeEmail(e.target.value)}
-                      placeholder="votre@email.com"
-                      autoComplete="email"
-                      className="w-full bg-[#0F1115] border border-white/12 text-[#F5F7FA] px-4 py-3 text-sm focus:border-[#6E5BFF]/50 outline-none placeholder-[#F5F7FA]/30 transition-colors"
-                      required
+                      type="text"
+                      value={inviteCode}
+                      onChange={e => setInviteCode(e.target.value)}
+                      placeholder="itinera.click/honore/mon-espace"
+                      autoComplete="off"
+                      autoFocus
+                      className="flex-1 bg-[#0F1115] border border-white/12 text-[#F5F7FA] px-4 py-3 text-sm focus:border-[#6E5BFF]/50 outline-none placeholder-[#F5F7FA]/20 transition-colors"
                     />
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={inviteCode}
-                        onChange={e => setInviteCode(e.target.value)}
-                        placeholder="code (ex: honore)"
-                        autoComplete="off"
-                        className="flex-1 bg-[#0F1115] border border-white/12 text-[#F5F7FA] px-4 py-3 text-sm focus:border-[#6E5BFF]/50 outline-none placeholder-[#F5F7FA]/30 transition-colors"
-                        required
-                      />
-                      <button
-                        type="submit"
-                        disabled={codeLoading}
-                        className="px-5 py-3 text-white text-[11px] tracking-[0.2em] uppercase bg-[#6E5BFF] hover:bg-[#5B3DF5] transition-colors disabled:opacity-40 flex-shrink-0"
-                      >
-                        {codeLoading ? '...' : '→'}
-                      </button>
-                    </div>
-                  </form>
+                    <button
+                      onClick={() => {
+                        let code = inviteCode.trim().toLowerCase()
+                        if (!code) return
+                        // Extraire le slug depuis une URL complète
+                        if (code.includes('/')) {
+                          try {
+                            const url = new URL(code.startsWith('http') ? code : `https://itinera.click/${code}`)
+                            code = url.pathname.split('/').filter(Boolean)[0] || code
+                          } catch {
+                            code = code.split('/').filter(Boolean)[0] || code
+                          }
+                        }
+                        if (code) router.push(`/${code}/mon-espace`)
+                      }}
+                      className="px-5 py-3 text-white text-[11px] tracking-[0.2em] uppercase bg-[#6E5BFF] hover:bg-[#5B3DF5] transition-colors flex-shrink-0"
+                    >
+                      →
+                    </button>
+                  </div>
                   {codeError && (
                     <p className="text-red-400/70 text-xs mt-3 leading-relaxed">{codeError}</p>
                   )}
                   <button
-                    onClick={() => { setShowCodeForm(false); setCodeError('') }}
+                    onClick={() => { setShowCodeForm(false); setCodeError(''); setInviteCode('') }}
                     className="text-[#F5F7FA]/25 text-[10px] hover:text-[#F5F7FA]/50 transition-colors mt-4 block"
                   >
-                    ← Accéder par email
+                    ← Retour
                   </button>
                 </div>
               ) : (
                 <div className="border border-white/8 p-5 text-center">
                   <p className="text-[#F5F7FA]/40 text-xs leading-relaxed mb-3">
                     Accès sur invitation uniquement.<br />
-                    <span className="text-[#F5F7FA]/55">Contactez votre RP pour rejoindre le réseau.</span>
+                    <span className="text-[#F5F7FA]/55">Contactez votre concierge pour rejoindre le réseau.</span>
                   </p>
                   <button
                     onClick={() => setShowCodeForm(true)}
                     className="text-[#6E5BFF]/60 text-[10px] hover:text-[#6E5BFF] transition-colors underline"
                   >
-                    Vous avez un code d'invitation ?
+                    Vous avez un lien d'invitation ?
                   </button>
                 </div>
               )}
