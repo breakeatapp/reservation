@@ -12,42 +12,38 @@ export default function LandingPage() {
   const [savedSession, setSavedSession] = useState<{ email: string; rp: string; name: string } | null>(null)
   const [rpPicker, setRpPicker] = useState<{ rps: { slug: string; displayName: string }[]; email: string; firstName: string } | null>(null)
 
+  // Choix initial GUEST / RP (null = écran de choix)
+  const [userType, setUserType] = useState<'guest' | null>(null)
+
   // Formulaire code d'invitation
   const [showCodeForm, setShowCodeForm] = useState(false)
-  const [codeEmail, setCodeEmail] = useState('')
   const [inviteCode, setInviteCode] = useState('')
-  const [codeLoading, setCodeLoading] = useState(false)
   const [codeError, setCodeError] = useState('')
 
   const extractSlugFromInvite = (value: string) => {
     const input = value.trim().toLowerCase()
     if (!input) return ''
-
     const cleaned = input
       .replace(/^https?:\/\//, '')
       .replace(/^www\./, '')
       .split(/[?#]/)[0]
       .replace(/^\/+/, '')
-
     const parts = cleaned.split('/').filter(Boolean)
     if (parts.length === 0) return cleaned
-
     const firstPartIsDomain = parts[0].includes('.')
     return firstPartIsDomain ? (parts[1] ?? '') : parts[0]
   }
 
-  // Vérifier si le client est déjà connecté → redirection automatique vers son espace
+  // Auto-redirect si session guest valide
   useEffect(() => {
     const savedEmail = localStorage.getItem('itinera_guest_email')
     const savedRp = localStorage.getItem('itinera_guest_rp')
     const savedName = localStorage.getItem('itinera_guest_name')
-    // Valider que le slug ne contient pas de point (évite les slugs corrompus comme "itinera.click")
     const isValidSlug = savedRp && /^[a-z0-9-]+$/.test(savedRp)
     if (savedEmail && isValidSlug) {
       setSavedSession({ email: savedEmail, rp: savedRp!, name: savedName || savedEmail })
       router.replace(`/${savedRp}/mon-espace`)
     } else if (savedRp && !isValidSlug) {
-      // Nettoyer un slug corrompu
       localStorage.removeItem('itinera_guest_rp')
       localStorage.removeItem('itinera_guest_email')
       localStorage.removeItem('itinera_guest_name')
@@ -60,19 +56,16 @@ export default function LandingPage() {
     if (!trimmed) return
     setLoading(true)
     setError('')
-
     try {
       const res = await fetch(`/api/client/rps?email=${encodeURIComponent(trimmed)}`)
       const data = await res.json()
-
       if (data.rps && data.rps.length >= 1) {
-        // Sauvegarder tous les slugs RP pour le picker sur RPHomePage
         const rp = data.rps[0]
         localStorage.setItem('itinera_guest_email', trimmed)
         localStorage.setItem('itinera_guest_rp', rp.slug)
         localStorage.setItem('itinera_guest_rps', JSON.stringify(data.rps))
         if (data.firstName) localStorage.setItem('itinera_guest_name', data.firstName)
-        router.push(`/${rp.slug}`)
+        router.push(`/${rp.slug}/mon-espace`)
       } else {
         setError('Email non reconnu. Vérifiez votre adresse ou contactez votre concierge.')
       }
@@ -80,40 +73,6 @@ export default function LandingPage() {
       setError('Erreur réseau. Veuillez réessayer.')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleCodeAccess = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const trimmedEmail = codeEmail.trim().toLowerCase()
-    let trimmedCode = extractSlugFromInvite(inviteCode)
-    if (!trimmedEmail || !trimmedCode) return
-
-    setCodeLoading(true)
-    setCodeError('')
-
-    try {
-      // Vérifier que l'email est bien enregistré pour ce RP
-      const res = await fetch(`/api/client/rps?email=${encodeURIComponent(trimmedEmail)}`)
-      const data = await res.json()
-
-      const matchedRP = data.rps?.find((rp: { slug: string; displayName: string }) => rp.slug === trimmedCode)
-
-      if (matchedRP) {
-        localStorage.setItem('itinera_guest_email', trimmedEmail)
-        localStorage.setItem('itinera_guest_rp', matchedRP.slug)
-        localStorage.setItem('itinera_guest_rps', JSON.stringify(data.rps))
-        if (data.firstName) localStorage.setItem('itinera_guest_name', data.firstName)
-        router.push(`/${matchedRP.slug}/mon-espace`)
-      } else if (data.rps?.length > 0) {
-        setCodeError('Code non reconnu pour cet email. Vérifiez le code envoyé par votre concierge.')
-      } else {
-        setCodeError('Email non reconnu. Vérifiez votre adresse ou contactez votre concierge.')
-      }
-    } catch {
-      setCodeError('Erreur réseau. Veuillez réessayer.')
-    } finally {
-      setCodeLoading(false)
     }
   }
 
@@ -130,6 +89,7 @@ export default function LandingPage() {
 
       {/* ── HERO ── */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-5">
+
         {/* Fond cinématique */}
         <div className="absolute inset-0">
           <Image
@@ -156,22 +116,20 @@ export default function LandingPage() {
             From WhatsApp chaos to structured hospitality management.
           </p>
 
-          {/* ── Session active → Mon compte ── */}
+          {/* ── Session active (guest connecté) ── */}
           {savedSession ? (
             <div className="bg-[#181C23]/90 backdrop-blur-sm border border-white/10 p-6 mb-4">
               <div className="flex items-center justify-center gap-2 mb-4">
                 <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                <p className="text-[11px] tracking-[0.3em] uppercase text-[#6E5BFF]/80">
-                  Connecté
-                </p>
+                <p className="text-[11px] tracking-[0.3em] uppercase text-[#6E5BFF]/80">Connecté</p>
               </div>
               <p className="text-[#F5F7FA]/70 text-sm mb-1 font-medium">{savedSession.name}</p>
               <p className="text-[#F5F7FA]/35 text-xs mb-5">{savedSession.email}</p>
               <button
-                onClick={() => router.push(`/${savedSession.rp}`)}
+                onClick={() => router.push(`/${savedSession.rp}/mon-espace`)}
                 className="w-full py-3.5 text-white text-[11px] tracking-[0.2em] uppercase bg-[#6E5BFF] hover:bg-[#5B3DF5] transition-colors mb-3"
               >
-                Mon compte →
+                Mon membership →
               </button>
               <button
                 onClick={() => {
@@ -185,6 +143,7 @@ export default function LandingPage() {
                 Se déconnecter
               </button>
             </div>
+
           ) : rpPicker ? (
             /* ── Sélecteur RP (plusieurs RPs) ── */
             <div className="bg-[#181C23]/90 backdrop-blur-sm border border-white/10 p-6">
@@ -200,7 +159,7 @@ export default function LandingPage() {
                       localStorage.setItem('itinera_guest_email', rpPicker.email)
                       localStorage.setItem('itinera_guest_rp', rp.slug)
                       if (rpPicker.firstName) localStorage.setItem('itinera_guest_name', rpPicker.firstName)
-                      router.push(`/${rp.slug}`)
+                      router.push(`/${rp.slug}/mon-espace`)
                     }}
                     className="w-full py-3.5 text-white text-[11px] tracking-[0.2em] uppercase bg-[#1E2229] border border-white/10 hover:border-[#6E5BFF]/50 hover:bg-[#6E5BFF]/10 transition-all text-left px-4"
                   >
@@ -216,12 +175,13 @@ export default function LandingPage() {
                 ← Retour
               </button>
             </div>
-          ) : (
+
+          ) : userType === 'guest' ? (
+            /* ── Formulaire guest ── */
             <>
-              {/* ── Accès guest ── */}
               <div className="bg-[#181C23]/90 backdrop-blur-sm border border-white/10 p-6 mb-4">
                 <p className="text-[10px] tracking-[0.4em] uppercase text-[#F5F7FA]/45 mb-4">
-                  Accéder à mon espace
+                  Accéder à mon membership
                 </p>
                 <form onSubmit={handleAccess} className="flex gap-2">
                   <input
@@ -229,6 +189,7 @@ export default function LandingPage() {
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="your@email.com"
+                    autoFocus
                     className="flex-1 bg-[#0F1115] border border-white/12 text-[#F5F7FA] px-4 py-3 text-sm focus:border-white/30 outline-none placeholder-[#F5F7FA]/30 transition-colors"
                     required
                   />
@@ -240,33 +201,23 @@ export default function LandingPage() {
                     {loading ? '...' : '→'}
                   </button>
                 </form>
-                {error && (
-                  <p className="text-red-400/70 text-xs mt-3 leading-relaxed">{error}</p>
-                )}
+                {error && <p className="text-red-400/70 text-xs mt-3 leading-relaxed">{error}</p>}
                 <p className="text-[#F5F7FA]/35 text-[11px] mt-3">
                   Entrez l'email avec lequel votre concierge vous a invité
                 </p>
-                <p className="text-[#F5F7FA]/20 text-[10px] mt-1">
-                  Email oublié ?{' '}
-                  <span className="text-[#F5F7FA]/35">Contactez directement votre concierge, il vous rappellera l'adresse utilisée.</span>
-                </p>
               </div>
 
-              {/* Code d'invitation */}
+              {/* Lien d'invitation */}
               {showCodeForm ? (
                 <div className="border border-[#6E5BFF]/30 bg-[#6E5BFF]/5 p-5">
-                  <p className="text-[10px] tracking-[0.4em] uppercase text-[#6E5BFF]/70 mb-1">
-                    Rejoindre un RP
-                  </p>
-                  <p className="text-[#F5F7FA]/30 text-[11px] mb-4">
-                    Collez le lien envoyé par votre concierge
-                  </p>
+                  <p className="text-[10px] tracking-[0.4em] uppercase text-[#6E5BFF]/70 mb-1">Rejoindre un RP</p>
+                  <p className="text-[#F5F7FA]/30 text-[11px] mb-4">Collez le lien envoyé par votre concierge</p>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       value={inviteCode}
                       onChange={e => setInviteCode(e.target.value)}
-                      placeholder="itinera.click/votre-lien/mon-espace"
+                      placeholder="https://itinera.click/votre-lien/mon-espace"
                       autoComplete="off"
                       autoFocus
                       className="flex-1 bg-[#0F1115] border border-white/12 text-[#F5F7FA] px-4 py-3 text-sm focus:border-[#6E5BFF]/50 outline-none placeholder-[#F5F7FA]/20 transition-colors"
@@ -274,7 +225,6 @@ export default function LandingPage() {
                     <button
                       onClick={() => {
                         const code = extractSlugFromInvite(inviteCode)
-                        if (!code) return
                         if (code) router.push(`/${code}/mon-espace`)
                       }}
                       className="px-5 py-3 text-white text-[11px] tracking-[0.2em] uppercase bg-[#6E5BFF] hover:bg-[#5B3DF5] transition-colors flex-shrink-0"
@@ -282,9 +232,7 @@ export default function LandingPage() {
                       →
                     </button>
                   </div>
-                  {codeError && (
-                    <p className="text-red-400/70 text-xs mt-3 leading-relaxed">{codeError}</p>
-                  )}
+                  {codeError && <p className="text-red-400/70 text-xs mt-3 leading-relaxed">{codeError}</p>}
                   <button
                     onClick={() => { setShowCodeForm(false); setCodeError(''); setInviteCode('') }}
                     className="text-[#F5F7FA]/25 text-[10px] hover:text-[#F5F7FA]/50 transition-colors mt-4 block"
@@ -306,22 +254,47 @@ export default function LandingPage() {
                   </button>
                 </div>
               )}
+
+              <button
+                onClick={() => { setUserType(null); setError('') }}
+                className="text-[#F5F7FA]/25 text-[10px] hover:text-[#F5F7FA]/50 transition-colors mt-5 block mx-auto"
+              >
+                ← Retour
+              </button>
             </>
+
+          ) : (
+            /* ── Choix initial GUEST / RP ── */
+            <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
+              <button
+                onClick={() => setUserType('guest')}
+                className="group border border-white/10 hover:border-[#6E5BFF]/60 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 backdrop-blur-sm p-8 transition-all duration-300 flex flex-col items-center justify-center gap-3"
+              >
+                <span className="font-playfair text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
+                  GUEST
+                </span>
+                <span className="w-6 h-px bg-[#6E5BFF]/0 group-hover:bg-[#6E5BFF]/60 transition-all duration-300" />
+              </button>
+
+              <button
+                onClick={() => router.push('/register')}
+                className="group border border-white/10 hover:border-[#6E5BFF]/60 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 backdrop-blur-sm p-8 transition-all duration-300 flex flex-col items-center justify-center gap-3"
+              >
+                <span className="font-playfair text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
+                  RP
+                </span>
+                <span className="w-6 h-px bg-[#6E5BFF]/0 group-hover:bg-[#6E5BFF]/60 transition-all duration-300" />
+              </button>
+            </div>
           )}
 
         </div>
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="py-8 px-6 border-t border-white/5 text-center space-y-3">
+      <footer className="py-8 px-6 border-t border-white/5 text-center">
         <p className="text-[#F5F7FA]/30 text-[10px] tracking-wider uppercase">
           ITINERA · Hospitality Planning Between RPs & Guests
-        </p>
-        <p className="text-[#F5F7FA]/20 text-[10px]">
-          Vous êtes un RP ?{' '}
-          <a href="/register" className="text-[#6E5BFF]/60 hover:text-[#6E5BFF] underline transition-colors">
-            Créez votre espace gratuitement →
-          </a>
         </p>
       </footer>
 
