@@ -236,6 +236,7 @@ export default function RPDashboard({ profile }: Props) {
   // ── Réserver pour un client ────────────────────────────────────
   const [bookForType, setBookForType] = useState<'single' | 'trip' | null>(null)
   const [bfcSelectedClient, setBfcSelectedClient] = useState<RPClientNote | null>(null)
+  const [bfcClientSearch, setBfcClientSearch] = useState('')
   const [bfcUseManual, setBfcUseManual] = useState(false)
   const [bfcManual, setBfcManual] = useState({ firstName: '', lastName: '', email: '', phone: '' })
   // Réservation unique
@@ -1148,9 +1149,6 @@ export default function RPDashboard({ profile }: Props) {
           {/* ── Restaurants & Venues ── */}
           <div className="bg-[#141414] border border-white/5 p-5">
             <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-1">Restaurants & venues</p>
-            <p className="text-[#F5F5F3]/40 text-xs mb-2 leading-relaxed">
-              Ajoutez des adresses avec leurs créneaux. Si vide, tous les établissements de vos destinations actives sont proposés.
-            </p>
             <div className="flex items-center gap-2 bg-green-500/5 border border-green-500/15 px-3 py-2 mb-5">
               <span className="text-green-400 text-sm">✓</span>
               <p className="text-green-400/70 text-[11px]">
@@ -1334,7 +1332,7 @@ export default function RPDashboard({ profile }: Props) {
               </div>
             ) : (
               <p className="text-[#F5F5F3]/20 text-xs italic text-center py-4">
-                Aucune venue spécifique — tous les établissements de vos destinations sont affichés.
+                Aucun établissement configuré.
               </p>
             )}
           </div>
@@ -1879,23 +1877,67 @@ export default function RPDashboard({ profile }: Props) {
 
             {!bfcUseManual ? (
               <>
-                <label className={labelCls}>Choisir dans ma liste</label>
-                <select
-                  className={selectCls}
-                  value={bfcSelectedClient?.client_email || ''}
-                  onChange={e => {
-                    const c = clients.find(c => c.client_email === e.target.value) || null
-                    setBfcSelectedClient(c)
-                  }}
-                >
-                  <option value="" className="bg-[#141414]">Sélectionner un client...</option>
-                  {clients.map(c => (
-                    <option key={c.client_email} value={c.client_email} className="bg-[#141414]">
-                      {c.client_name || c.client_email} {c.vip_tag ? `· ${c.vip_tag}` : ''}
-                    </option>
-                  ))}
-                </select>
-                <button onClick={() => setBfcUseManual(true)}
+                <label className={labelCls}>Rechercher un client</label>
+                <input
+                  type="text"
+                  className={`${inputCls} mb-2`}
+                  placeholder="Nom, prénom ou email…"
+                  value={bfcClientSearch}
+                  onChange={e => setBfcClientSearch(e.target.value)}
+                />
+                {/* Client sélectionné */}
+                {bfcSelectedClient && (
+                  <div className="flex items-center justify-between bg-[#5B3DF5]/8 border border-[#5B3DF5]/30 px-3 py-2 mb-2">
+                    <div>
+                      <p className="text-sm text-[#F5F5F3]">{bfcSelectedClient.client_name || bfcSelectedClient.client_email}</p>
+                      <p className="text-[10px] text-[#F5F5F3]/40">{bfcSelectedClient.client_email}{bfcSelectedClient.vip_tag ? ` · ${bfcSelectedClient.vip_tag}` : ''}</p>
+                    </div>
+                    <button type="button" onClick={() => setBfcSelectedClient(null)} className="text-[#F5F5F3]/25 hover:text-[#F5F5F3]/60 text-sm transition-colors ml-3">✕</button>
+                  </div>
+                )}
+                {/* Liste filtrée */}
+                {!bfcSelectedClient && bfcClientSearch.length >= 1 && (() => {
+                  const q = bfcClientSearch.toLowerCase()
+                  const filtered = clients.filter(c =>
+                    (c.client_name || '').toLowerCase().includes(q) ||
+                    c.client_email.toLowerCase().includes(q)
+                  ).slice(0, 8)
+                  return filtered.length > 0 ? (
+                    <div className="border border-white/10 divide-y divide-white/5 mb-2 max-h-52 overflow-y-auto">
+                      {filtered.map(c => (
+                        <button key={c.client_email} type="button"
+                          onClick={() => { setBfcSelectedClient(c); setBfcClientSearch('') }}
+                          className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-white/5 transition-colors">
+                          <div>
+                            <p className="text-sm text-[#F5F5F3]">{c.client_name || c.client_email}</p>
+                            <p className="text-[10px] text-[#F5F5F3]/35">{c.client_email}</p>
+                          </div>
+                          {c.vip_tag && <span className="text-[9px] text-amber-300/70 ml-2 flex-shrink-0">{c.vip_tag}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-[#F5F5F3]/25 py-2">Aucun client trouvé pour &quot;{bfcClientSearch}&quot;</p>
+                  )
+                })()}
+                {!bfcSelectedClient && !bfcClientSearch && (
+                  <select
+                    className={selectCls}
+                    value=""
+                    onChange={e => {
+                      const c = clients.find(c => c.client_email === e.target.value) || null
+                      setBfcSelectedClient(c)
+                    }}
+                  >
+                    <option value="" className="bg-[#141414]">— ou choisir dans la liste complète</option>
+                    {clients.map(c => (
+                      <option key={c.client_email} value={c.client_email} className="bg-[#141414]">
+                        {c.client_name || c.client_email} {c.vip_tag ? `· ${c.vip_tag}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <button type="button" onClick={() => setBfcUseManual(true)}
                   className="mt-3 text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 hover:text-[#F5F5F3]/50 transition-colors">
                   ou saisir manuellement →
                 </button>

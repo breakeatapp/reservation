@@ -724,15 +724,25 @@ export default function ClientDashboard({ profile }: Props) {
           <div className="flex items-center justify-center h-40 text-[#F5F5F3]/20 text-sm">Chargement…</div>
         ) : reservations.length === 0 ? (
           <div className="text-center py-20">
-            <span className="text-5xl block mb-6 opacity-20">✦</span>
-            <h2 className="font-playfair text-2xl text-[#F5F5F3]/30 mb-3">Aucune réservation</h2>
-            <p className="text-[#F5F5F3]/15 text-sm mb-8">
-              Aucune réservation avec {viewingRp?.displayName ?? profile.display_name}.
+            <span className="text-5xl block mb-8 opacity-10">✦</span>
+            <p className="text-[9px] tracking-[0.5em] uppercase mb-4" style={{ color: (viewingRp?.accentColor ?? accent) + '60' }}>
+              Mon espace
+            </p>
+            <h2 className="font-playfair text-3xl text-[#F5F5F3]/80 mb-1 italic">
+              {clientFirstName ? (
+                <>Bonjour, <span style={{ color: (viewingRp?.accentColor ?? accent) }}>{clientFirstName}</span></>
+              ) : 'Aucune réservation'}
+            </h2>
+            <p className="font-playfair text-base text-[#F5F5F3]/25 italic mb-8">
+              avec <span className="text-[#F5F5F3]/40">{viewingRp?.displayName ?? profile.display_name}</span>
+            </p>
+            <p className="text-[#F5F5F3]/20 text-xs mb-10 leading-relaxed max-w-xs mx-auto">
+              Votre concierge est prêt à vous réserver la meilleure table.<br />Faites votre première demande.
             </p>
             <Link
               href={`/${profile.slug}/book`}
-              className="inline-block text-white text-[11px] tracking-[0.2em] uppercase py-4 px-8 hover:opacity-90 transition-opacity"
-              style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }}
+              className="inline-block text-white text-[11px] tracking-[0.25em] uppercase py-4 px-10 hover:opacity-90 transition-opacity"
+              style={{ background: `linear-gradient(135deg, ${viewingRp?.accentColor ?? accent}, ${(viewingRp?.accentColor ?? accent)}bb)` }}
             >
               Faire une réservation
             </Link>

@@ -75,7 +75,10 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
   const accent = rpProfile?.accent_color || '#5B3DF5'
 
   // ── Sélecteur de ville ────────────────────────────────────
-  const [selectedDest, setSelectedDest] = useState<string>(defaultDestination || '')
+  // Si une seule destination active : pré-sélection automatique sans afficher le picker
+  const initialDest = defaultDestination
+    || (destinations && destinations.length === 1 ? destinations[0].slug : '')
+  const [selectedDest, setSelectedDest] = useState<string>(initialDest)
 
   // Groupement des venues par catégorie pour la destination sélectionnée
   const groupedVenues = (() => {
