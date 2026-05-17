@@ -203,7 +203,12 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...data, rpSlug, destination: selectedDest }),
       })
+      const json = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error()
+      // Si sauvegarde Supabase échouée, logguer pour debug
+      if (json.supabaseError) {
+        console.warn('[ITINERA] Supabase save failed:', json.supabaseError)
+      }
       setStatus('success')
       reset()
     } catch {

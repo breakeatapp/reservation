@@ -410,21 +410,22 @@ export default function ClientDashboard({ profile }: Props) {
   // ── ÉCRAN ACCUEIL ────────────────────────────────────────────
   // ════════════════════════════════════════════════════════════════
   if (screen === 'home') {
-    const isIdentified = !notRegistered && (!!clientFirstName || (!!email && rpList.length > 0))
-
-    // Chargement auto-login
-    if (!autoLoginDone && identifyLoading) {
-      return (
-        <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center">
-          <div className="text-center">
-            <svg className="animate-spin w-6 h-6 text-[#F5F5F3]/20 mx-auto mb-3" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-            </svg>
-            <p className="text-[#F5F5F3]/20 text-xs tracking-wider">Reconnexion...</p>
-          </div>
+    // Spinner réutilisable
+    const Spinner = ({ label }: { label?: string }) => (
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center">
+        <div className="text-center">
+          <svg className="animate-spin w-6 h-6 text-[#F5F5F3]/20 mx-auto mb-3" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+          {label && <p className="text-[#F5F5F3]/20 text-xs tracking-wider">{label}</p>}
         </div>
-      )
+      </div>
+    )
+
+    // ── 1. Pas encore terminé le check localStorage ──────────────
+    if (!autoLoginDone) {
+      return <Spinner label="Chargement..." />
     }
 
     // Pas de session → formulaire email directement sur cette page
@@ -528,117 +529,51 @@ export default function ClientDashboard({ profile }: Props) {
       )
     }
 
-    // ── Écran d'accueil guest avec menu ──────────────────────────
-    {
-      const savedPhone = localStorage.getItem('itinera_guest_phone') || ''
-      const needsProfile = !clientFirstName || !savedPhone
+    // ── 2. Pas de session → formulaire email (déjà géré plus bas) ──
+    // showEmailForm est true → le bloc ci-dessus le capte
 
-      if (showProfileCompletion || needsProfile) {
-        return (
-          <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center px-6">
-            <div className="w-full max-w-sm">
-              <div className="text-center mb-10">
-                <p className="text-[9px] tracking-[0.5em] text-[#F5F5F3]/20 uppercase mb-3">✦ {profile.display_name}</p>
-                <h1 className="font-playfair text-3xl text-[#F5F5F3] mb-2">Complétez votre profil</h1>
-                <p className="text-[#F5F5F3]/30 text-xs">Ces informations seront pré-remplies dans vos réservations</p>
-              </div>
-              <form onSubmit={handleProfileComplete} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <input type="text" value={profileFirstName} onChange={e => setProfileFirstName(e.target.value)}
-                    placeholder="Prénom *" required autoFocus
-                    className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
-                  />
-                  <input type="text" value={profileLastName} onChange={e => setProfileLastName(e.target.value)}
-                    placeholder="Nom"
-                    className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
-                  />
-                </div>
-                <input type="tel" value={profilePhone} onChange={e => setProfilePhone(e.target.value)}
-                  placeholder="Téléphone (ex: +33 6 00 00 00 00)" required
+    // ── 3. Session présente mais profil incomplet ────────────────
+    const savedPhone = localStorage.getItem('itinera_guest_phone') || ''
+    const needsProfile = !clientFirstName || !savedPhone
+
+    if (showProfileCompletion || needsProfile) {
+      return (
+        <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center px-6">
+          <div className="w-full max-w-sm">
+            <div className="text-center mb-10">
+              <p className="text-[9px] tracking-[0.5em] text-[#F5F5F3]/20 uppercase mb-3">✦ {profile.display_name}</p>
+              <h1 className="font-playfair text-3xl text-[#F5F5F3] mb-2">Complétez votre profil</h1>
+              <p className="text-[#F5F5F3]/30 text-xs">Ces informations seront pré-remplies dans vos réservations</p>
+            </div>
+            <form onSubmit={handleProfileComplete} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <input type="text" value={profileFirstName} onChange={e => setProfileFirstName(e.target.value)}
+                  placeholder="Prénom *" required autoFocus
                   className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
                 />
-                <button type="submit" disabled={profileLoading || !profileFirstName.trim() || !profilePhone.trim()}
-                  className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase transition-colors disabled:opacity-40"
-                  style={{ background: accent }}>
-                  Continuer vers mon espace →
-                </button>
-              </form>
-            </div>
-          </div>
-        )
-      }
-
-      return (
-        <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
-          {/* Barre retour vers la page RP */}
-          <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-3 flex items-center justify-between">
-            <Link
-              href={`/${profile.slug}`}
-              className="flex items-center gap-2 text-[#F5F5F3]/70 hover:text-white transition-colors text-[11px] tracking-[0.15em] uppercase border border-white/15 hover:border-white/35 px-4 py-2"
-            >
-              ← {profile.display_name}
-            </Link>
-            <p className="text-[9px] tracking-[0.35em] text-[#F5F5F3]/20 uppercase">Mon espace</p>
-          </div>
-
-          <div className="max-w-md mx-auto px-5 pt-10 pb-20">
-
-            {/* Header */}
-            <div className="mb-12">
-              <h1 className="font-playfair text-4xl text-white leading-tight mb-1">
-                Bienvenue{clientFirstName ? ',' : ''}<br />
-                {clientFirstName && <span style={{ color: accent }}>{clientFirstName}</span>}
-              </h1>
-              <p className="text-white/30 text-sm">{email}</p>
-            </div>
-
-            {/* Menu principal */}
-            <div className="space-y-3">
-
-              <button onClick={() => {
-                  const currentRp: RPSummary = rpList.find(r => r.slug === profile.slug) || {
-                    slug: profile.slug, displayName: profile.display_name,
-                    accentColor: accent, logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
-                    totalCount: 0, pendingCount: 0, confirmedCount: 0,
-                  }
-                  selectRP(currentRp)
-                }}
-                className="flex items-center justify-between w-full border border-white/10 hover:border-white/25 bg-[#141414] hover:bg-[#1a1a1a] p-5 transition-all group text-left">
-                <div>
-                  <p className="text-[9px] tracking-[0.3em] uppercase mb-1" style={{ color: accent }}>Suivi</p>
-                  <p className="text-[#F5F5F3] text-base font-light">Mes réservations</p>
-                  <p className="text-[#F5F5F3]/30 text-xs mt-0.5">
-                    {rpList.find(r => r.slug === profile.slug)?.totalCount
-                      ? `${rpList.find(r => r.slug === profile.slug)?.totalCount} réservation(s)`
-                      : 'Historique et statuts'}
-                  </p>
-                </div>
-                <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/60 transition-colors text-xl">→</span>
+                <input type="text" value={profileLastName} onChange={e => setProfileLastName(e.target.value)}
+                  placeholder="Nom"
+                  className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
+                />
+              </div>
+              <input type="tel" value={profilePhone} onChange={e => setProfilePhone(e.target.value)}
+                placeholder="Téléphone (ex: +33 6 00 00 00 00)" required
+                className="w-full bg-[#141414] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm outline-none placeholder-[#F5F5F3]/15 focus:border-[#5B3DF5]/40 transition-colors"
+              />
+              <button type="submit" disabled={profileLoading || !profileFirstName.trim() || !profilePhone.trim()}
+                className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase transition-colors disabled:opacity-40"
+                style={{ background: accent }}>
+                Continuer vers mon espace →
               </button>
-
-            </div>
-
-            {/* Déconnexion */}
-            <div className="mt-12 text-center">
-              <button
-                onClick={() => {
-                  localStorage.removeItem('itinera_guest_email')
-                  localStorage.removeItem('itinera_guest_rp')
-                  localStorage.removeItem('itinera_guest_name')
-                  localStorage.removeItem('itinera_guest_lastname')
-                  localStorage.removeItem('itinera_guest_phone')
-                  window.location.reload()
-                }}
-                className="text-[#F5F5F3]/15 text-[10px] hover:text-[#F5F5F3]/40 transition-colors"
-              >
-                Se déconnecter
-              </button>
-            </div>
+            </form>
           </div>
         </div>
       )
     }
 
+    // ── 4. Identifié + profil complet → spinner pendant l'auto-redirect ──
+    // (useEffect appelle selectRP → screen passe à 'reservations')
+    return <Spinner label="Chargement de vos réservations..." />
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -649,10 +584,17 @@ export default function ClientDashboard({ profile }: Props) {
       <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
         <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/8 px-4 py-4 flex items-center gap-3">
           <button
-            onClick={() => setScreen('home')}
+            onClick={() => {
+              const rpSummary: RPSummary = rpList.find(r => r.slug === profile.slug) ?? {
+                slug: profile.slug, displayName: profile.display_name,
+                accentColor: accent, logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
+                totalCount: 0, pendingCount: 0, confirmedCount: 0,
+              }
+              selectRP(rpSummary)
+            }}
             className="flex items-center gap-2 text-white font-semibold transition-colors text-sm border border-white/40 hover:border-white/70 bg-white/5 hover:bg-white/10 px-4 py-2"
           >
-            ← Retour
+            ← Mes réservations
           </button>
           <p className="text-[10px] tracking-[0.3em] uppercase" style={{ color: accent }}>Mon profil</p>
         </div>

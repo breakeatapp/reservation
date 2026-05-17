@@ -34,33 +34,36 @@ export async function POST(req: NextRequest) {
     })
 
     // Save to Supabase (non-bloquant — n'empêche pas l'email si erreur)
+    let supabaseError: string | null = null
     try {
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('VOTRE')) {
-        const { error: sbError } = await supabase.from('reservations').insert({
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          phone,
-          establishment,
-          destination,
-          date: formattedDate,
-          time,
-          guests: parseInt(guests),
-          occasion: occasion || '',
-          seating: seating || '',
-          vip_level: '',      // défini par le RP dans son dashboard
-          budget_level: '',   // défini par le RP dans son dashboard
-          nationality: nationality || '',
-          special_requests: specialRequests || '',
-          status: 'pending',
-          establishment_phone: est?.phone || '',
-          establishment_email: est?.email || '',
-          rp_slug: rpSlug || '',  // rattacher au RP
-        })
-        if (sbError) console.error('Supabase error:', sbError.message)
+      const { error: sbError } = await supabase.from('reservations').insert({
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        phone,
+        establishment,
+        destination,
+        date: formattedDate,
+        time,
+        guests: parseInt(guests),
+        occasion: occasion || '',
+        seating: seating || '',
+        vip_level: '',      // défini par le RP dans son dashboard
+        budget_level: '',   // défini par le RP dans son dashboard
+        nationality: nationality || '',
+        special_requests: specialRequests || '',
+        status: 'pending',
+        establishment_phone: est?.phone || '',
+        establishment_email: est?.email || '',
+        rp_slug: rpSlug || '',  // rattacher au RP
+      })
+      if (sbError) {
+        supabaseError = sbError.message
+        console.error('Supabase insert error:', sbError.message, sbError.details, sbError.hint)
       }
     } catch (sbErr) {
-      console.error('Supabase non-bloquant:', sbErr)
+      supabaseError = String(sbErr)
+      console.error('Supabase exception:', sbErr)
     }
 
     // Récupérer le profil du RP pour l'email
@@ -113,7 +116,11 @@ export async function POST(req: NextRequest) {
       console.error('Client confirmation email error (non-bloquant):', clientEmailErr)
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      saved: !supabaseError,
+      ...(supabaseError ? { supabaseError } : {}),
+    })
   } catch (error) {
     console.error('Reservation error:', error)
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })
