@@ -42,7 +42,7 @@ export default function LandingPage() {
     const isValidSlug = savedRp && /^[a-z0-9-]+$/.test(savedRp)
     if (savedEmail && isValidSlug) {
       setSavedSession({ email: savedEmail, rp: savedRp!, name: savedName || savedEmail })
-      router.replace(`/${savedRp}/mon-espace`)
+      router.replace(`/${savedRp}`)
     } else if (savedRp && !isValidSlug) {
       localStorage.removeItem('itinera_guest_rp')
       localStorage.removeItem('itinera_guest_email')
@@ -65,7 +65,7 @@ export default function LandingPage() {
         localStorage.setItem('itinera_guest_rp', rp.slug)
         localStorage.setItem('itinera_guest_rps', JSON.stringify(data.rps))
         if (data.firstName) localStorage.setItem('itinera_guest_name', data.firstName)
-        router.push(`/${rp.slug}/mon-espace`)
+        router.push(`/${rp.slug}`)
       } else {
         setError('Email non reconnu. Vérifiez votre adresse ou contactez votre concierge.')
       }

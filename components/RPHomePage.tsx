@@ -65,7 +65,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Lire le nom du client connecté + rediriger si déjà invité
+  // Lire le nom du client connecté (sans redirection automatique)
   useEffect(() => {
     const rpSlug = profile.slug
     const savedRp = localStorage.getItem('itinera_guest_rp')
@@ -73,10 +73,8 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
     const savedEmail = localStorage.getItem('itinera_guest_email')
     if (savedRp === rpSlug && (savedName || savedEmail)) {
       setConnectedName(savedName || savedEmail || '')
-      // Déjà identifié pour ce RP → rediriger vers mon espace directement
-      router.replace(`/${rpSlug}/mon-espace`)
     }
-  }, [profile.slug, router])
+  }, [profile.slug])
 
   const slug = profile.slug
   const accent = '#5B3DF5'
