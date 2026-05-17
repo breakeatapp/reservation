@@ -25,9 +25,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 })
     }
 
-    // Résoudre le profil RP (pour le nom affiché dans les emails)
+    // Résoudre le profil RP (pour les emails)
     const rpProfile = rpSlug ? await getRPProfile(rpSlug) : null
     const rpDisplayName = rpProfile?.display_name
+    const rpEmail = rpProfile?.email
+    const rpWhatsapp = rpProfile?.whatsapp
 
     // Enrichir chaque réservation avec les infos de l'établissement
     const enrichedBookings: TripBooking[] = (bookings as RawBooking[]).map(b => {
@@ -93,6 +95,7 @@ export async function POST(req: NextRequest) {
       phone,
       bookings: enrichedBookings,
       rpDisplayName,
+      rpEmail,        // ← email du concierge destinataire
     })
 
     // Envoyer l'email de confirmation au client (non-bloquant)
@@ -104,6 +107,8 @@ export async function POST(req: NextRequest) {
         phone,
         bookings: enrichedBookings,
         rpDisplayName,
+        rpEmail,      // ← pour reply-to
+        rpWhatsapp,   // ← bouton WhatsApp dans l'email client
       })
     } catch (clientErr) {
       console.error('Client trip confirmation email error:', clientErr)

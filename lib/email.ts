@@ -40,7 +40,8 @@ export type TripData = {
   phone: string
   bookings: TripBooking[]
   rpDisplayName?: string
-  rpEmail?: string   // email du RP destinataire
+  rpEmail?: string     // email du RP destinataire
+  rpWhatsapp?: string  // WhatsApp du RP
 }
 
 // ── Email récap voyage (UN seul email pour tout le trip) ───
