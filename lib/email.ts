@@ -19,6 +19,12 @@ function toWaPhone(phone: string): string {
   return digits
 }
 
+// ── Nom d'expéditeur unifié : "ITINERA · {RP}" ─────────────
+function senderName(rpDisplayName?: string): string {
+  const brand = process.env.MANAGER_NAME || 'ITINERA'
+  return rpDisplayName ? `${brand} · ${rpDisplayName}` : brand
+}
+
 // ── Parse la note interne (JSON ou texte brut) ─────────────
 function formatInternalNote(raw: string): string {
   try {
@@ -184,7 +190,7 @@ export async function sendTripSummaryEmail(data: TripData) {
   const toRp = data.rpEmail || process.env.MANAGER_EMAIL || 'noreply@example.com'
 
   await sendEmail({
-    from: `${process.env.MANAGER_NAME || 'ITINERA'} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    from: `${senderName(data.rpDisplayName)} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [toRp],
     subject: `ITINERA · 🗺️ Voyage — ${data.firstName} ${data.lastName} · ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''}`,
     html,
@@ -283,7 +289,7 @@ export async function sendTripClientConfirmationEmail(data: TripData) {
 </html>`
 
   await sendEmail({
-    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    from: `${senderName(data.rpDisplayName)} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: `ITINERA · ✦ Voyage reçu — ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''} · ${data.firstName} ${data.lastName}`,
     html,
@@ -423,7 +429,7 @@ export async function sendReservationEmail(data: ReservationData) {
   `
 
   await sendEmail({
-    from: `${managerName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    from: `${senderName(data.rpDisplayName)} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [managerEmail],
     subject: `ITINERA · 🥂 ${data.firstName} ${data.lastName} — ${data.establishment}${data.destination ? ` · ${data.destination}` : ''} · ${data.date}`,
     html: htmlContent,
@@ -585,7 +591,7 @@ export async function sendClientConfirmationEmail(data: ReservationData) {
   `
 
   await sendEmail({
-    from: `${managerName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    from: `${senderName(data.rpDisplayName)} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: `ITINERA · ✦ Demande reçue — ${data.establishment}${data.destination ? ` · ${data.destination}` : ''} · ${data.date}`,
     html: clientHtml,
@@ -678,7 +684,7 @@ export async function sendModificationEmailToRP(data: ModificationData) {
   const toAddress = data.rpEmail || process.env.MANAGER_EMAIL || 'contact@itinera.click'
 
   await sendEmail({
-    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    from: `${senderName(data.rpDisplayName)} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [toAddress],
     subject: isCancel
       ? `ITINERA · ✕ Annulation — ${data.establishment} · ${data.firstName} ${data.lastName}`
@@ -756,7 +762,7 @@ export async function sendRPModificationToClient(data: RPModificationData) {
 </html>`
 
   await sendEmail({
-    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    from: `${senderName(data.rpDisplayName)} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: `ITINERA · ✎ Réservation modifiée — ${data.establishment}`,
     html,
@@ -889,7 +895,7 @@ export async function sendStatusUpdateEmailToClient(data: StatusUpdateData) {
   const replyToAddress = data.rpEmail || process.env.MANAGER_EMAIL || undefined
 
   await sendEmail({
-    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    from: `${senderName(data.rpDisplayName)} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: isConfirmed
       ? `ITINERA · ✦ Confirmée — ${data.establishment} · ${data.date}`
@@ -978,7 +984,7 @@ export async function sendClientWelcomeEmail(data: ClientWelcomeData) {
   const plainText = `Bonjour${firstName ? ` ${firstName}` : ''},\n\n${rpName} vous a donné accès à votre espace de conciergerie privée sur ITINERA.\n\nConnectez-vous ici : ${loginUrl}\n\nVotre identifiant : ${data.clientEmail}\n\nIl vous suffit d'entrer votre adresse email pour accéder à votre espace.\n\n---\n${rpName} · Conciergerie privée`
 
   await sendEmail({
-    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    from: `${senderName(data.rpDisplayName)} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.clientEmail],
     subject: `ITINERA · Votre espace de conciergerie est prêt — ${rpName}`,
     html,
@@ -1084,7 +1090,7 @@ export async function sendModificationAckToClient(data: ModificationAckData) {
 </html>`
 
   await sendEmail({
-    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    from: `${senderName(data.rpDisplayName)} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [data.email],
     subject: isCancel
       ? `ITINERA · ✕ Annulation confirmée — ${data.establishment}`
