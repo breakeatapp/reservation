@@ -16,8 +16,11 @@ type Reservation = {
   special_requests?: string
   status: ReservationStatus
   establishment: string
+  destination?: string
   phone?: string
   email?: string
+  rp_name?: string   // nom du concierge ayant créé la réservation
+  rp_slug?: string
 }
 
 type FilterTab = 'pending' | 'confirmed' | 'declined' | 'all'
@@ -208,7 +211,7 @@ export default function HostDashboardPage() {
 
                 {/* Top row */}
                 <div className="flex items-start justify-between gap-4 mb-3">
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-[#F5F7FA] font-medium text-sm">
                       {r.first_name} {r.last_name}
                     </p>
@@ -226,6 +229,14 @@ export default function HostDashboardPage() {
                     {STATUS_LABEL[r.status]}
                   </span>
                 </div>
+
+                {/* Concierge */}
+                {r.rp_name && (
+                  <div className="flex items-center gap-1.5 border-t border-white/5 pt-2.5 mt-1">
+                    <span className="text-[#F5F7FA]/15 text-[9px]">via</span>
+                    <span className="text-[10px] tracking-[0.15em] text-[#6E5BFF]/60 uppercase">{r.rp_name}</span>
+                  </div>
+                )}
 
                 {/* Action buttons — only if not cancelled */}
                 {r.status !== 'cancelled' && (

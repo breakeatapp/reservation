@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       success: true,
       venueName: data.venue_name,
       slug: data.slug,
+      destination: data.destination ?? null,
     })
   } catch {
     return Response.json({ error: 'Erreur serveur.' }, { status: 500 })

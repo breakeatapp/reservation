@@ -26,6 +26,7 @@ export default function HostLoginPage() {
       if (data.success) {
         localStorage.setItem('itinera_host_slug', data.slug)
         localStorage.setItem('itinera_host_name', data.venueName)
+        if (data.destination) localStorage.setItem('itinera_host_destination', data.destination)
         router.push(`/host/${data.slug}`)
       } else {
         setError(data.error || 'Identifiants incorrects.')
