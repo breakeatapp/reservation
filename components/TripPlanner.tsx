@@ -12,7 +12,6 @@ type BookingSlot = {
   time: string
   guests: string
   occasion: string
-  seating: string
   specialRequests: string
 }
 
@@ -80,7 +79,6 @@ function newBooking(): BookingSlot {
     time: '',
     guests: '2',
     occasion: '',
-    seating: '',
     specialRequests: '',
   }
 }
@@ -163,6 +161,7 @@ export default function TripPlanner({
   const [endDate, setEndDate] = useState('')
   const [days, setDays] = useState<DayPlan[]>([])
   const [expandedDay, setExpandedDay] = useState<string | null>(null)
+  const [validatedIds, setValidatedIds] = useState<Set<string>>(new Set())
 
   const filteredEst = useMemo(() =>
     establishments.filter(e => e.destination === trip.destination),
@@ -257,7 +256,7 @@ export default function TripPlanner({
             time: b.time,
             guests: b.guests,
             occasion: b.occasion,
-            seating: b.seating,
+            seating: '',
             specialRequests: b.specialRequests,
           })),
           rpSlug: rpSlug || '',
@@ -582,98 +581,132 @@ export default function TripPlanner({
                   {expandedDay === day.date && (
                     <div className="border-t border-white/5 p-5 space-y-4 bg-[#0B0B0B]/40">
                       {day.bookings.map((booking, idx) => (
-                        <div key={booking.id} className="bg-[#1A1A1A] border border-white/5 p-4 relative">
-                          <div className="flex items-center justify-between mb-4">
-                            <span className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/60 uppercase">
-                              Réservation {idx + 1}
-                            </span>
-                            <button
-                              onClick={() => removeBooking(day.date, booking.id)}
-                              className="text-[#F5F5F3]/20 hover:text-red-400/70 transition-colors text-xs"
-                            >
-                              Supprimer
-                            </button>
-                          </div>
+                        <div key={booking.id} className={`border p-4 relative transition-all ${validatedIds.has(booking.id) ? 'bg-[#0f1a0f] border-green-500/20' : 'bg-[#1A1A1A] border-white/5'}`}>
 
-                          <div className="grid grid-cols-2 gap-3 mb-3">
-                            <div className="col-span-2">
-                              <label className={labelClass}>Établissement *</label>
-                              <select
-                                value={booking.establishment}
-                                onChange={e => updateBooking(day.date, booking.id, 'establishment', e.target.value)}
-                                className={`${inputClass} cursor-pointer`}
-                              >
-                                <option value="" disabled className="bg-[#0B0B0B]">Choisir...</option>
-                                {filteredEst.map(e => (
-                                  <option key={e.name} value={e.name} className="bg-[#0B0B0B]">
-                                    {e.name} — {e.type}
-                                  </option>
-                                ))}
-                              </select>
+                          {/* Mode validé — vue résumé */}
+                          {validatedIds.has(booking.id) ? (
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start gap-3">
+                                <span className="text-green-400 text-base mt-0.5">✓</span>
+                                <div>
+                                  <p className="text-[#F5F5F3]/80 text-sm font-medium">{booking.establishment || '—'}</p>
+                                  <p className="text-[#F5F5F3]/35 text-xs mt-0.5">
+                                    {booking.time} · {booking.guests} pers.{booking.occasion ? ` · ${booking.occasion}` : ''}
+                                  </p>
+                                  {booking.specialRequests && (
+                                    <p className="text-[#F5F5F3]/25 text-[10px] italic mt-0.5">"{booking.specialRequests}"</p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3 flex-shrink-0">
+                                <button
+                                  onClick={() => setValidatedIds(prev => { const s = new Set(prev); s.delete(booking.id); return s })}
+                                  className="text-[#F5F5F3]/25 hover:text-[#F5F5F3]/60 text-[10px] tracking-[0.15em] uppercase transition-colors"
+                                >
+                                  Modifier
+                                </button>
+                                <button
+                                  onClick={() => { removeBooking(day.date, booking.id); setValidatedIds(prev => { const s = new Set(prev); s.delete(booking.id); return s }) }}
+                                  className="text-[#F5F5F3]/15 hover:text-red-400/60 transition-colors text-xs"
+                                >
+                                  ✕
+                                </button>
+                              </div>
                             </div>
+                          ) : (
+                            /* Mode formulaire */
+                            <>
+                              <div className="flex items-center justify-between mb-4">
+                                <span className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/60 uppercase">
+                                  Réservation {idx + 1}
+                                </span>
+                                <button
+                                  onClick={() => removeBooking(day.date, booking.id)}
+                                  className="text-[#F5F5F3]/20 hover:text-red-400/70 transition-colors text-xs"
+                                >
+                                  Supprimer
+                                </button>
+                              </div>
 
-                            <div>
-                              <label className={labelClass}>Service *</label>
-                              <select
-                                value={booking.time}
-                                onChange={e => updateBooking(day.date, booking.id, 'time', e.target.value)}
-                                className={`${inputClass} cursor-pointer`}
-                              >
-                                <option value="" disabled className="bg-[#0B0B0B]">Choisir...</option>
-                                {SERVICES.map(s => (
-                                  <option key={s.value} value={s.value} className="bg-[#0B0B0B]">{s.label}</option>
-                                ))}
-                              </select>
-                            </div>
+                              <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div className="col-span-2">
+                                  <label className={labelClass}>Établissement *</label>
+                                  <select
+                                    value={booking.establishment}
+                                    onChange={e => updateBooking(day.date, booking.id, 'establishment', e.target.value)}
+                                    className={`${inputClass} cursor-pointer`}
+                                  >
+                                    <option value="" disabled className="bg-[#0B0B0B]">Choisir...</option>
+                                    {filteredEst.map(e => (
+                                      <option key={e.name} value={e.name} className="bg-[#0B0B0B]">
+                                        {e.name} — {e.type}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
 
-                            <div>
-                              <label className={labelClass}>Personnes *</label>
-                              <select
-                                value={booking.guests}
-                                onChange={e => updateBooking(day.date, booking.id, 'guests', e.target.value)}
-                                className={`${inputClass} cursor-pointer`}
-                              >
-                                {[1,2,3,4,5,6,7,8,10,12,15,20].map(n => (
-                                  <option key={n} value={n} className="bg-[#0B0B0B]">{n} pers.</option>
-                                ))}
-                                <option value="20+" className="bg-[#0B0B0B]">20+</option>
-                              </select>
-                            </div>
+                                <div>
+                                  <label className={labelClass}>Service *</label>
+                                  <select
+                                    value={booking.time}
+                                    onChange={e => updateBooking(day.date, booking.id, 'time', e.target.value)}
+                                    className={`${inputClass} cursor-pointer`}
+                                  >
+                                    <option value="" disabled className="bg-[#0B0B0B]">Choisir...</option>
+                                    {SERVICES.map(s => (
+                                      <option key={s.value} value={s.value} className="bg-[#0B0B0B]">{s.label}</option>
+                                    ))}
+                                  </select>
+                                </div>
 
-                            <div>
-                              <label className={labelClass}>Occasion</label>
-                              <select
-                                value={booking.occasion}
-                                onChange={e => updateBooking(day.date, booking.id, 'occasion', e.target.value)}
-                                className={`${inputClass} cursor-pointer`}
-                              >
-                                <option value="" className="bg-[#0B0B0B]">Aucune</option>
-                                {OCCASIONS.map(o => <option key={o} value={o} className="bg-[#0B0B0B]">{o}</option>)}
-                              </select>
-                            </div>
+                                <div>
+                                  <label className={labelClass}>Personnes *</label>
+                                  <select
+                                    value={booking.guests}
+                                    onChange={e => updateBooking(day.date, booking.id, 'guests', e.target.value)}
+                                    className={`${inputClass} cursor-pointer`}
+                                  >
+                                    {[1,2,3,4,5,6,7,8,10,12,15,20].map(n => (
+                                      <option key={n} value={n} className="bg-[#0B0B0B]">{n} pers.</option>
+                                    ))}
+                                    <option value="20+" className="bg-[#0B0B0B]">20+</option>
+                                  </select>
+                                </div>
 
-                            <div>
-                              <label className={labelClass}>Placement</label>
-                              <select
-                                value={booking.seating}
-                                onChange={e => updateBooking(day.date, booking.id, 'seating', e.target.value)}
-                                className={`${inputClass} cursor-pointer`}
-                              >
-                                <option value="" className="bg-[#0B0B0B]">Sans préférence</option>
-                                {SEATINGS.map(s => <option key={s} value={s} className="bg-[#0B0B0B]">{s}</option>)}
-                              </select>
-                            </div>
+                                <div>
+                                  <label className={labelClass}>Occasion</label>
+                                  <select
+                                    value={booking.occasion}
+                                    onChange={e => updateBooking(day.date, booking.id, 'occasion', e.target.value)}
+                                    className={`${inputClass} cursor-pointer`}
+                                  >
+                                    <option value="" className="bg-[#0B0B0B]">Aucune</option>
+                                    {OCCASIONS.map(o => <option key={o} value={o} className="bg-[#0B0B0B]">{o}</option>)}
+                                  </select>
+                                </div>
 
-                            <div className="col-span-2">
-                              <label className={labelClass}>Notes spéciales</label>
-                              <input type="text"
-                                placeholder="Demandes particulières pour ce service..."
-                                value={booking.specialRequests}
-                                onChange={e => updateBooking(day.date, booking.id, 'specialRequests', e.target.value)}
-                                className={inputClass}
-                              />
-                            </div>
-                          </div>
+                                <div className="col-span-2">
+                                  <label className={labelClass}>Notes spéciales</label>
+                                  <input type="text"
+                                    placeholder="Placement, demandes particulières..."
+                                    value={booking.specialRequests}
+                                    onChange={e => updateBooking(day.date, booking.id, 'specialRequests', e.target.value)}
+                                    className={inputClass}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Bouton Valider */}
+                              {booking.establishment && booking.time && (
+                                <button
+                                  onClick={() => setValidatedIds(prev => new Set(prev).add(booking.id))}
+                                  className="w-full py-2.5 bg-[#5B3DF5] text-white text-[10px] tracking-[0.3em] uppercase hover:bg-[#4930cc] transition-colors mt-1"
+                                >
+                                  ✓ Valider cette réservation
+                                </button>
+                              )}
+                            </>
+                          )}
                         </div>
                       ))}
 
@@ -765,7 +798,6 @@ export default function TripPlanner({
                         <span>·</span>
                         <span>{booking.guests} pers.</span>
                         {booking.occasion && <><span>·</span><span>{booking.occasion}</span></>}
-                        {booking.seating && <><span>·</span><span>{booking.seating}</span></>}
                       </div>
                       {booking.specialRequests && (
                         <p className="text-[#F5F5F3]/30 text-xs italic mt-1">"{booking.specialRequests}"</p>

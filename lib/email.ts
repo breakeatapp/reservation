@@ -71,8 +71,10 @@ export async function sendTripSummaryEmail(data: TripData) {
       <div style="color: #C9A84C; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 12px;">
         Réservation ${i + 1} / ${data.bookings.length}
       </div>
-      <div style="color: #f5f0e8; font-size: 20px; font-style: italic; margin-bottom: 4px;">${b.establishment}</div>
-      <div style="color: #9a9a9a; font-size: 12px; letter-spacing: 1px; margin-bottom: 16px;">${b.destination}</div>
+      <div style="margin-bottom: 16px;">
+        <span style="color: #f5f0e8; font-size: 20px; font-style: italic;">${b.establishment}</span>
+        ${b.destination ? `<span style="color: #C9A84C; font-size: 13px; margin-left: 10px; letter-spacing: 1px;">· ${b.destination.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</span>` : ''}
+      </div>
       <table style="width: 100%; border-collapse: collapse;">
         <tr>
           <td style="padding: 6px 0; color: #9a9a9a; font-size: 11px; width: 50%;">
@@ -165,7 +167,7 @@ export async function sendTripSummaryEmail(data: TripData) {
 
       <!-- WhatsApp -->
       <div style="text-align: center; margin-top: 32px;">
-        <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, j'ai bien reçu votre demande de voyage — ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''}. Je traite votre itinéraire et reviens vers vous rapidement.`)}"
+        <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, j'ai bien reçu votre demande de planning — ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''}. Je traite votre itinéraire et reviens vers vous rapidement.`)}"
            style="display: inline-block; background: #25D366; color: white; padding: 12px 28px; text-decoration: none; font-size: 14px; margin-top: 8px;">
           💬 Répondre via WhatsApp
         </a>

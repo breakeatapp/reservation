@@ -515,19 +515,12 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
             <span className="w-px h-3" style={{ background: accent + '30' }} />
             03 — Préférences
           </p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div>
               <label className={labelClass}>Occasion</label>
               <select {...register('occasion')} className={`${inputClass} cursor-pointer`}>
                 <option value="" className="bg-[#141414]">Aucune</option>
                 {OCCASIONS.map(o => <option key={o} value={o} className="bg-[#141414]">{o}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Placement souhaité</label>
-              <select {...register('seating')} className={`${inputClass} cursor-pointer`}>
-                <option value="" className="bg-[#141414]">Sans préférence</option>
-                {SEATINGS.map(s => <option key={s} value={s} className="bg-[#141414]">{s}</option>)}
               </select>
             </div>
           </div>
