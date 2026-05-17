@@ -19,6 +19,23 @@ function toWaPhone(phone: string): string {
   return digits
 }
 
+// ── Parse la note interne (JSON ou texte brut) ─────────────
+function formatInternalNote(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object') {
+      const parts: string[] = []
+      if (parsed.note) parts.push(parsed.note)
+      if (parsed.nationality) parts.push(`🌍 ${parsed.nationality}`)
+      if (Array.isArray(parsed.products) && parsed.products.length > 0) {
+        parts.push(`🍾 ${parsed.products.join(', ')}`)
+      }
+      return parts.length > 0 ? parts.join(' · ') : raw
+    }
+  } catch { /* texte brut */ }
+  return raw
+}
+
 // ── Type pour un voyage complet ────────────────────────────
 export type TripBooking = {
   establishment: string
@@ -165,7 +182,7 @@ export async function sendTripSummaryEmail(data: TripData) {
   const toRp = data.rpEmail || process.env.MANAGER_EMAIL || 'noreply@example.com'
 
   await sendEmail({
-    from: `${rpName} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    from: `${process.env.MANAGER_NAME || 'ITINERA'} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
     to: [toRp],
     subject: `ITINERA · 🗺️ Voyage — ${data.firstName} ${data.lastName} · ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''}`,
     html,
@@ -296,7 +313,7 @@ export type ReservationData = {
 
 export async function sendReservationEmail(data: ReservationData) {
   const managerEmail = data.rpEmail || process.env.MANAGER_EMAIL || 'noreply@example.com'
-  const managerName = data.rpDisplayName || process.env.MANAGER_NAME || 'Conciergerie'
+  const managerName = process.env.MANAGER_NAME || 'ITINERA'
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -359,7 +376,7 @@ export async function sendReservationEmail(data: ReservationData) {
       </div>
       ${data.internalNote ? `
       <p class="section-title">Note privée client</p>
-      <div class="special" style="border-left-color:#C8A96B; color:#c4a96b;">"${data.internalNote}"</div>
+      <div class="special" style="border-left-color:#C8A96B; color:#c4a96b;">${formatInternalNote(data.internalNote)}</div>
       ` : ''}
 
       <p class="section-title">Client</p>
@@ -388,7 +405,7 @@ export async function sendReservationEmail(data: ReservationData) {
       ` : ''}
 
       <div style="text-align: center; margin-top: 32px;">
-        <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, j'ai bien reçu votre demande de réservation chez ${data.establishment}.`)}"
+        <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, j'ai bien reçu votre demande de réservation chez ${data.establishment} — le ${data.date}, ${data.time}, pour ${data.guests} personne${data.guests > 1 ? 's' : ''}. Je reviens vers vous rapidement.`)}"
            class="whatsapp-btn" style="background:#25D366; padding: 14px 36px; font-size: 13px; letter-spacing: 1px;">
           💬 Envoyer à mon contact
         </a>
@@ -592,7 +609,7 @@ export type ModificationData = {
 }
 
 export async function sendModificationEmailToRP(data: ModificationData) {
-  const rpName = data.rpDisplayName || process.env.MANAGER_NAME || 'ITINERA'
+  const rpName = process.env.MANAGER_NAME || 'ITINERA'
   const isCancel = data.action === 'cancelled'
 
   const changes = [
