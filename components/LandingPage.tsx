@@ -19,6 +19,23 @@ export default function LandingPage() {
   const [codeLoading, setCodeLoading] = useState(false)
   const [codeError, setCodeError] = useState('')
 
+  const extractSlugFromInvite = (value: string) => {
+    const input = value.trim().toLowerCase()
+    if (!input) return ''
+
+    const cleaned = input
+      .replace(/^https?:\/\//, '')
+      .replace(/^www\./, '')
+      .split(/[?#]/)[0]
+      .replace(/^\/+/, '')
+
+    const parts = cleaned.split('/').filter(Boolean)
+    if (parts.length === 0) return cleaned
+
+    const firstPartIsDomain = parts[0].includes('.')
+    return firstPartIsDomain ? (parts[1] ?? '') : parts[0]
+  }
+
   // Vérifier si le client est déjà connecté → redirection automatique vers son espace
   useEffect(() => {
     const savedEmail = localStorage.getItem('itinera_guest_email')
@@ -69,20 +86,8 @@ export default function LandingPage() {
   const handleCodeAccess = async (e: React.FormEvent) => {
     e.preventDefault()
     const trimmedEmail = codeEmail.trim().toLowerCase()
-    let trimmedCode = inviteCode.trim().toLowerCase()
+    let trimmedCode = extractSlugFromInvite(inviteCode)
     if (!trimmedEmail || !trimmedCode) return
-
-    // Accepter un lien complet (itinera.click/honore/mon-espace ou https://...) → extraire le slug
-    if (trimmedCode.includes('/')) {
-      try {
-        const fullUrl = trimmedCode.startsWith('http') ? trimmedCode : `https://${trimmedCode}`
-        const url = new URL(fullUrl)
-        const slug = url.pathname.split('/').filter(Boolean)[0]
-        if (slug) trimmedCode = slug
-      } catch {
-        trimmedCode = trimmedCode.split('/').filter(Boolean)[0] || trimmedCode
-      }
-    }
 
     setCodeLoading(true)
     setCodeError('')
@@ -268,18 +273,8 @@ export default function LandingPage() {
                     />
                     <button
                       onClick={() => {
-                        let code = inviteCode.trim().toLowerCase()
+                        const code = extractSlugFromInvite(inviteCode)
                         if (!code) return
-                        // Extraire le slug depuis une URL complète
-                        if (code.includes('/')) {
-                          try {
-                            const fullUrl = code.startsWith('http') ? code : `https://${code}`
-                            const url = new URL(fullUrl)
-                            code = url.pathname.split('/').filter(Boolean)[0] || code
-                          } catch {
-                            code = code.split('/').filter(Boolean)[0] || code
-                          }
-                        }
                         if (code) router.push(`/${code}/mon-espace`)
                       }}
                       className="px-5 py-3 text-white text-[11px] tracking-[0.2em] uppercase bg-[#6E5BFF] hover:bg-[#5B3DF5] transition-colors flex-shrink-0"
