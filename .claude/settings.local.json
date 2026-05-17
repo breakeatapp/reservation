@@ -19,7 +19,13 @@
       "Bash(git remote *)",
       "Bash(git push *)",
       "Bash(npx next *)",
-      "Bash(xargs grep -l \"Ajouter une réservation\\\\|trip\\\\|TripPlanner\\\\|itinéraire\")"
+      "Bash(xargs grep -l \"Ajouter une réservation\\\\|trip\\\\|TripPlanner\\\\|itinéraire\")",
+      "Bash(npm run *)",
+      "Bash(Remove-Item -Recurse -Force \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\.next\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -Last 25)",
+      "Bash(find app/[rp] -type f)",
+      "Bash(dir /s /b \"app\\\\[rp]\")",
+      "Bash(dir \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\" /s /b /a:d)"
     ]
   }
 }

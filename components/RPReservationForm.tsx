@@ -81,7 +81,12 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
   const groupedVenues = (() => {
     if (!selectedDest) return null
     const predefined = (establishments || []).filter(e => e.destination === selectedDest)
-    const custom = (venueConfigs || []).filter(vc => vc.destination === selectedDest)
+    // Include custom venues matching the selected destination OR with no destination set
+    const custom = (venueConfigs || []).filter(vc =>
+      vc.destination === selectedDest ||
+      !vc.destination ||
+      vc.destination === 'custom'
+    )
     const all: { name: string; category: string }[] = [
       ...predefined.map(e => ({ name: e.name, category: normalizeEstType(e.type) })),
     ]
@@ -98,9 +103,16 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
   })()
 
   const filteredEstOptions = selectedDest && establishments
-    ? establishments
-        .filter(e => e.destination === selectedDest)
-        .map(e => ({ value: e.name, label: e.name }))
+    ? [
+        ...establishments
+          .filter(e => e.destination === selectedDest)
+          .map(e => ({ value: e.name, label: e.name })),
+        // Also include custom venues without a specific destination
+        ...(venueConfigs || [])
+          .filter(vc => (!vc.destination || vc.destination === 'custom') &&
+            !establishments.find(e => e.name === vc.name))
+          .map(vc => ({ value: vc.name, label: vc.name })),
+      ]
     : estOptions
   const [accessStep, setAccessStep] = useState<AccessStep>('check')
   const [accessEmail, setAccessEmail] = useState('')

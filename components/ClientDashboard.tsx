@@ -554,11 +554,21 @@ export default function ClientDashboard({ profile }: Props) {
 
       return (
         <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
-          <div className="max-w-md mx-auto px-5 pt-14 pb-20">
+          {/* Barre retour vers la page RP */}
+          <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-3 flex items-center justify-between">
+            <Link
+              href={`/${profile.slug}`}
+              className="flex items-center gap-2 text-[#F5F5F3]/70 hover:text-white transition-colors text-[11px] tracking-[0.15em] uppercase border border-white/15 hover:border-white/35 px-4 py-2"
+            >
+              ← {profile.display_name}
+            </Link>
+            <p className="text-[9px] tracking-[0.35em] text-[#F5F5F3]/20 uppercase">Mon espace</p>
+          </div>
+
+          <div className="max-w-md mx-auto px-5 pt-10 pb-20">
 
             {/* Header */}
             <div className="mb-12">
-              <p className="text-[9px] tracking-[0.5em] text-[#F5F5F3]/20 uppercase mb-4">✦ {profile.display_name}</p>
               <h1 className="font-playfair text-4xl text-white leading-tight mb-1">
                 Bienvenue{clientFirstName ? ',' : ''}<br />
                 {clientFirstName && <span style={{ color: accent }}>{clientFirstName}</span>}
@@ -641,7 +651,7 @@ export default function ClientDashboard({ profile }: Props) {
         <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/8 px-4 py-4 flex items-center gap-3">
           <button
             onClick={() => setScreen('home')}
-            className="flex items-center gap-2 text-[#F5F5F3] hover:text-white transition-colors text-sm border border-white/25 hover:border-white/50 px-4 py-2 font-medium"
+            className="flex items-center gap-2 text-white font-semibold transition-colors text-sm border border-white/40 hover:border-white/70 bg-white/5 hover:bg-white/10 px-4 py-2"
           >
             ← Retour
           </button>
@@ -728,7 +738,7 @@ export default function ClientDashboard({ profile }: Props) {
       <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/8 px-4 py-4 flex items-center gap-3">
         <button
           onClick={() => { setScreen('home'); setViewingRp(null); setError('') }}
-          className="flex items-center gap-2 text-[#F5F5F3] hover:text-white transition-colors text-sm border border-white/25 hover:border-white/50 px-4 py-2 flex-shrink-0 font-medium"
+          className="flex items-center gap-2 text-white font-semibold transition-colors text-sm border border-white/40 hover:border-white/70 bg-white/5 hover:bg-white/10 px-4 py-2 flex-shrink-0"
         >
           ← Retour
         </button>

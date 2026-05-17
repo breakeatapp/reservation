@@ -340,29 +340,6 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
         </div>
       </section>
 
-      {/* ── MON COMPTE CTA ── */}
-      <section className="py-16 px-5 border-t border-white/5 bg-[#0E0E0E]">
-        <div className="max-w-md mx-auto text-center">
-          <div className="w-12 h-12 mx-auto mb-5 flex items-center justify-center border border-white/8"
-            style={{ background: `${accent}12` }}>
-            <svg className="w-5 h-5 text-[#F5F5F3]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          </div>
-          <p className="text-[9px] tracking-[0.5em] text-[#F5F5F3]/20 uppercase mb-3">Espace personnel</p>
-          <h2 className="font-playfair text-2xl text-[#F5F5F3] mb-3">Mon compte</h2>
-          <p className="text-[#F5F5F3]/30 text-sm leading-relaxed mb-7">
-            Suivez vos réservations, modifiez-les et planifiez votre prochain séjour depuis votre espace personnel.
-          </p>
-          <Link
-            href={`/${slug}/mon-espace`}
-            className="inline-flex items-center gap-2 border border-white/15 text-[#F5F5F3]/60 text-[11px] tracking-[0.25em] uppercase px-8 py-3.5 hover:border-white/30 hover:text-[#F5F5F3] transition-all"
-          >
-            Accéder à mon compte →
-          </Link>
-        </div>
-      </section>
-
       {/* ── FOOTER ── */}
       <footer className="py-10 px-5 border-t border-white/5">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">

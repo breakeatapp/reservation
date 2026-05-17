@@ -1055,6 +1055,7 @@ export default function RPDashboard({ profile }: Props) {
                 return (
                   <button
                     key={dest.slug}
+                    type="button"
                     onClick={() => toggleDest(dest.slug)}
                     className={`flex items-center gap-3 p-3 border text-left transition-all ${
                       active
@@ -1160,20 +1161,21 @@ export default function RPDashboard({ profile }: Props) {
                   onChange={e => setNewVenueDest(e.target.value)}
                   className="bg-[#141414] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 transition-colors sm:w-44 flex-shrink-0"
                 >
-                  <option value="" className="bg-[#141414]">Ville…</option>
-                  {configDests.length > 0
-                    ? configDests.map(raw => {
-                        let slug = raw, label = raw
-                        try {
-                          const p = JSON.parse(raw)
-                          if (p?.slug && p?.name) { slug = p.slug; label = p.name }
-                        } catch { label = raw.charAt(0).toUpperCase() + raw.slice(1).replace(/-/g, ' ') }
-                        return (
-                          <option key={slug} value={slug} className="bg-[#141414]">{label}</option>
-                        )
-                      })
-                    : <option value="" disabled className="bg-[#141414]">Activez d'abord des destinations</option>
-                  }
+                  <option value="" className="bg-[#141414]">Ville (optionnel)…</option>
+                  {/* Destinations prédéfinies */}
+                  {ALL_DESTINATIONS.map(dest => (
+                    <option key={dest.slug} value={dest.slug} className="bg-[#141414]">{dest.name}</option>
+                  ))}
+                  {/* Villes personnalisées ajoutées */}
+                  {configDests.map(raw => {
+                    try {
+                      const p = JSON.parse(raw)
+                      if (p?.slug && p?.name) {
+                        return <option key={p.slug} value={p.slug} className="bg-[#141414]">{p.name} (custom)</option>
+                      }
+                    } catch {}
+                    return null
+                  })}
                 </select>
                 <input
                   type="text"
@@ -1324,16 +1326,6 @@ export default function RPDashboard({ profile }: Props) {
               </p>
             )}
           </div>
-
-          {/* Save button */}
-          <button
-            onClick={saveConfig}
-            disabled={configSaving}
-            className="w-full py-4 text-white text-[11px] tracking-[0.3em] uppercase hover:opacity-90 transition-opacity disabled:opacity-40"
-            style={{ background: `linear-gradient(135deg, ${configAccent}, ${configAccent}bb)` }}
-          >
-            {configSaving ? 'Sauvegarde en cours...' : configSaved ? '✓ Configuration sauvegardée' : 'Sauvegarder la configuration'}
-          </button>
 
           {/* ── Zone dangereuse ── */}
           <div className="mt-10 border border-red-500/15 bg-red-500/5 p-5">
@@ -2392,13 +2384,73 @@ export default function RPDashboard({ profile }: Props) {
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
 
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4 flex items-center justify-between">
-        <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/40 uppercase">Dashboard RP</p>
-          <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
+      {/* Header — desktop : 1 ligne / mobile : 2 lignes */}
+      <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5">
+
+        {/* Ligne 1 : titre + déconnexion */}
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/40 uppercase">Dashboard RP</p>
+            <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-white/30 hover:text-red-400/70 transition-colors border border-white/8 hover:border-red-400/30 px-3 py-2"
+            title="Se déconnecter"
+          >
+            <span>⏻</span>
+            <span className="hidden sm:inline">Déconnexion</span>
+          </button>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Ligne 2 : actions (pleine largeur sur mobile, inline sur desktop) */}
+        <div className="px-4 pb-3 grid grid-cols-4 gap-2 md:hidden">
+          <button
+            onClick={() => {
+              setBookForType(null); setBfcSelectedClient(null); setBfcUseManual(false)
+              setBfcManual({ firstName: '', lastName: '', email: '', phone: '' })
+              setBfcDest(''); setBfcVenue(''); setBfcDate(''); setBfcTime('')
+              setBfcGuests('2'); setBfcOccasion(''); setBfcSeating(''); setBfcNotes('')
+              setBfcInternalNote(''); setBfcDone(null)
+              setBfcTripStep('dest'); setBfcTripDest(''); setBfcTripArrival(''); setBfcTripDeparture('')
+              setBfcTripDays([]); setBfcTripExpandedDay(null); setBfcAddingToDay(null)
+              setBfcNewBooking({ venue: '', time: '', guests: '2', occasion: '', seating: '', specialRequests: '' })
+              setBfcTripDone(null)
+              setMainView('book-for-client')
+            }}
+            className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white transition-colors border border-white/15 hover:border-white/40 py-2.5 px-1 text-center"
+          >
+            <span className="text-base">📋</span>
+            <span className="text-[8px] tracking-wider uppercase leading-tight">Réserver</span>
+          </button>
+          <button
+            onClick={() => setMainView('config')}
+            className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white transition-colors border border-white/15 hover:border-white/40 py-2.5 px-1 text-center"
+          >
+            <span className="text-base">⚙</span>
+            <span className="text-[8px] tracking-wider uppercase leading-tight">Config</span>
+          </button>
+          <button
+            onClick={() => setMainView('clients')}
+            className="flex flex-col items-center justify-center gap-1 text-white/80 hover:text-white transition-colors border border-white/15 hover:border-white/40 py-2.5 px-1 text-center"
+          >
+            <span className="text-base">👤</span>
+            <span className="text-[8px] tracking-wider uppercase leading-tight">Clients</span>
+          </button>
+          <button
+            onClick={fetchReservations}
+            className="flex flex-col items-center justify-center gap-1 text-white/70 hover:text-white transition-colors border border-white/15 hover:border-white/40 py-2.5 px-1 text-center"
+          >
+            {loading
+              ? <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+              : <span className="text-base">↻</span>
+            }
+            <span className="text-[8px] tracking-wider uppercase leading-tight">Actualiser</span>
+          </button>
+        </div>
+
+        {/* Ligne 2 desktop : boutons horizontaux (cachés sur mobile) */}
+        <div className="hidden md:flex items-center gap-2 px-4 pb-3">
           <button
             onClick={() => {
               setBookForType(null); setBfcSelectedClient(null); setBfcUseManual(false)
@@ -2436,16 +2488,10 @@ export default function RPDashboard({ profile }: Props) {
               ? <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
               : '↻'
             }
-            <span className="hidden sm:inline">Actualiser</span>
-          </button>
-          <button
-            onClick={handleLogout}
-            className="text-[10px] tracking-[0.2em] uppercase text-white/30 hover:text-red-400/60 transition-colors px-2 py-2"
-            title="Se déconnecter"
-          >
-            ⏻
+            Actualiser
           </button>
         </div>
+
       </div>
 
       {/* Compteurs / filtres */}
