@@ -569,27 +569,14 @@ export default function ClientDashboard({ profile }: Props) {
             {/* Menu principal */}
             <div className="space-y-3">
 
-              <Link href={`/${profile.slug}/trip`}
-                className="flex items-center justify-between w-full border border-white/10 hover:border-white/25 bg-[#141414] hover:bg-[#1a1a1a] p-5 transition-all group">
-                <div>
-                  <p className="text-[9px] tracking-[0.3em] uppercase mb-1" style={{ color: accent }}>Planning</p>
-                  <p className="text-[#F5F5F3] text-base font-light">Planifier mon voyage</p>
-                  <p className="text-[#F5F5F3]/30 text-xs mt-0.5">Itinéraire complet sur plusieurs jours</p>
-                </div>
-                <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/60 transition-colors text-xl">→</span>
-              </Link>
-
-              <Link href={`/${profile.slug}/book`}
-                className="flex items-center justify-between w-full border border-white/10 hover:border-white/25 bg-[#141414] hover:bg-[#1a1a1a] p-5 transition-all group">
-                <div>
-                  <p className="text-[9px] tracking-[0.3em] uppercase mb-1" style={{ color: accent }}>Réservation</p>
-                  <p className="text-[#F5F5F3] text-base font-light">Réservation unique</p>
-                  <p className="text-[#F5F5F3]/30 text-xs mt-0.5">Un restaurant, beach club ou soirée</p>
-                </div>
-                <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/60 transition-colors text-xl">→</span>
-              </Link>
-
-              <button onClick={() => setScreen('reservations')}
+              <button onClick={() => {
+                  const currentRp: RPSummary = rpList.find(r => r.slug === profile.slug) || {
+                    slug: profile.slug, displayName: profile.display_name,
+                    accentColor: accent, logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
+                    totalCount: 0, pendingCount: 0, confirmedCount: 0,
+                  }
+                  selectRP(currentRp)
+                }}
                 className="flex items-center justify-between w-full border border-white/10 hover:border-white/25 bg-[#141414] hover:bg-[#1a1a1a] p-5 transition-all group text-left">
                 <div>
                   <p className="text-[9px] tracking-[0.3em] uppercase mb-1" style={{ color: accent }}>Suivi</p>
@@ -654,7 +641,7 @@ export default function ClientDashboard({ profile }: Props) {
         <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/8 px-4 py-4 flex items-center gap-3">
           <button
             onClick={() => setScreen('home')}
-            className="flex items-center gap-2 text-[#F5F5F3]/55 hover:text-[#F5F5F3]/90 transition-colors text-sm border border-white/12 hover:border-white/25 px-3 py-1.5"
+            className="flex items-center gap-2 text-[#F5F5F3] hover:text-white transition-colors text-sm border border-white/25 hover:border-white/50 px-4 py-2 font-medium"
           >
             ← Retour
           </button>
@@ -740,8 +727,8 @@ export default function ClientDashboard({ profile }: Props) {
 
       <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/8 px-4 py-4 flex items-center gap-3">
         <button
-          onClick={() => { setScreen('home'); setError('') }}
-          className="flex items-center gap-2 text-[#F5F5F3]/55 hover:text-[#F5F5F3]/90 transition-colors text-sm border border-white/12 hover:border-white/25 px-3 py-1.5 flex-shrink-0"
+          onClick={() => { setScreen('home'); setViewingRp(null); setError('') }}
+          className="flex items-center gap-2 text-[#F5F5F3] hover:text-white transition-colors text-sm border border-white/25 hover:border-white/50 px-4 py-2 flex-shrink-0 font-medium"
         >
           ← Retour
         </button>
