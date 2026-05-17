@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { createHmac } from 'crypto'
-import bcrypt from 'bcryptjs'
 
 const SECRET = process.env.RESET_SECRET || 'itinera-reset-secret-2024'
 
@@ -28,10 +27,9 @@ export async function POST(req: NextRequest) {
     const decoded = verifyToken(token)
     if (!decoded) return NextResponse.json({ error: 'Lien invalide ou expiré. Recommencez la procédure.' }, { status: 400 })
 
-    const hashed = await bcrypt.hash(password, 10)
     const { error } = await supabaseAdmin
       .from('rp_profiles')
-      .update({ password_hash: hashed })
+      .update({ dashboard_password: password })
       .ilike('email', decoded.email)
 
     if (error) throw error

@@ -7,7 +7,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'
 const SECRET = process.env.RESET_SECRET || 'itinera-reset-secret-2024'
 
-export function generateResetToken(email: string): string {
+function generateResetToken(email: string): string {
   const payload = Buffer.from(JSON.stringify({ email, exp: Date.now() + 3600000 })).toString('base64url')
   const sig = createHmac('sha256', SECRET).update(payload).digest('base64url')
   return `${payload}.${sig}`
