@@ -227,6 +227,7 @@ export default function RPDashboard({ profile }: Props) {
   // Villes personnalisées
   const [newCityName, setNewCityName] = useState('')
   const [newCityCountry, setNewCityCountry] = useState('')
+  const [addVenueError, setAddVenueError] = useState('')
   // Zone dangereuse
   const [dangerConfirm, setDangerConfirm] = useState<'reservations' | 'account' | null>(null)
   const [dangerLoading, setDangerLoading] = useState(false)
@@ -929,8 +930,12 @@ export default function RPDashboard({ profile }: Props) {
   const addCustomVenue = () => {
     const name = newVenueName.trim()
     if (!name) return
+    setAddVenueError('')
     const existing = configVenues.map(parseVenueEntry)
-    if (existing.some(v => v.name === name)) return
+    if (existing.some(v => v.name.toLowerCase() === name.toLowerCase())) {
+      setAddVenueError(`"${name}" est déjà dans votre liste.`)
+      return
+    }
     const serialized = serializeVenueEntry({
       name,
       destination: newVenueDest || undefined,
@@ -943,6 +948,7 @@ export default function RPDashboard({ profile }: Props) {
     setNewVenueServices([])
     setNewVenueType('restaurant')
     setShowServicePicker(false)
+    setAddVenueError('')
   }
 
   const removeVenue = (raw: string) => {
@@ -1076,29 +1082,29 @@ export default function RPDashboard({ profile }: Props) {
                 )
               })}
 
-              {/* Villes personnalisées intégrées dans la même grille */}
+              {/* Villes personnalisées — même style que les prédéfinies, clic = supprimer */}
               {configDests.map(raw => {
                 let city: { slug: string; name: string; country?: string; emoji?: string } | null = null
                 try { const p = JSON.parse(raw); if (p?.slug && p?.name) city = p } catch {}
                 if (!city) return null
                 return (
-                  <div
+                  <button
                     key={raw}
-                    className="flex items-center gap-3 p-3 border border-[#5B3DF5]/40 bg-[#5B3DF5]/8 text-[#F5F5F3]"
+                    type="button"
+                    onClick={() => removeCustomCity(raw)}
+                    title="Cliquer pour désactiver cette ville"
+                    className="flex items-center gap-3 p-3 border border-[#5B3DF5]/50 bg-[#5B3DF5]/8 text-[#F5F5F3] text-left transition-all hover:border-red-400/40 hover:bg-red-400/5 group"
                   >
                     <span className="text-lg">{city.emoji || '📍'}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{city.name}</p>
                       {city.country && <p className="text-[9px] text-[#F5F5F3]/30 truncate">{city.country}</p>}
                     </div>
-                    <button
-                      onClick={() => removeCustomCity(raw)}
-                      className="text-[#F5F5F3]/25 hover:text-red-400/70 transition-colors text-base leading-none flex-shrink-0"
-                      title="Supprimer cette ville"
-                    >
-                      ×
-                    </button>
-                  </div>
+                    <div className="w-4 h-4 flex-shrink-0 border border-[#5B3DF5] bg-[#5B3DF5] flex items-center justify-center group-hover:border-red-400/60 group-hover:bg-red-400/10 transition-all">
+                      <span className="text-white text-[10px] group-hover:hidden">✓</span>
+                      <span className="text-red-400/80 text-[10px] hidden group-hover:block">×</span>
+                    </div>
+                  </button>
                 )
               })}
             </div>
@@ -1180,7 +1186,7 @@ export default function RPDashboard({ profile }: Props) {
                 <input
                   type="text"
                   value={newVenueName}
-                  onChange={e => setNewVenueName(e.target.value)}
+                  onChange={e => { setNewVenueName(e.target.value); setAddVenueError('') }}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomVenue() } }}
                   placeholder="Nom du restaurant ou venue…"
                   className="flex-1 bg-[#141414] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 placeholder-[#F5F5F3]/20 transition-colors"
@@ -1263,12 +1269,18 @@ export default function RPDashboard({ profile }: Props) {
 
               {/* Bouton ajouter */}
               <button
+                type="button"
                 onClick={addCustomVenue}
                 disabled={!newVenueName.trim()}
                 className="w-full py-2.5 border border-[#5B3DF5]/40 text-[#5B3DF5]/70 text-[11px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/8 transition-colors disabled:opacity-30"
               >
                 + Ajouter à ma liste
               </button>
+              {addVenueError && (
+                <p className="text-amber-400/70 text-[11px] text-center border border-amber-400/15 bg-amber-400/5 px-3 py-2">
+                  {addVenueError}
+                </p>
+              )}
             </div>
 
             {/* ── Liste venues actifs ── */}
@@ -1598,7 +1610,7 @@ export default function RPDashboard({ profile }: Props) {
                         {profile_.products.length > 0 && (
                           <>
                             <span>·</span>
-                            <span className="truncate max-w-[140px]">{profile_.products.join(', ')}</span>
+                            <span className="truncate max-w-[140px] text-amber-300/80">{profile_.products.join(', ')}</span>
                           </>
                         )}
                         {displayNote && !profile_.nationality && profile_.products.length === 0 && (
