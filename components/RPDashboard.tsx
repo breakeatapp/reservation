@@ -1143,18 +1143,16 @@ export default function RPDashboard({ profile }: Props) {
           {/* ── Message d'invitation WhatsApp ── */}
           {(() => {
             const inviteUrl = `https://itinera.click/${profile.slug}/mon-espace`
-            const waMessage = `Bonjour 👋
+            const waMessage = `Welcome to ITINERA
 
-Je vous invite à rejoindre votre espace de conciergerie privée sur Itinera.
+Your private access to find your reservations, confirmations and hospitality planning in one place.
 
-Vous y retrouverez toutes vos réservations, confirmations et itinéraires en temps réel.
-
-👉 Accédez à votre espace ici :
+👉 Access your space:
 ${inviteUrl}
 
-Entrez simplement votre email pour vous connecter — aucun mot de passe, aucune application à télécharger.
+Quick login by email.
+No application needed.
 
-À bientôt,
 ${profile.display_name}`
 
             return (

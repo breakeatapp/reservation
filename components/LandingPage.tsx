@@ -193,7 +193,7 @@ export default function LandingPage() {
             <>
               <div className="bg-[#181C23]/90 backdrop-blur-sm border border-white/10 p-6 mb-4">
                 <p className="text-[10px] tracking-[0.4em] uppercase text-[#F5F7FA]/45 mb-4">
-                  Accéder à mon membership
+                  Access my membership
                 </p>
                 <form onSubmit={handleAccess} className="flex gap-2">
                   <input
@@ -215,7 +215,7 @@ export default function LandingPage() {
                 </form>
                 {error && <p className="text-red-400/70 text-xs mt-3 leading-relaxed">{error}</p>}
                 <p className="text-[#F5F7FA]/35 text-[11px] mt-3">
-                  Entrez l'email avec lequel votre concierge vous a invité
+                  Enter the email your concierge used to invite you
                 </p>
               </div>
 
@@ -279,17 +279,17 @@ export default function LandingPage() {
             /* ── Choix initial GUEST / RP / VENUE ── */
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-2xl mx-auto">
 
-              {/* GUEST */}
+              {/* MEMBERSHIP */}
               <button
                 onClick={() => setUserType('guest')}
                 className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-6 sm:p-10 transition-all duration-300 flex flex-col items-center justify-center gap-4 sm:gap-5 text-center backdrop-blur-sm"
               >
                 <span className="font-playfair text-xl sm:text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
-                  GUEST
+                  MEMBERSHIP
                 </span>
                 <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
                 <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
-                  Book access to<br />experiences
+                  Access your private<br />hospitality space
                 </span>
               </button>
 
@@ -356,12 +356,12 @@ export default function LandingPage() {
           <div className="bg-[#0F1115] p-8 sm:p-10 group hover:bg-[#181C23] transition-colors duration-300">
             <p className="text-[8px] tracking-[0.5em] uppercase text-[#6E5BFF]/40 mb-5">01</p>
             <h3 className="font-playfair text-2xl text-[#F5F7FA] tracking-wide mb-1">Itinera</h3>
-            <h3 className="font-playfair text-2xl text-[#6E5BFF] tracking-wide mb-5">Guest</h3>
+            <h3 className="font-playfair text-2xl text-[#6E5BFF] tracking-wide mb-5">Membership</h3>
             <span className="w-6 h-px bg-[#6E5BFF]/30 block mb-5 group-hover:bg-[#6E5BFF]/60 transition-colors" />
             <p className="text-[#F5F7FA]/45 text-sm leading-relaxed mb-5">
               A private membership space accessible by email — no password, no app to download.
-              Every reservation made by your concierge on your behalf is logged, tracked
-              and available in real time.
+              Every reservation made by your concierge is logged, tracked
+              and available in real time from your personal space.
             </p>
             <ul className="space-y-2.5 mb-5">
               {[
