@@ -198,6 +198,8 @@ export async function POST(req: NextRequest) {
             confirmUrl: `${baseUrl}/api/host/quick-action?id=${insertedId}&action=confirmed&token=${confirmToken}`,
             declineUrl: `${baseUrl}/api/host/quick-action?id=${insertedId}&action=declined&token=${declineToken}`,
             rpDisplayName,
+            vipTag: clientVipTag || undefined,
+            internalNote: clientInternalNote || undefined,
           })
         }
       } catch (venueErr) {

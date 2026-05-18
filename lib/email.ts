@@ -660,6 +660,8 @@ export type VenueQuickActionEmailData = {
   confirmUrl: string
   declineUrl: string
   rpDisplayName?: string
+  vipTag?: string
+  internalNote?: string
 }
 
 export async function sendVenueQuickActionEmail(data: VenueQuickActionEmailData) {
@@ -712,7 +714,19 @@ export async function sendVenueQuickActionEmail(data: VenueQuickActionEmailData)
       <div style="color:#C9A84C;font-size:9px;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;">Client</div>
       <p style="color:#f5f0e8;font-size:16px;margin:0 0 8px;">${data.firstName} ${data.lastName}</p>
       <p style="color:#9a9a9a;font-size:13px;margin:0 0 4px;">📞 ${data.phone}</p>
-      <p style="color:#9a9a9a;font-size:13px;margin:0;">✉️ ${data.email}</p>
+      <p style="color:#9a9a9a;font-size:13px;margin:0 0 ${data.vipTag || data.internalNote ? '12px' : '0'};">✉️ ${data.email}</p>
+      ${data.vipTag ? `<p style="color:#C9A84C;font-size:12px;margin:0 0 4px;letter-spacing:1px;">⭐ ${data.vipTag}</p>` : ''}
+      ${data.internalNote ? (() => {
+        const parsed = (() => {
+          try { const p = JSON.parse(data.internalNote!); return typeof p === 'object' ? p : null } catch { return null }
+        })()
+        const parts: string[] = []
+        if (parsed?.note) parts.push(parsed.note)
+        if (parsed?.nationality) parts.push(`🌍 ${parsed.nationality}`)
+        if (Array.isArray(parsed?.products) && parsed.products.length) parts.push(`🍾 ${parsed.products.join(', ')}`)
+        const text = parts.length ? parts.join(' · ') : (data.internalNote || '')
+        return `<p style="color:#9a9a9a;font-size:12px;margin:0;font-style:italic;">💡 ${text}</p>`
+      })() : ''}
     </div>
 
     <p style="color:#666;font-size:11px;text-align:center;margin-bottom:16px;letter-spacing:1px;">
