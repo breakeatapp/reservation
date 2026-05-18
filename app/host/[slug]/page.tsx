@@ -175,7 +175,7 @@ export default function HostDashboardPage() {
         {/* ── Venue identity ── */}
         <div className="mb-8">
           <p className="text-[9px] tracking-[0.4em] uppercase text-[#6E5BFF]/50 mb-2">Venue Dashboard</p>
-          <h1 className="font-playfair text-4xl text-[#F5F7FA] tracking-wide leading-tight">
+          <h1 className="font-playfair text-4xl text-[#F5F7FA] tracking-wide leading-tight capitalize">
             {venueName || '—'}
           </h1>
           {destDisplay && (

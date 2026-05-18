@@ -1,5 +1,9 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
+function capitalizeName(name: string): string {
+  return name.trim().replace(/\b\w/g, l => l.toUpperCase())
+}
+
 function generateSlug(venueName: string, destination: string): string {
   const nameSlug = venueName
     .toLowerCase()
@@ -70,7 +74,7 @@ export async function POST(req: Request) {
       .from('venues_profiles')
       .insert({
         slug,
-        venue_name: venue_name.trim(),
+        venue_name: capitalizeName(venue_name),
         destination: destination.trim(),
         password,
         email: email?.trim() || null,
@@ -87,7 +91,7 @@ export async function POST(req: Request) {
           .from('venues_profiles')
           .insert({
             slug,
-            venue_name: venue_name.trim(),
+            venue_name: capitalizeName(venue_name),
             destination: destination.trim(),
             password,
             active: true,
