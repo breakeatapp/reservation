@@ -214,6 +214,7 @@ export default function RPDashboard({ profile }: Props) {
   // Clients list
   const [clients, setClients] = useState<RPClientNote[]>([])
   const [loadingClients, setLoadingClients] = useState(false)
+  const [clientSearch, setClientSearch] = useState('')
 
   // Client profile editing (inline in clients view)
   const [editingClientEmail, setEditingClientEmail] = useState<string | null>(null)
@@ -1699,24 +1700,45 @@ export default function RPDashboard({ profile }: Props) {
   if (mainView === 'clients') {
     return (
       <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
-        <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4 flex items-center justify-between">
-          <div>
-            <p className="text-[9px] tracking-[0.4em] text-amber-400/30 uppercase">Fiches clients</p>
-            <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
+        <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5">
+          {/* Ligne titre + actions */}
+          <div className="px-4 pt-4 pb-3 flex items-center justify-between">
+            <div>
+              <p className="text-[9px] tracking-[0.4em] text-amber-400/30 uppercase">Fiches clients</p>
+              <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setAddClientOpen(v => !v); setAddClientError(''); setAddClientSuccess('') }}
+                className="text-[10px] tracking-[0.2em] uppercase px-3 py-2 border border-amber-500/20 text-amber-400/60 hover:bg-amber-500/8 transition-colors"
+              >
+                + Ajouter
+              </button>
+              <button
+                onClick={() => setMainView('list')}
+                className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/30 hover:text-[#5B3DF5]/60 transition-colors border border-white/5 hover:border-[#5B3DF5]/20 px-3 py-2"
+              >
+                ← Retour
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => { setAddClientOpen(v => !v); setAddClientError(''); setAddClientSuccess('') }}
-              className="text-[10px] tracking-[0.2em] uppercase px-3 py-2 border border-amber-500/20 text-amber-400/60 hover:bg-amber-500/8 transition-colors"
-            >
-              + Ajouter
-            </button>
-            <button
-              onClick={() => setMainView('list')}
-              className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/30 hover:text-[#5B3DF5]/60 transition-colors border border-white/5 hover:border-[#5B3DF5]/20 px-3 py-2"
-            >
-              ← Retour
-            </button>
+          {/* Barre de recherche */}
+          <div className="px-4 pb-3">
+            <div className="flex items-center gap-2 bg-white/4 border border-white/8 px-3 py-2 focus-within:border-amber-500/30 transition-colors">
+              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white/20 flex-shrink-0">
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              </svg>
+              <input
+                type="text"
+                value={clientSearch}
+                onChange={e => setClientSearch(e.target.value)}
+                placeholder="Rechercher par prénom ou nom…"
+                className="flex-1 bg-transparent text-[#F5F5F3]/80 text-sm outline-none placeholder-white/20"
+              />
+              {clientSearch && (
+                <button onClick={() => setClientSearch('')} className="text-white/25 hover:text-white/60 text-base leading-none transition-colors">×</button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1832,9 +1854,22 @@ export default function RPDashboard({ profile }: Props) {
               <p className="text-[#F5F5F3]/20 text-sm">Aucun client inscrit.</p>
               <p className="text-[#F5F5F3]/10 text-xs">Ajoutez des clients avec le bouton "+ Ajouter" ci-dessus.</p>
             </div>
-          ) : (
+          ) : (() => {
+            const q = clientSearch.trim().toLowerCase()
+            const filtered = q
+              ? clients.filter(c =>
+                  (c.client_name || '').toLowerCase().includes(q) ||
+                  (c.client_email || '').toLowerCase().includes(q)
+                )
+              : clients
+            return (
             <div className="divide-y divide-white/5">
-              {clients.map(c => {
+              {filtered.length === 0 && (
+                <div className="py-12 text-center">
+                  <p className="text-[#F5F5F3]/20 text-sm">Aucun résultat pour « {clientSearch} »</p>
+                </div>
+              )}
+              {filtered.map(c => {
                 const vipColor = VIP_COLORS[c.vip_tag] || 'text-[#F5F5F3]/20'
                 const isEditing = editingClientEmail === c.client_email
                 const profile_ = parseClientProfile(c.internal_note || '')
@@ -2008,7 +2043,8 @@ export default function RPDashboard({ profile }: Props) {
                 )
               })}
             </div>
-          )}
+            )
+          })()}
         </div>
       </div>
     )

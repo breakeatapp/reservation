@@ -1584,3 +1584,126 @@ export async function sendVenueStatusToRP(data: VenueStatusEmailData) {
     reply_to: data.email,
   })
 }
+
+// ─────────────────────────────────────────────────────────────
+// RAPPEL RÉSERVATIONS EN ATTENTE (cron toutes les 6h)
+// ─────────────────────────────────────────────────────────────
+
+export type PendingResa = {
+  id: string
+  first_name: string
+  last_name: string
+  establishment: string
+  destination?: string
+  date: string
+  time: string
+  guests: number
+  occasion?: string
+  special_requests?: string
+  created_at?: string
+  viewUrl: string
+}
+
+function pendingResaRow(r: PendingResa): string {
+  const age = r.created_at
+    ? Math.round((Date.now() - new Date(r.created_at).getTime()) / 3600000)
+    : null
+  return `
+  <tr>
+    <td style="padding:12px 16px;border-bottom:1px solid #1a1a1a;vertical-align:top;">
+      <div style="font-size:13px;color:#f0f0f0;font-weight:500;">${r.first_name} ${r.last_name}</div>
+      <div style="font-size:11px;color:#666;margin-top:2px;">${r.guests} pers.${r.occasion ? ` · ${r.occasion}` : ''}${r.special_requests ? ` · <em>${r.special_requests}</em>` : ''}</div>
+    </td>
+    <td style="padding:12px 16px;border-bottom:1px solid #1a1a1a;vertical-align:top;">
+      <div style="font-size:13px;color:#c0b0ff;">${r.establishment}</div>
+      ${r.destination ? `<div style="font-size:11px;color:#555;">${r.destination}</div>` : ''}
+    </td>
+    <td style="padding:12px 16px;border-bottom:1px solid #1a1a1a;vertical-align:top;">
+      <div style="font-size:12px;color:#f0f0f0;">${r.date}</div>
+      <div style="font-size:11px;color:#666;">${r.time}</div>
+      ${age !== null ? `<div style="font-size:10px;color:#d97706;margin-top:3px;">⏳ ${age}h en attente</div>` : ''}
+    </td>
+    <td style="padding:12px 16px;border-bottom:1px solid #1a1a1a;vertical-align:top;text-align:center;">
+      <a href="${r.viewUrl}" style="display:inline-block;background:#5b3df5;color:#fff;font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:7px 14px;text-decoration:none;">
+        Gérer →
+      </a>
+    </td>
+  </tr>`
+}
+
+function pendingReminderHtml(
+  recipientLabel: string,
+  resas: PendingResa[],
+  brand: string,
+): string {
+  return `<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:Georgia,serif;">
+<div style="max-width:680px;margin:0 auto;padding:32px 16px;">
+
+  <div style="margin-bottom:28px;">
+    <p style="color:#5b3df5;font-size:9px;letter-spacing:4px;text-transform:uppercase;margin:0 0 4px;">${brand}</p>
+    <h1 style="color:#f0f0f0;font-size:20px;font-weight:normal;margin:0;letter-spacing:2px;">
+      Réservations en attente
+    </h1>
+    <p style="color:#555;font-size:12px;margin:8px 0 0;">
+      ${resas.length} réservation${resas.length > 1 ? 's' : ''} attend${resas.length === 1 ? ' votre' : 'ent'} confirmation · ${recipientLabel}
+    </p>
+  </div>
+
+  <table style="width:100%;border-collapse:collapse;background:#141414;border:1px solid #1e1e1e;">
+    <thead>
+      <tr style="background:#0f0f0f;">
+        <th style="padding:10px 16px;text-align:left;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:#444;font-weight:normal;">Client</th>
+        <th style="padding:10px 16px;text-align:left;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:#444;font-weight:normal;">Établissement</th>
+        <th style="padding:10px 16px;text-align:left;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:#444;font-weight:normal;">Date</th>
+        <th style="padding:10px 16px;text-align:center;font-size:8px;letter-spacing:3px;text-transform:uppercase;color:#444;font-weight:normal;">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${resas.map(pendingResaRow).join('')}
+    </tbody>
+  </table>
+
+  <div style="margin-top:28px;padding-top:20px;border-top:1px solid #1a1a1a;text-align:center;">
+    <p style="color:#333;font-size:10px;letter-spacing:1px;margin:0;">
+      Ce rappel est envoyé automatiquement toutes les 6 heures · ${brand}
+    </p>
+  </div>
+
+</div>
+</body>
+</html>`
+}
+
+export async function sendPendingReminderToRP(
+  rpEmail: string,
+  rpDisplayName: string,
+  resas: PendingResa[],
+): Promise<void> {
+  if (!rpEmail || resas.length === 0) return
+  const brand = process.env.MANAGER_NAME || 'ITINERA'
+  const html = pendingReminderHtml(rpDisplayName, resas, brand)
+  await sendEmail({
+    from: `${senderName(rpDisplayName)} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    to: [rpEmail],
+    subject: `⏳ ${resas.length} réservation${resas.length > 1 ? 's' : ''} en attente — ${rpDisplayName}`,
+    html,
+  })
+}
+
+export async function sendPendingReminderToVenue(
+  venueEmail: string,
+  venueName: string,
+  resas: PendingResa[],
+): Promise<void> {
+  if (!venueEmail || resas.length === 0) return
+  const brand = process.env.MANAGER_NAME || 'ITINERA'
+  const html = pendingReminderHtml(venueName, resas, brand)
+  await sendEmail({
+    from: `${senderName()} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    to: [venueEmail],
+    subject: `⏳ ${resas.length} réservation${resas.length > 1 ? 's' : ''} en attente de confirmation — ${venueName}`,
+    html,
+  })
+}
