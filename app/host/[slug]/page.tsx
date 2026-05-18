@@ -140,13 +140,6 @@ export default function HostDashboardPage() {
     all: reservations.length,
   }
 
-  const tabs: { key: FilterTab; label: string }[] = [
-    { key: 'pending', label: 'À confirmer' },
-    { key: 'confirmed', label: 'Confirmées' },
-    { key: 'declined', label: 'Déclinées' },
-    { key: 'all', label: 'Toutes' },
-  ]
-
   // Format destination for display
   const destDisplay = venueDestination
     ? venueDestination.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
@@ -192,56 +185,35 @@ export default function HostDashboardPage() {
           )}
         </div>
 
-        {/* ── Stats bar ── */}
+        {/* ── Stats / filtres ── */}
         {!loading && !error && (
           <div className="grid grid-cols-4 gap-2 mb-8">
-            {[
-              { label: 'Total', value: counts.all, color: 'text-[#F5F7FA]' },
-              { label: 'En attente', value: counts.pending, color: 'text-amber-400' },
-              { label: 'Confirmé', value: counts.confirmed, color: 'text-emerald-400' },
-              { label: 'Refusé', value: counts.declined, color: 'text-red-400' },
-            ].map(stat => (
-              <div
-                key={stat.label}
-                className={`bg-[#181C23] border border-white/5 p-4 text-center cursor-pointer transition-all ${
-                  filter === (stat.label === 'Total' ? 'all' : stat.label === 'En attente' ? 'pending' : stat.label === 'Confirmé' ? 'confirmed' : 'declined')
-                    ? 'border-white/15' : 'hover:border-white/10'
-                }`}
-                onClick={() => {
-                  if (stat.label === 'Total') setFilter('all')
-                  else if (stat.label === 'En attente') setFilter('pending')
-                  else if (stat.label === 'Confirmé') setFilter('confirmed')
-                  else setFilter('declined')
-                }}
-              >
-                <p className={`text-2xl font-light mb-1 ${stat.color}`}>{stat.value}</p>
-                <p className="text-[8px] tracking-[0.2em] uppercase text-[#F5F7FA]/30">{stat.label}</p>
-              </div>
-            ))}
+            {([
+              { key: 'all'      as FilterTab, label: 'Total',      value: counts.all,       numColor: 'text-[#F5F7FA]' },
+              { key: 'pending'  as FilterTab, label: 'En attente', value: counts.pending,   numColor: 'text-amber-400' },
+              { key: 'confirmed'as FilterTab, label: 'Confirmé',   value: counts.confirmed, numColor: 'text-emerald-400' },
+              { key: 'declined' as FilterTab, label: 'Refusé',     value: counts.declined,  numColor: 'text-red-400' },
+            ]).map(stat => {
+              const isActive = filter === stat.key
+              return (
+                <div
+                  key={stat.key}
+                  onClick={() => setFilter(stat.key)}
+                  className={`bg-[#181C23] p-4 text-center cursor-pointer transition-all border ${
+                    isActive
+                      ? 'border-[#6E5BFF] shadow-[0_0_0_1px_#6E5BFF]'
+                      : 'border-white/5 hover:border-white/12'
+                  }`}
+                >
+                  <p className={`text-2xl font-light mb-1 ${stat.numColor}`}>{stat.value}</p>
+                  <p className={`text-[8px] tracking-[0.2em] uppercase transition-colors ${isActive ? 'text-[#6E5BFF]/70' : 'text-[#F5F7FA]/25'}`}>
+                    {stat.label}
+                  </p>
+                </div>
+              )
+            })}
           </div>
         )}
-
-        {/* ── Filter tabs ── */}
-        <div className="flex gap-0 mb-6 border-b border-white/5">
-          {tabs.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setFilter(tab.key)}
-              className={`px-4 py-2.5 text-[10px] tracking-[0.2em] uppercase transition-colors border-b-2 -mb-px ${
-                filter === tab.key
-                  ? 'text-[#6E5BFF] border-[#6E5BFF]'
-                  : 'text-[#F5F7FA]/30 border-transparent hover:text-[#F5F7FA]/50'
-              }`}
-            >
-              {tab.label}
-              {counts[tab.key] > 0 && (
-                <span className={`ml-1.5 text-[9px] ${filter === tab.key ? 'text-[#6E5BFF]/60' : 'text-[#F5F7FA]/20'}`}>
-                  {counts[tab.key]}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
 
         {/* ── Content ── */}
         {loading ? (
@@ -298,15 +270,17 @@ export default function HostDashboardPage() {
                           <p className="text-[#F5F7FA]/80 font-medium text-sm">
                             {r.first_name} {r.last_name}
                           </p>
+                          {/* VIP — or/amber */}
                           {(r.vip_tag || r.vip_level) && (
-                            <span className="text-[9px] tracking-[0.15em] uppercase px-2 py-0.5 border border-amber-400/30 text-amber-400 bg-amber-400/8">
+                            <span className="text-[9px] tracking-[0.15em] uppercase px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-400/10 font-medium">
                               ✦ {r.vip_tag || r.vip_level}
                             </span>
                           )}
+                          {/* Produits — violet */}
                           {(() => {
                             const prof = parseClientProfile(r.internal_note)
                             return prof.products.length > 0 ? (
-                              <span className="text-[9px] text-amber-400/50">
+                              <span className="text-[9px] tracking-[0.1em] px-2 py-0.5 border border-[#6E5BFF]/30 text-[#9B8FFF] bg-[#6E5BFF]/8">
                                 🍾 {prof.products[0]}{prof.products.length > 1 ? ` +${prof.products.length - 1}` : ''}
                               </span>
                             ) : null
