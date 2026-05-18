@@ -1344,7 +1344,7 @@ export async function sendVenueStatusToClient(data: VenueStatusEmailData) {
       </p>
       <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(isConfirmed ? `Bonjour ${data.firstName}, votre réservation chez ${data.establishment} le ${data.date} à ${data.time} est bien confirmée. À très bientôt !` : `Bonjour ${data.firstName}, je reviens vers vous concernant votre demande chez ${data.establishment}. Trouvons une alternative ensemble.`)}"
          style="display:block;background:#1a1a1a;border:1px solid ${isConfirmed ? 'rgba(201,168,76,0.4)' : 'rgba(239,68,68,0.4)'};color:${isConfirmed ? '#C9A84C' : '#f87171'};padding:16px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;">
-        💬 Contacter mon RP par WhatsApp
+        💬 Contacter ${data.rpDisplayName ? data.rpDisplayName.split(' ')[0] : 'votre concierge'}
       </a>
     </div>` : ''}
 
@@ -1439,7 +1439,7 @@ export async function sendVenueStatusToRP(data: VenueStatusEmailData) {
       </p>
       <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, ${isConfirmed ? `votre réservation chez ${data.establishment} le ${data.date} à ${data.time} est confirmée !` : `votre demande chez ${data.establishment} n'est malheureusement pas disponible. Je vous recontacte pour trouver une alternative.`}`)}"
          style="display:block;background:#1a1a1a;border:1px solid ${isConfirmed ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'};color:${isConfirmed ? '#4ade80' : '#f87171'};padding:16px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;">
-        💬 Contacter mon guest par WhatsApp
+        💬 Contacter ${data.firstName}
       </a>
     </div>` : ''}
 
