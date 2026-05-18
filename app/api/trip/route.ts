@@ -31,12 +31,28 @@ export async function POST(req: NextRequest) {
     const rpEmail = rpProfile?.email
     const rpWhatsapp = rpProfile?.whatsapp
 
+    // Construire un index des venues personnalisées du RP (slug destination → name)
+    const rpCustomVenueDestMap: Record<string, string> = {}
+    if (rpProfile?.activated_venues) {
+      const { parseVenueEntry } = await import('@/lib/venue-utils')
+      for (const raw of rpProfile.activated_venues) {
+        const vc = parseVenueEntry(raw)
+        if (vc.destination) rpCustomVenueDestMap[vc.name] = vc.destination
+      }
+    }
+
     // Enrichir chaque réservation avec les infos de l'établissement
     const enrichedBookings: TripBooking[] = (bookings as RawBooking[]).map(b => {
       const est = establishments.find(e => e.name === b.establishment)
-      const destination = est
+      let destination = est
         ? est.destination.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
         : ''
+
+      // Fallback : venue personnalisée → chercher la destination dans la config RP
+      if (!destination && rpCustomVenueDestMap[b.establishment]) {
+        const destSlug = rpCustomVenueDestMap[b.establishment]
+        destination = destSlug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+      }
 
       const formattedDate = new Date(b.date).toLocaleDateString('fr-FR', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',

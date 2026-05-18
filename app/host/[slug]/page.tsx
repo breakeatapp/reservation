@@ -293,10 +293,25 @@ export default function HostDashboardPage() {
                           )}
                         </div>
 
-                        {/* Guest name */}
-                        <p className="text-[#F5F7FA]/80 font-medium text-sm">
-                          {r.first_name} {r.last_name}
-                        </p>
+                        {/* Guest name + VIP badge inline */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-[#F5F7FA]/80 font-medium text-sm">
+                            {r.first_name} {r.last_name}
+                          </p>
+                          {(r.vip_tag || r.vip_level) && (
+                            <span className="text-[9px] tracking-[0.15em] uppercase px-2 py-0.5 border border-amber-400/30 text-amber-400 bg-amber-400/8">
+                              ✦ {r.vip_tag || r.vip_level}
+                            </span>
+                          )}
+                          {(() => {
+                            const prof = parseClientProfile(r.internal_note)
+                            return prof.products.length > 0 ? (
+                              <span className="text-[9px] text-amber-400/50">
+                                🍾 {prof.products[0]}{prof.products.length > 1 ? ` +${prof.products.length - 1}` : ''}
+                              </span>
+                            ) : null
+                          })()}
+                        </div>
 
                         {/* Date · time · guests */}
                         <p className="text-[#F5F7FA]/40 text-xs mt-1">

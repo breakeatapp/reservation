@@ -41,7 +41,8 @@ export async function GET(
       .order('date', { ascending: true })
 
     if (host.destination) {
-      query = query.ilike('destination', host.destination)
+      // Match destination (case-insensitive) OR empty destination (custom venues not enriched)
+      query = query.or(`destination.ilike.${host.destination},destination.eq.,destination.is.null`)
     }
 
     const { data, error } = await query
