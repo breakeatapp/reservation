@@ -1140,6 +1140,82 @@ export default function RPDashboard({ profile }: Props) {
             </div>
           </div>
 
+          {/* ── Message d'invitation WhatsApp ── */}
+          {(() => {
+            const inviteUrl = `https://itinera.click/${profile.slug}/mon-espace`
+            const waMessage = `Bonjour 👋
+
+Je vous invite à rejoindre votre espace de conciergerie privée sur Itinera.
+
+Vous y retrouverez toutes vos réservations, confirmations et itinéraires en temps réel.
+
+👉 Accédez à votre espace ici :
+${inviteUrl}
+
+Entrez simplement votre email pour vous connecter — aucun mot de passe, aucune application à télécharger.
+
+À bientôt,
+${profile.display_name}`
+
+            return (
+              <div className="bg-[#141414] border border-[#5B3DF5]/15 p-5">
+                <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-1">Message d'invitation</p>
+                <p className="text-[#F5F5F3]/25 text-xs mb-4 leading-relaxed">
+                  Copiez ce message prêt à envoyer à vos clients — le lien est déjà inclus.
+                </p>
+
+                {/* Aperçu du message */}
+                <div className="bg-[#0B0B0B] border border-white/6 p-4 mb-3 rounded-sm">
+                  <p className="text-[#F5F5F3]/50 text-[12px] leading-relaxed whitespace-pre-wrap font-mono">
+                    {waMessage}
+                  </p>
+                </div>
+
+                {/* Boutons */}
+                <div className="flex gap-2">
+                  {/* Copier */}
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(waMessage)
+                      setCopied('wa-message')
+                      setTimeout(() => setCopied(null), 2500)
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] tracking-[0.2em] uppercase border transition-all ${
+                      copied === 'wa-message'
+                        ? 'border-[#5B3DF5]/50 text-[#5B3DF5] bg-[#5B3DF5]/8'
+                        : 'border-white/10 text-[#F5F5F3]/40 hover:border-[#5B3DF5]/30 hover:text-[#5B3DF5]/70'
+                    }`}
+                  >
+                    {copied === 'wa-message' ? (
+                      <>✓ Copié !</>
+                    ) : (
+                      <>
+                        <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current flex-shrink-0">
+                          <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                        </svg>
+                        Copier le message
+                      </>
+                    )}
+                  </button>
+
+                  {/* Envoyer via WhatsApp */}
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(waMessage)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] tracking-[0.2em] uppercase border border-[#25D366]/20 text-[#25D366]/60 hover:bg-[#25D366]/8 hover:text-[#25D366]/90 hover:border-[#25D366]/40 transition-all"
+                  >
+                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current flex-shrink-0">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.532 5.862L.054 23.486a.75.75 0 00.921.921l5.624-1.478A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.741 9.741 0 01-5.002-1.378l-.36-.214-3.733.981.998-3.648-.235-.374A9.712 9.712 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/>
+                    </svg>
+                    Envoyer via WhatsApp
+                  </a>
+                </div>
+              </div>
+            )
+          })()}
+
           {/* ── Profil ── */}
           <div className="bg-[#141414] border border-white/5 p-5">
             <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-4">Profil public</p>
