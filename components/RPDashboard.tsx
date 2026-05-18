@@ -2804,7 +2804,7 @@ export default function RPDashboard({ profile }: Props) {
             className="flex flex-col items-center justify-center gap-1 text-white/70 hover:text-[#5B3DF5] transition-colors border border-white/15 hover:border-[#5B3DF5]/40 py-2.5 px-1 text-center"
           >
             <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-            <span className="text-[8px] tracking-wider uppercase leading-tight">Réseau</span>
+            <span className="text-[8px] tracking-wider uppercase leading-tight">Global Access</span>
           </button>
         </div>
 
@@ -2843,7 +2843,7 @@ export default function RPDashboard({ profile }: Props) {
             onClick={() => setShowNetwork(true)}
             className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-white/70 hover:text-[#5B3DF5] transition-colors border border-white/20 hover:border-[#5B3DF5]/40 px-3 py-2"
           >
-            🌐 Réseau
+            🌐 Global Access
           </button>
         </div>
 

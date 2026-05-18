@@ -95,8 +95,10 @@ export default function HostDashboardPage() {
   const [mainTab, setMainTab] = useState<MainTab>('reservations')
   const [inviteCode, setInviteCode] = useState<string | null>(null)
   const [inviteCodeLoading, setInviteCodeLoading] = useState(false)
+  const [inviteCodeError, setInviteCodeError] = useState('')
   const [connections, setConnections] = useState<{ rp_slug: string; rp_display_name: string; created_at: string }[]>([])
   const [connectionsLoading, setConnectionsLoading] = useState(false)
+  const [connectionsError, setConnectionsError] = useState('')
   const [codeCopied, setCodeCopied] = useState(false)
 
   useEffect(() => {
@@ -157,26 +159,40 @@ export default function HostDashboardPage() {
   const loadInviteCode = useCallback(async () => {
     if (inviteCode) return
     setInviteCodeLoading(true)
+    setInviteCodeError('')
     try {
       const res = await fetch(`/api/host/${slug}/invite-code`)
       if (res.ok) {
         const data = await res.json()
         setInviteCode(data.code)
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setInviteCodeError(data.error || 'Impossible de générer le code.')
       }
-    } catch { /* silently fail */ }
-    finally { setInviteCodeLoading(false) }
+    } catch {
+      setInviteCodeError('Erreur réseau. Réessayez.')
+    } finally {
+      setInviteCodeLoading(false)
+    }
   }, [slug, inviteCode])
 
   const loadConnections = useCallback(async () => {
     setConnectionsLoading(true)
+    setConnectionsError('')
     try {
       const res = await fetch(`/api/host/${slug}/connections`)
       if (res.ok) {
         const data = await res.json()
         setConnections(Array.isArray(data) ? data : [])
+      } else {
+        const data = await res.json().catch(() => ({}))
+        setConnectionsError(data.error || 'Impossible de charger les connexions.')
       }
-    } catch { /* silently fail */ }
-    finally { setConnectionsLoading(false) }
+    } catch {
+      setConnectionsError('Erreur réseau. Réessayez.')
+    } finally {
+      setConnectionsLoading(false)
+    }
   }, [slug])
 
   useEffect(() => {
@@ -562,6 +578,16 @@ export default function HostDashboardPage() {
                 <div className="bg-[#0F1115] border border-white/5 px-4 py-4 text-center">
                   <p className="text-[#F5F7FA]/20 text-xs tracking-[0.3em] uppercase animate-pulse">Génération...</p>
                 </div>
+              ) : inviteCodeError ? (
+                <div className="bg-[#0F1115] border border-red-500/20 px-4 py-3 text-center">
+                  <p className="text-red-400/70 text-xs mb-2">{inviteCodeError}</p>
+                  <button
+                    onClick={() => { setInviteCode(null); loadInviteCode() }}
+                    className="text-[9px] tracking-[0.2em] uppercase text-[#6E5BFF]/60 hover:text-[#6E5BFF] transition-colors"
+                  >
+                    Réessayer
+                  </button>
+                </div>
               ) : inviteCode ? (
                 <div className="bg-[#0F1115] border border-[#6E5BFF]/20 px-4 py-4 flex items-center justify-between gap-3">
                   <span className="text-[#6E5BFF] text-2xl font-mono tracking-[0.4em] font-light">{inviteCode}</span>
@@ -595,6 +621,8 @@ export default function HostDashboardPage() {
 
               {connectionsLoading ? (
                 <p className="text-[#F5F7FA]/20 text-xs text-center py-4 tracking-[0.2em] uppercase animate-pulse">Chargement...</p>
+              ) : connectionsError ? (
+                <p className="text-red-400/60 text-xs text-center py-4">{connectionsError}</p>
               ) : connections.length === 0 ? (
                 <div className="py-6 text-center">
                   <p className="text-[#F5F7FA]/15 text-xs tracking-[0.2em] uppercase">Aucun concierge connecté</p>
