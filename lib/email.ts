@@ -1430,10 +1430,13 @@ export async function sendVenueStatusToRP(data: VenueStatusEmailData) {
     </div>
 
     ${data.phone ? `
-    <div style="text-align:center;margin-top:20px;">
+    <div style="margin-top:28px;padding-top:24px;border-top:1px solid #1e1e1e;">
+      <p style="color:#555;font-size:9px;letter-spacing:3px;text-transform:uppercase;text-align:center;margin:0 0 14px;">
+        ${isConfirmed ? 'Confirmer au client' : 'Recontacter le client'}
+      </p>
       <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, ${isConfirmed ? `votre réservation chez ${data.establishment} le ${data.date} à ${data.time} est confirmée !` : `votre demande chez ${data.establishment} n'est malheureusement pas disponible. Je vous recontacte pour trouver une alternative.`}`)}"
-         style="display:inline-block;background:#25D366;color:white;padding:12px 28px;text-decoration:none;font-size:13px;letter-spacing:1px;">
-        💬 Contacter le client
+         style="display:block;background:#1a1a1a;border:1px solid ${isConfirmed ? 'rgba(34,197,94,0.4)' : 'rgba(239,68,68,0.4)'};color:${isConfirmed ? '#4ade80' : '#f87171'};padding:16px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;">
+        💬 Contacter ${data.firstName}
       </a>
     </div>` : ''}
 
