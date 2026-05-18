@@ -445,7 +445,7 @@ export async function sendReservationEmail(data: ReservationData) {
           <td style="padding:0 6px 0 0;width:50%;">
             <a href="https://wa.me/?text=${encodeURIComponent(buildRpWhatsappMessage(data))}"
                style="display:block;background:#1a1a1a;border:1px solid rgba(201,168,76,0.45);color:#C9A84C;padding:16px 12px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;">
-              💬 Répondre via WhatsApp
+              💬 Transférer à mon contact WhatsApp
             </a>
           </td>
           <td style="padding:0 0 0 6px;">

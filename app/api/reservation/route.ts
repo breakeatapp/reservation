@@ -179,7 +179,8 @@ export async function POST(req: NextRequest) {
           .eq('active', true)
           .maybeSingle()
 
-        if (venueProfile?.email) {
+        // Ne pas envoyer à la venue si c'est le même email que le RP (évite les doublons)
+        if (venueProfile?.email && venueProfile.email.toLowerCase() !== (rpEmail || '').toLowerCase()) {
           const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'
           const confirmToken = generateActionToken(insertedId, 'confirmed')
           const declineToken = generateActionToken(insertedId, 'declined')
