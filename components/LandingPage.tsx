@@ -358,15 +358,25 @@ export default function LandingPage() {
             <h3 className="font-playfair text-2xl text-[#F5F7FA] tracking-wide mb-1">Itinera</h3>
             <h3 className="font-playfair text-2xl text-[#6E5BFF] tracking-wide mb-5">Guest</h3>
             <span className="w-6 h-px bg-[#6E5BFF]/30 block mb-5 group-hover:bg-[#6E5BFF]/60 transition-colors" />
-            <p className="text-[#F5F7FA]/45 text-sm leading-relaxed mb-4">
-              Private members who access curated dining, venues and experiences
-              through their dedicated concierge. Every reservation is tracked,
-              confirmed and accessible from a personal space — no app required.
+            <p className="text-[#F5F7FA]/45 text-sm leading-relaxed mb-5">
+              A private membership space accessible by email — no password, no app to download.
+              Every reservation made by your concierge on your behalf is logged, tracked
+              and available in real time.
             </p>
-            <p className="text-[#F5F7FA]/30 text-sm leading-relaxed">
-              Guests receive real-time status updates by email, can review
-              their history, and access a dedicated itinerary for multi-day stays.
-            </p>
+            <ul className="space-y-2.5 mb-5">
+              {[
+                'Live status: pending, confirmed or declined',
+                'Email notification on every venue response',
+                'Full reservation history in one personal space',
+                'Multi-day itinerary view for trip planning',
+                'Connect to multiple concierges from one account',
+              ].map(f => (
+                <li key={f} className="flex items-start gap-2.5">
+                  <span className="text-[#6E5BFF]/50 mt-0.5 flex-shrink-0">–</span>
+                  <span className="text-[#F5F7FA]/30 text-[12px] leading-relaxed">{f}</span>
+                </li>
+              ))}
+            </ul>
             <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F7FA]/20 mt-6 border-t border-white/5 pt-5">
               Invitation only
             </p>
@@ -378,15 +388,28 @@ export default function LandingPage() {
             <h3 className="font-playfair text-2xl text-[#F5F7FA] tracking-wide mb-1">Itinera</h3>
             <h3 className="font-playfair text-2xl text-[#6E5BFF] tracking-wide mb-5">RP</h3>
             <span className="w-6 h-px bg-[#6E5BFF]/30 block mb-5 group-hover:bg-[#6E5BFF]/60 transition-colors" />
-            <p className="text-[#F5F7FA]/45 text-sm leading-relaxed mb-4">
-              Concierges and hospitality operators who manage the full reservation
-              flow from a single dashboard. Bookings, guest profiles, VIP notes,
-              itineraries — all structured, no more WhatsApp chaos.
+            <p className="text-[#F5F7FA]/45 text-sm leading-relaxed mb-5">
+              The operator dashboard built for hospitality concierges.
+              Manage every guest, every booking and every venue relationship
+              from a single, structured interface — in place of scattered WhatsApp threads.
             </p>
-            <p className="text-[#F5F7FA]/30 text-sm leading-relaxed">
-              Each RP operates their own branded space, connects to trusted venues,
-              and accesses the Global Access network to partner with operators worldwide.
-            </p>
+            <ul className="space-y-2.5 mb-5">
+              {[
+                'Reservation dashboard filtered by status',
+                'Guest profiles: VIP level, nationality, preferred products, private notes',
+                'Instant client search by name or email',
+                'Book for a client: single table or full multi-day itinerary',
+                'Global Access: world map of active operators with Ambassador & Trust badges',
+                'Venue trust system: connect restaurants via private invite code',
+                'Pending reservation reminders sent every 6 hours by email',
+                'Branded guest space with custom accent color',
+              ].map(f => (
+                <li key={f} className="flex items-start gap-2.5">
+                  <span className="text-[#6E5BFF]/50 mt-0.5 flex-shrink-0">–</span>
+                  <span className="text-[#F5F7FA]/30 text-[12px] leading-relaxed">{f}</span>
+                </li>
+              ))}
+            </ul>
             <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F7FA]/20 mt-6 border-t border-white/5 pt-5">
               Professional access
             </p>
@@ -398,15 +421,27 @@ export default function LandingPage() {
             <h3 className="font-playfair text-2xl text-[#F5F7FA] tracking-wide mb-1">Itinera</h3>
             <h3 className="font-playfair text-2xl text-[#6E5BFF] tracking-wide mb-5">Venue</h3>
             <span className="w-6 h-px bg-[#6E5BFF]/30 block mb-5 group-hover:bg-[#6E5BFF]/60 transition-colors" />
-            <p className="text-[#F5F7FA]/45 text-sm leading-relaxed mb-4">
-              Restaurants, beach clubs, hotels and estates that receive bookings
-              exclusively from trusted concierges. Every request arrives structured,
-              with guest profile, VIP level and special notes — ready to act on.
+            <p className="text-[#F5F7FA]/45 text-sm leading-relaxed mb-5">
+              Restaurants, beach clubs, hotels and private estates that receive
+              reservation requests exclusively from trusted concierge operators.
+              Every booking arrives fully structured — no back-and-forth, no missing details.
             </p>
-            <p className="text-[#F5F7FA]/30 text-sm leading-relaxed">
-              Venues confirm or decline directly from their dashboard or by email link.
-              The concierge and guest are notified instantly, automatically.
-            </p>
+            <ul className="space-y-2.5 mb-5">
+              {[
+                'Incoming bookings dashboard filtered by status',
+                'Guest VIP profile visible on every reservation card',
+                'Confirm or decline from dashboard or directly via email link',
+                'Guest and concierge notified automatically on your action',
+                'Trusted partner system: accept only approved concierges via invite code',
+                'Pending reservation reminders received every 6 hours',
+                'Direct WhatsApp access to contact the guest if needed',
+              ].map(f => (
+                <li key={f} className="flex items-start gap-2.5">
+                  <span className="text-[#6E5BFF]/50 mt-0.5 flex-shrink-0">–</span>
+                  <span className="text-[#F5F7FA]/30 text-[12px] leading-relaxed">{f}</span>
+                </li>
+              ))}
+            </ul>
             <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F7FA]/20 mt-6 border-t border-white/5 pt-5">
               Trusted partners only
             </p>
