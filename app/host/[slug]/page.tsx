@@ -138,7 +138,7 @@ export default function HostDashboardPage() {
       {/* Header */}
       <header className="sticky top-0 z-40 bg-[#0F1115]/95 backdrop-blur-sm border-b border-white/5 px-6 py-4 flex items-center justify-between">
         <div>
-          <span className="text-[8px] tracking-[0.5em] text-[#F5F7FA]/20 uppercase block">Itinera Host</span>
+          <span className="text-[8px] tracking-[0.5em] text-[#F5F7FA]/20 uppercase block">Itinera Venues</span>
           <span className="font-playfair text-lg text-[#F5F7FA] tracking-wide">ITINERA</span>
         </div>
         <div className="flex items-center gap-4">

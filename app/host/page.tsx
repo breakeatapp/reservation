@@ -60,7 +60,7 @@ export default function HostLoginPage() {
         <div className="w-full max-w-sm">
 
           <div className="mb-10 text-center">
-            <p className="text-[9px] tracking-[0.5em] uppercase text-[#6E5BFF]/60 mb-2">Itinera Host</p>
+            <p className="text-[9px] tracking-[0.5em] uppercase text-[#6E5BFF]/60 mb-2">Itinera Venues</p>
             <h1 className="font-playfair text-3xl text-[#F5F7FA] tracking-wide">Venue Access</h1>
             <p className="text-[#F5F7FA]/30 text-xs mt-3">
               Accédez à votre tableau de bord pour gérer vos réservations.

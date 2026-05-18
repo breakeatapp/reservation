@@ -75,7 +75,7 @@ export default function HostConfirmPage() {
       {/* Navbar */}
       <nav className="px-6 py-5">
         <div>
-          <span className="text-[8px] tracking-[0.5em] text-[#F5F7FA]/20 uppercase block">Itinera Host</span>
+          <span className="text-[8px] tracking-[0.5em] text-[#F5F7FA]/20 uppercase block">Itinera Venues</span>
           <span className="font-playfair text-lg text-[#F5F7FA] tracking-wide">ITINERA</span>
         </div>
       </nav>

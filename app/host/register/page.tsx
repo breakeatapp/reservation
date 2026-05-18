@@ -92,7 +92,7 @@ export default function HostRegisterPage() {
       {/* Navbar */}
       <nav className="px-6 py-5 flex items-center justify-between">
         <div>
-          <span className="text-[8px] tracking-[0.5em] text-[#F5F7FA]/20 uppercase block">Itinera Host</span>
+          <span className="text-[8px] tracking-[0.5em] text-[#F5F7FA]/20 uppercase block">Itinera Venues</span>
           <span className="font-playfair text-lg text-[#F5F7FA] tracking-wide">ITINERA</span>
         </div>
         <button
@@ -108,7 +108,7 @@ export default function HostRegisterPage() {
 
           {/* Header */}
           <div className="mb-8 text-center">
-            <p className="text-[9px] tracking-[0.5em] uppercase text-[#6E5BFF]/60 mb-2">Itinera Host</p>
+            <p className="text-[9px] tracking-[0.5em] uppercase text-[#6E5BFF]/60 mb-2">Itinera Venues</p>
             <h1 className="font-playfair text-3xl text-[#F5F7FA] tracking-wide">Créer votre accès</h1>
             <p className="text-[#F5F7FA]/30 text-xs mt-3 leading-relaxed">
               Gérez vos réservations et confirmez les demandes<br />de vos partenaires concierges.

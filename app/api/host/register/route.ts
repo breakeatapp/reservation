@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       .select('id')
       .ilike('venue_name', venue_name.trim())
       .ilike('destination', destination.trim())
-      .single()
+      .maybeSingle()
 
     if (existing) {
       return Response.json({ error: 'Un compte existe déjà pour cet établissement dans cette ville.' }, { status: 409 })
@@ -41,28 +41,52 @@ export async function POST(req: Request) {
       .from('host_profiles')
       .select('slug')
       .eq('slug', slug)
-      .single()
+      .maybeSingle()
 
     if (slugCheck) {
       slug = `${slug}-${Date.now().toString(36)}`
     }
 
-    // Insert new host profile
-    const { error } = await supabaseAdmin
-      .from('host_profiles')
-      .insert({
-        slug,
-        venue_name: venue_name.trim(),
-        destination: destination.trim(),
-        password,
-        email: email?.trim() || null,
-        category: category || 'restaurant',
-        active: true,
-      })
+    // Try full insert (with category + email columns)
+    const fullInsert = {
+      slug,
+      venue_name: venue_name.trim(),
+      destination: destination.trim(),
+      password,
+      email: email?.trim() || null,
+      category: category || 'restaurant',
+      active: true,
+    }
 
-    if (error) {
-      console.error('[host/register]', error)
-      return Response.json({ error: 'Erreur lors de la création du compte.' }, { status: 500 })
+    const { error: fullError } = await supabaseAdmin
+      .from('host_profiles')
+      .insert(fullInsert)
+
+    if (fullError) {
+      // Fallback: columns category/email may not exist yet — insert without them
+      if (
+        fullError.message?.includes('category') ||
+        fullError.message?.includes('email') ||
+        fullError.code === '42703'
+      ) {
+        const { error: fallbackError } = await supabaseAdmin
+          .from('host_profiles')
+          .insert({
+            slug,
+            venue_name: venue_name.trim(),
+            destination: destination.trim(),
+            password,
+            active: true,
+          })
+
+        if (fallbackError) {
+          console.error('[host/register] fallback insert error:', fallbackError)
+          return Response.json({ error: 'Erreur lors de la création du compte.' }, { status: 500 })
+        }
+      } else {
+        console.error('[host/register]', fullError)
+        return Response.json({ error: 'Erreur lors de la création du compte.' }, { status: 500 })
+      }
     }
 
     return Response.json({
@@ -71,7 +95,8 @@ export async function POST(req: Request) {
       venueName: venue_name.trim(),
       destination: destination.trim(),
     })
-  } catch {
+  } catch (e) {
+    console.error('[host/register] exception:', e)
     return Response.json({ error: 'Erreur serveur.' }, { status: 500 })
   }
 }
