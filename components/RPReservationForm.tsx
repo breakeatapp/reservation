@@ -141,16 +141,23 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
   useEffect(() => {
     const savedEmail = localStorage.getItem('itinera_guest_email')
     const savedRp = localStorage.getItem('itinera_guest_rp')
-    const savedName = localStorage.getItem('itinera_guest_name')
-    const savedLastName = localStorage.getItem('itinera_guest_lastname')
     const savedPhone = localStorage.getItem('itinera_guest_phone')
     if (savedEmail && savedRp === rpSlug) {
       setAccessEmail(savedEmail)
       setValue('email', savedEmail)
-      if (savedName) setValue('firstName', savedName)
-      if (savedLastName) setValue('lastName', savedLastName)
       if (savedPhone) setValue('phone', savedPhone)
       setAccessStep('form')
+      // Récupère le nom complet depuis l'API pour pré-remplir prénom + nom
+      fetch(`/api/client/check?email=${encodeURIComponent(savedEmail)}&rp=${rpSlug}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.clientName) {
+            const parts = (data.clientName as string).trim().split(' ')
+            setValue('firstName', parts[0] || '')
+            if (parts.length > 1) setValue('lastName', parts.slice(1).join(' '))
+          }
+        })
+        .catch(() => {})
     }
   }, [rpSlug, setValue])
 
@@ -184,6 +191,15 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
       if (data.registered) {
         setAccessEmail(trimmed)
         setAccessStep('form')
+        // Pré-remplir prénom + nom depuis l'API
+        if (data.clientName) {
+          const parts = (data.clientName as string).trim().split(' ')
+          setValue('firstName', parts[0] || '')
+          if (parts.length > 1) setValue('lastName', parts.slice(1).join(' '))
+        }
+        // Pré-remplir téléphone depuis le localStorage
+        const savedPhone = localStorage.getItem('itinera_guest_phone')
+        if (savedPhone) setValue('phone', savedPhone)
       } else {
         setAccessEmail(trimmed)
         setAccessStep('denied')
@@ -210,6 +226,10 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
       if (json.supabaseError) {
         console.warn('[ITINERA] Supabase save failed:', json.supabaseError)
       }
+      // Mémoriser les coordonnées pour pré-remplissage futur
+      localStorage.setItem('itinera_guest_name', data.firstName)
+      if (data.lastName) localStorage.setItem('itinera_guest_lastname', data.lastName)
+      if (data.phone) localStorage.setItem('itinera_guest_phone', data.phone)
       setStatus('success')
       reset()
     } catch {
