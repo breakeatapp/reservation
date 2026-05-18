@@ -115,9 +115,17 @@ export default function HostLoginPage() {
             </form>
           </div>
 
-          <p className="text-center text-[10px] text-[#F5F7FA]/20 mt-6">
-            Accès réservé aux établissements partenaires ITINERA.
-          </p>
+          <div className="mt-6 text-center space-y-2">
+            <p className="text-[10px] text-[#F5F7FA]/20">
+              Pas encore de compte ?
+            </p>
+            <button
+              onClick={() => router.push('/host/register')}
+              className="text-[10px] tracking-[0.2em] uppercase text-[#6E5BFF]/60 hover:text-[#6E5BFF] transition-colors underline underline-offset-2"
+            >
+              Créer l'accès de mon établissement →
+            </button>
+          </div>
 
         </div>
       </main>

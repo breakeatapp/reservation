@@ -7,6 +7,8 @@ create table if not exists host_profiles (
   password    text not null,                 -- plain text for now; hash in production
   venue_name  text not null,                 -- must match `establishment` field in reservations table exactly
   destination text,                          -- optional: match `destination` field too (e.g. "dubai")
+  category    text default 'restaurant',     -- 'restaurant' | 'beach_club' | 'night_club' | 'hotel' | 'spa' | 'yacht'
+  email       text,                          -- contact email (optional)
                                              -- if set, only reservations with BOTH venue_name AND destination match
                                              -- leave NULL to match by venue_name only
   active      boolean not null default true,
