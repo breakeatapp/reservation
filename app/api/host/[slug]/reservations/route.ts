@@ -47,17 +47,36 @@ export async function GET(
       return Response.json({ error: 'Établissement introuvable.' }, { status: 401 })
     }
 
-    // Filter by establishment name (case-insensitive)
-    // Note: destination is NOT used as a filter because venues store it as a slug ("saint-tropez")
-    // while reservations store it as a formatted string ("Saint Tropez") — they never match via ilike.
-    // The establishment name alone is sufficient to scope the query.
-    const query = supabaseAdmin
-      .from('reservations')
-      .select('*')
-      .ilike('establishment', host.venue_name)
-      .order('created_at', { ascending: true })
+    // Filter reservations: prefer venue_slug match (reliable, set at booking time for trusted connections),
+    // fallback to establishment name match (for older reservations pre-trust system).
+    // Use OR via two queries and merge, deduplicating by id.
+    const [bySlugRes, byNameRes] = await Promise.all([
+      supabaseAdmin
+        .from('reservations')
+        .select('*')
+        .eq('venue_slug', slug)
+        .order('created_at', { ascending: true }),
+      supabaseAdmin
+        .from('reservations')
+        .select('*')
+        .ilike('establishment', host.venue_name)
+        .is('venue_slug', null) // only fallback rows without venue_slug set
+        .order('created_at', { ascending: true }),
+    ])
 
-    const { data, error } = await query
+    const error = bySlugRes.error || byNameRes.error
+    const combined = [
+      ...(bySlugRes.data ?? []),
+      ...(byNameRes.data ?? []),
+    ]
+    // Deduplicate
+    const seen = new Set<string>()
+    const data = combined.filter((r: Record<string, unknown>) => {
+      const id = r.id as string
+      if (seen.has(id)) return false
+      seen.add(id)
+      return true
+    })
 
     if (error) {
       return Response.json({ error: 'Erreur lors du chargement.' }, { status: 500 })

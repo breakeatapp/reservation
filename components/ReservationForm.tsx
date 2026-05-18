@@ -124,8 +124,8 @@ export default function ReservationForm({ estOptions, defaultLieu }: Props) {
 
         {/* 01 — Établissement */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/70" />
+          <p className="text-[9px] tracking-[0.4em] text-[#6E5BFF] uppercase mb-5 flex items-center gap-3">
+            <span className="w-px h-3 bg-[#6E5BFF]/90" />
             01 — Établissement
           </p>
           <label className={labelClass}>Choisissez votre établissement *</label>
@@ -142,8 +142,8 @@ export default function ReservationForm({ estOptions, defaultLieu }: Props) {
 
         {/* 02 — Date & Heure */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/70" />
+          <p className="text-[9px] tracking-[0.4em] text-[#6E5BFF] uppercase mb-5 flex items-center gap-3">
+            <span className="w-px h-3 bg-[#6E5BFF]/90" />
             02 — Date & Heure
           </p>
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -184,8 +184,8 @@ export default function ReservationForm({ estOptions, defaultLieu }: Props) {
 
         {/* 03 — Préférences */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/70" />
+          <p className="text-[9px] tracking-[0.4em] text-[#6E5BFF] uppercase mb-5 flex items-center gap-3">
+            <span className="w-px h-3 bg-[#6E5BFF]/90" />
             03 — Préférences
           </p>
           <div className="grid grid-cols-2 gap-4">
@@ -224,8 +224,8 @@ export default function ReservationForm({ estOptions, defaultLieu }: Props) {
 
         {/* 04 — Coordonnées */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/70" />
+          <p className="text-[9px] tracking-[0.4em] text-[#6E5BFF] uppercase mb-5 flex items-center gap-3">
+            <span className="w-px h-3 bg-[#6E5BFF]/90" />
             04 — Vos coordonnées
           </p>
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -258,8 +258,8 @@ export default function ReservationForm({ estOptions, defaultLieu }: Props) {
 
         {/* 05 — Notes */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/70" />
+          <p className="text-[9px] tracking-[0.4em] text-[#6E5BFF] uppercase mb-5 flex items-center gap-3">
+            <span className="w-px h-3 bg-[#6E5BFF]/90" />
             05 — Notes complémentaires
           </p>
           <textarea

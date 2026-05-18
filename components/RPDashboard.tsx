@@ -260,6 +260,13 @@ export default function RPDashboard({ profile }: Props) {
   const [dangerLoading, setDangerLoading] = useState(false)
   const [dangerDone, setDangerDone] = useState('')
 
+  // ── Connexions venue ────────────────────────────────────────────
+  const [venueInviteInput, setVenueInviteInput] = useState('')
+  const [venueConnecting, setVenueConnecting] = useState(false)
+  const [venueConnectMsg, setVenueConnectMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [connectedVenues, setConnectedVenues] = useState<{ venue_slug: string; venue_name: string; created_at: string }[]>([])
+  const [connectedVenuesLoaded, setConnectedVenuesLoaded] = useState(false)
+
   // ── Réserver pour un client ────────────────────────────────────
   const [bookForType, setBookForType] = useState<'single' | 'trip' | null>(null)
   const [bfcSelectedClient, setBfcSelectedClient] = useState<RPClientNote | null>(null)
@@ -904,6 +911,57 @@ export default function RPDashboard({ profile }: Props) {
     }
   }
 
+  // ── LOAD CONNECTED VENUES ─────────────────────────────────────
+  const loadConnectedVenues = useCallback(async () => {
+    if (connectedVenuesLoaded) return
+    try {
+      const res = await fetch(`/api/rp/connect-venue?rpSlug=${profile.slug}`)
+      if (res.ok) {
+        const data = await res.json()
+        setConnectedVenues(Array.isArray(data) ? data : [])
+      }
+    } catch { /* silently fail */ }
+    finally { setConnectedVenuesLoaded(true) }
+  }, [profile.slug, connectedVenuesLoaded])
+
+  // ── CONNECT TO VENUE ──────────────────────────────────────────
+  const connectToVenue = async () => {
+    const code = venueInviteInput.trim().toUpperCase()
+    if (!code) return
+    setVenueConnecting(true)
+    setVenueConnectMsg(null)
+    try {
+      const res = await fetch('/api/rp/connect-venue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rpSlug: profile.slug, inviteCode: code }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        if (data.alreadyConnected) {
+          setVenueConnectMsg({ type: 'success', text: `Vous êtes déjà connecté à ${data.venueName}.` })
+        } else {
+          setVenueConnectMsg({ type: 'success', text: `✓ Connecté à ${data.venueName} ! Vos réservations y apparaîtront désormais.` })
+          // Refresh the list
+          setConnectedVenuesLoaded(false)
+          setConnectedVenues([])
+          setTimeout(async () => {
+            const r = await fetch(`/api/rp/connect-venue?rpSlug=${profile.slug}`)
+            if (r.ok) setConnectedVenues(await r.json())
+            setConnectedVenuesLoaded(true)
+          }, 500)
+        }
+        setVenueInviteInput('')
+      } else {
+        setVenueConnectMsg({ type: 'error', text: data.error || 'Erreur inconnue.' })
+      }
+    } catch {
+      setVenueConnectMsg({ type: 'error', text: 'Erreur réseau. Réessayez.' })
+    } finally {
+      setVenueConnecting(false)
+    }
+  }
+
   // ── SAVE CONFIG ───────────────────────────────────────────────
   const saveConfig = async () => {
     setConfigSaving(true)
@@ -1013,6 +1071,9 @@ export default function RPDashboard({ profile }: Props) {
 
   // ── VUE CONFIGURATION ─────────────────────────────────────────
   if (mainView === 'config') {
+    // Load connected venues on first render of config view
+    if (!connectedVenuesLoaded) loadConnectedVenues()
+
     return (
       <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
         <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4 flex items-center justify-between">
@@ -1283,6 +1344,68 @@ export default function RPDashboard({ profile }: Props) {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* ── Connexions venue partenaires ── */}
+          <div className="bg-[#141414] border border-[#5B3DF5]/20 p-5">
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-1">Venues partenaires</p>
+            <p className="text-[#F5F5F3]/25 text-xs mb-4 leading-relaxed">
+              Connectez-vous à un restaurant ou venue partenaire grâce au code d'invitation qu'ils vous ont fourni. Vos réservations apparaîtront directement dans leur dashboard.
+            </p>
+
+            {/* Input code */}
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={venueInviteInput}
+                onChange={e => setVenueInviteInput(e.target.value.toUpperCase())}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); connectToVenue() } }}
+                placeholder="Code d'invitation (ex: AB3X7K2M)"
+                maxLength={12}
+                className="flex-1 bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-[#5B3DF5]/40 transition-colors placeholder-[#F5F5F3]/20 font-mono tracking-wider uppercase"
+              />
+              <button
+                onClick={connectToVenue}
+                disabled={venueConnecting || !venueInviteInput.trim()}
+                className="px-4 py-2 border border-[#5B3DF5]/40 text-[#5B3DF5]/70 text-[10px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/8 transition-colors disabled:opacity-30 flex-shrink-0"
+              >
+                {venueConnecting ? '...' : 'Connecter'}
+              </button>
+            </div>
+
+            {venueConnectMsg && (
+              <div className={`text-[11px] px-3 py-2 mb-3 border ${
+                venueConnectMsg.type === 'success'
+                  ? 'text-emerald-400/80 border-emerald-400/20 bg-emerald-400/5'
+                  : 'text-red-400/80 border-red-400/20 bg-red-400/5'
+              }`}>
+                {venueConnectMsg.text}
+              </div>
+            )}
+
+            {/* List of connected venues */}
+            {connectedVenues.length > 0 && (
+              <div className="space-y-2 mt-4">
+                <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F5F3]/20 mb-2">Venues connectés ({connectedVenues.length})</p>
+                {connectedVenues.map(v => (
+                  <div key={v.venue_slug} className="flex items-center justify-between bg-[#0B0B0B] border border-white/5 px-3 py-2.5">
+                    <div>
+                      <p className="text-[#F5F5F3]/70 text-sm">{v.venue_name}</p>
+                      {v.created_at && (
+                        <p className="text-[#F5F5F3]/20 text-[9px] mt-0.5">
+                          depuis {new Date(v.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-[9px] tracking-[0.15em] uppercase text-emerald-400/60 border border-emerald-400/20 px-2 py-0.5">✓</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {connectedVenuesLoaded && connectedVenues.length === 0 && (
+              <p className="text-[#F5F5F3]/15 text-[10px] text-center py-2">Aucun venue connecté pour l'instant.</p>
+            )}
           </div>
 
           {/* ── Restaurants & Venues ── */}

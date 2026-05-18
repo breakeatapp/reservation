@@ -61,6 +61,7 @@ function parseClientProfile(raw?: string): { note: string; nationality: string; 
 }
 
 type FilterTab = 'pending' | 'confirmed' | 'declined' | 'all'
+type MainTab = 'reservations' | 'partners'
 
 const STATUS_LABEL: Record<ReservationStatus, string> = {
   pending: 'En attente',
@@ -89,6 +90,14 @@ export default function HostDashboardPage() {
   const [filter, setFilter] = useState<FilterTab>('pending')
   const [updating, setUpdating] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
+
+  // ── Partners tab ──
+  const [mainTab, setMainTab] = useState<MainTab>('reservations')
+  const [inviteCode, setInviteCode] = useState<string | null>(null)
+  const [inviteCodeLoading, setInviteCodeLoading] = useState(false)
+  const [connections, setConnections] = useState<{ rp_slug: string; rp_display_name: string; created_at: string }[]>([])
+  const [connectionsLoading, setConnectionsLoading] = useState(false)
+  const [codeCopied, setCodeCopied] = useState(false)
 
   useEffect(() => {
     const storedSlug = localStorage.getItem('itinera_host_slug')
@@ -145,6 +154,38 @@ export default function HostDashboardPage() {
     router.push('/host')
   }
 
+  const loadInviteCode = useCallback(async () => {
+    if (inviteCode) return
+    setInviteCodeLoading(true)
+    try {
+      const res = await fetch(`/api/host/${slug}/invite-code`)
+      if (res.ok) {
+        const data = await res.json()
+        setInviteCode(data.code)
+      }
+    } catch { /* silently fail */ }
+    finally { setInviteCodeLoading(false) }
+  }, [slug, inviteCode])
+
+  const loadConnections = useCallback(async () => {
+    setConnectionsLoading(true)
+    try {
+      const res = await fetch(`/api/host/${slug}/connections`)
+      if (res.ok) {
+        const data = await res.json()
+        setConnections(Array.isArray(data) ? data : [])
+      }
+    } catch { /* silently fail */ }
+    finally { setConnectionsLoading(false) }
+  }, [slug])
+
+  useEffect(() => {
+    if (mainTab === 'partners') {
+      loadInviteCode()
+      loadConnections()
+    }
+  }, [mainTab, loadInviteCode, loadConnections])
+
   const filtered = filter === 'all'
     ? reservations
     : reservations.filter(r => r.status === filter)
@@ -165,28 +206,54 @@ export default function HostDashboardPage() {
     <div className="min-h-screen bg-[#0F1115] text-[#F5F7FA]">
 
       {/* ── Header ── */}
-      <header className="sticky top-0 z-40 bg-[#0F1115]/95 backdrop-blur-sm border-b border-white/5 px-5 py-4 flex items-center justify-between">
-        <div>
-          <span className="text-[8px] tracking-[0.5em] text-[#F5F7FA]/20 uppercase block">Itinera Venues</span>
-          <span className="font-playfair text-lg text-[#F5F7FA] tracking-wide">ITINERA</span>
+      <header className="sticky top-0 z-40 bg-[#0F1115]/95 backdrop-blur-sm border-b border-white/5 px-5 py-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <span className="text-[8px] tracking-[0.5em] text-[#F5F7FA]/20 uppercase block">Itinera Venues</span>
+            <span className="font-playfair text-lg text-[#F5F7FA] tracking-wide">ITINERA</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {mainTab === 'reservations' && (
+              <button
+                onClick={fetchReservations}
+                className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/25 hover:text-[#F5F7FA]/50 transition-colors"
+              >
+                ↻
+              </button>
+            )}
+            <button
+              onClick={logout}
+              className="text-[10px] tracking-[0.2em] uppercase text-[#F5F7FA]/30 hover:text-[#F5F7FA]/60 transition-colors border border-white/8 hover:border-white/15 px-3 py-1.5"
+            >
+              Déconnexion
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={fetchReservations}
-            className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/25 hover:text-[#F5F7FA]/50 transition-colors"
-          >
-            ↻
-          </button>
-          <button
-            onClick={logout}
-            className="text-[10px] tracking-[0.2em] uppercase text-[#F5F7FA]/30 hover:text-[#F5F7FA]/60 transition-colors border border-white/8 hover:border-white/15 px-3 py-1.5"
-          >
-            Déconnexion
-          </button>
+        {/* Tabs */}
+        <div className="flex gap-1">
+          {([
+            { key: 'reservations' as MainTab, label: 'Réservations' },
+            { key: 'partners' as MainTab, label: '🤝 Partenaires' },
+          ]).map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setMainTab(tab.key)}
+              className={`text-[9px] tracking-[0.2em] uppercase px-3 py-1.5 border transition-all ${
+                mainTab === tab.key
+                  ? 'border-[#6E5BFF]/50 text-[#6E5BFF]/80 bg-[#6E5BFF]/8'
+                  : 'border-white/8 text-[#F5F7FA]/25 hover:border-white/15 hover:text-[#F5F7FA]/40'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-8">
+
+        {/* ── Reservations tab ── */}
+        {mainTab === 'reservations' && (<>
 
         {/* ── Venue identity ── */}
         <div className="mb-8">
@@ -467,6 +534,96 @@ export default function HostDashboardPage() {
                 </div>
               )
             })}
+          </div>
+        )}
+
+        </>)}
+
+        {/* ── Partners tab ── */}
+        {mainTab === 'partners' && (
+          <div className="space-y-6">
+
+            {/* Explainer */}
+            <div className="bg-[#181C23] border border-[#6E5BFF]/20 p-5">
+              <p className="text-[9px] tracking-[0.3em] uppercase text-[#6E5BFF]/60 mb-2">Comment ça marche ?</p>
+              <p className="text-[#F5F7FA]/40 text-xs leading-relaxed">
+                Partagez votre code d'invitation aux concierges de confiance. Une fois connectés, leurs réservations apparaîtront automatiquement dans votre dashboard et vous recevrez les notifications par email.
+              </p>
+            </div>
+
+            {/* Invite code */}
+            <div className="bg-[#181C23] border border-white/8 p-5">
+              <p className="text-[9px] tracking-[0.3em] uppercase text-[#F5F7FA]/30 mb-1">Code d'invitation</p>
+              <p className="text-[#F5F7FA]/25 text-[10px] mb-4 leading-relaxed">
+                Transmettez ce code à vos concierges partenaires. Ils le saisissent dans leur dashboard pour créer la connexion.
+              </p>
+
+              {inviteCodeLoading ? (
+                <div className="bg-[#0F1115] border border-white/5 px-4 py-4 text-center">
+                  <p className="text-[#F5F7FA]/20 text-xs tracking-[0.3em] uppercase animate-pulse">Génération...</p>
+                </div>
+              ) : inviteCode ? (
+                <div className="bg-[#0F1115] border border-[#6E5BFF]/20 px-4 py-4 flex items-center justify-between gap-3">
+                  <span className="text-[#6E5BFF] text-2xl font-mono tracking-[0.4em] font-light">{inviteCode}</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(inviteCode)
+                      setCodeCopied(true)
+                      setTimeout(() => setCodeCopied(false), 2000)
+                    }}
+                    className="text-[9px] tracking-[0.2em] uppercase text-[#6E5BFF]/60 hover:text-[#6E5BFF] transition-colors flex-shrink-0 border border-[#6E5BFF]/20 hover:border-[#6E5BFF]/50 px-3 py-1.5"
+                  >
+                    {codeCopied ? '✓ Copié !' : 'Copier'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={loadInviteCode}
+                  className="w-full py-3 text-[10px] tracking-[0.25em] uppercase border border-[#6E5BFF]/25 text-[#6E5BFF]/60 hover:bg-[#6E5BFF]/8 transition-colors"
+                >
+                  Générer un code
+                </button>
+              )}
+            </div>
+
+            {/* Connected RPs */}
+            <div className="bg-[#181C23] border border-white/8 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[9px] tracking-[0.3em] uppercase text-[#F5F7FA]/30">Concierges connectés</p>
+                <span className="text-[10px] text-[#F5F7FA]/20">{connections.length} partenaire{connections.length !== 1 ? 's' : ''}</span>
+              </div>
+
+              {connectionsLoading ? (
+                <p className="text-[#F5F7FA]/20 text-xs text-center py-4 tracking-[0.2em] uppercase animate-pulse">Chargement...</p>
+              ) : connections.length === 0 ? (
+                <div className="py-6 text-center">
+                  <p className="text-[#F5F7FA]/15 text-xs tracking-[0.2em] uppercase">Aucun concierge connecté</p>
+                  <p className="text-[#F5F7FA]/10 text-[10px] mt-2">Partagez votre code d'invitation ci-dessus</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {connections.map(c => (
+                    <div key={c.rp_slug} className="flex items-center justify-between bg-[#0F1115] border border-white/5 px-4 py-3">
+                      <div>
+                        <p className="text-[#F5F7FA]/70 text-sm">{c.rp_display_name || c.rp_slug}</p>
+                        <p className="text-[#F5F7FA]/20 text-[9px] mt-0.5 tracking-wider font-mono">{c.rp_slug}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[9px] tracking-[0.15em] uppercase text-emerald-400/60 border border-emerald-400/20 px-2 py-0.5">
+                          ✓ Connecté
+                        </span>
+                        {c.created_at && (
+                          <p className="text-[#F5F7FA]/15 text-[8px] mt-1">
+                            depuis le {new Date(c.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
         )}
 

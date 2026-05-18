@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
 import { sendReservationEmail, sendClientConfirmationEmail, sendVenueQuickActionEmail } from '@/lib/email'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { establishments } from '@/lib/data'
 import { getRPProfile } from '@/lib/rp'
-import { generateActionToken } from '@/lib/action-token'
 
 const supabase = supabaseAdmin
 
@@ -16,9 +16,8 @@ export async function POST(req: NextRequest) {
       establishment, date, time, guests,
       occasion, seating, specialRequests,
       nationality,
-      rpSlug,             // identifiant du RP (ex: "remi", "antoine")
-      destination: bodyDestination, // passé par le formulaire pour les venues custom
-      // vipLevel & budgetLevel supprimés côté client — gérés par le RP dans son dashboard
+      rpSlug,
+      destination: bodyDestination,
     } = body
 
     if (!firstName || !lastName || !email || !phone || !establishment || !date || !time || !guests) {
@@ -34,10 +33,16 @@ export async function POST(req: NextRequest) {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     })
 
-    // Save to Supabase (non-bloquant — n'empêche pas l'email si erreur)
-    let supabaseError: string | null = null
+    // ── 1. Générer l'UUID avant l'insert ──────────────────────────
+    const reservationId = randomUUID()
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'
 
+    // Lien vers la page interactive confirm/décline — toujours valide car lié à l'ID en base
+    const viewUrl = `${baseUrl}/host/confirm/${reservationId}`
+
+    // ── 2. Sauvegarder en base — OBLIGATOIRE avant tout email ────
     const baseInsert = {
+      id: reservationId,
       first_name: firstName,
       last_name: lastName,
       email,
@@ -49,53 +54,40 @@ export async function POST(req: NextRequest) {
       guests: parseInt(guests),
       occasion: occasion || '',
       seating: seating || '',
-      vip_level: '',      // défini par le RP dans son dashboard
-      budget_level: '',   // défini par le RP dans son dashboard
+      vip_level: '',
+      budget_level: '',
       special_requests: specialRequests || '',
       status: 'pending',
       establishment_phone: est?.phone || '',
       establishment_email: est?.email || '',
-      rp_slug: rpSlug || '',  // rattacher au RP
+      rp_slug: rpSlug || '',
     }
 
-    let insertedId: string | null = null
+    // Tentative 1 : avec nationality
+    const { error: sbError1 } = await supabase
+      .from('reservations')
+      .insert({ ...baseInsert, nationality: nationality || '' })
 
-    try {
-      // Tentative avec nationality (colonne optionnelle ajoutée après le schéma initial)
-      const { data: ins, error: sbError } = await supabase
-        .from('reservations')
-        .insert({ ...baseInsert, nationality: nationality || '' })
-        .select('id')
-        .single()
+    if (sbError1) {
+      if (sbError1.message?.includes('nationality') || sbError1.code === '42703') {
+        // Tentative 2 : sans nationality (colonne absente du schéma)
+        const { error: sbError2 } = await supabase
+          .from('reservations')
+          .insert(baseInsert)
 
-      if (sbError) {
-        // Si l'erreur est liée à la colonne nationality manquante → réessayer sans
-        if (sbError.message?.includes('nationality') || sbError.code === '42703') {
-          console.warn('Colonne nationality manquante — insert sans nationality')
-          const { data: ins2, error: sbError2 } = await supabase
-            .from('reservations')
-            .insert(baseInsert)
-            .select('id')
-            .single()
-          if (sbError2) {
-            supabaseError = sbError2.message
-            console.error('Supabase insert error (fallback):', sbError2.message, sbError2.details, sbError2.hint)
-          } else {
-            insertedId = ins2?.id || null
-          }
-        } else {
-          supabaseError = sbError.message
-          console.error('Supabase insert error:', sbError.message, sbError.details, sbError.hint)
+        if (sbError2) {
+          console.error('[reservation] insert échoué (x2):', sbError2.message, sbError2.details)
+          return NextResponse.json({ error: 'Impossible de sauvegarder la réservation. Veuillez réessayer.' }, { status: 500 })
         }
       } else {
-        insertedId = ins?.id || null
+        console.error('[reservation] insert échoué:', sbError1.message, sbError1.details)
+        return NextResponse.json({ error: 'Impossible de sauvegarder la réservation. Veuillez réessayer.' }, { status: 500 })
       }
-    } catch (sbErr) {
-      supabaseError = String(sbErr)
-      console.error('Supabase exception:', sbErr)
     }
 
-    // Récupérer le profil du RP pour l'email
+    console.log('[reservation] sauvegardé — id:', reservationId)
+
+    // ── 3. Profil RP ──────────────────────────────────────────────
     let rpEmail: string | undefined
     let rpDisplayName: string | undefined
     let rpWhatsapp: string | undefined
@@ -108,7 +100,7 @@ export async function POST(req: NextRequest) {
       rpNotificationPref = rpProfile?.notification_pref
     } catch { /* non-bloquant */ }
 
-    // Récupérer la fiche client (VIP tag + note interne) pour enrichir l'email RP
+    // ── 4. Fiche client (VIP + note) ─────────────────────────────
     let clientVipTag = ''
     let clientInternalNote = ''
     if (rpSlug && email) {
@@ -126,7 +118,7 @@ export async function POST(req: NextRequest) {
       } catch { /* non-bloquant */ }
     }
 
-    // Send email notification to RP
+    // ── 5. Email au RP (avec lien vers la page de gestion) ───────
     await sendReservationEmail({
       firstName, lastName, email, phone,
       date: formattedDate,
@@ -145,9 +137,10 @@ export async function POST(req: NextRequest) {
       rpNotificationPref,
       vipLevel: clientVipTag || undefined,
       internalNote: clientInternalNote || undefined,
+      viewUrl,   // lien vers /host/confirm/[id] — page interactive
     })
 
-    // Send client confirmation email (non-blocking)
+    // ── 6. Email de confirmation au client (non-bloquant) ────────
     try {
       await sendClientConfirmationEmail({
         firstName, lastName, email, phone,
@@ -166,52 +159,61 @@ export async function POST(req: NextRequest) {
         rpWhatsapp,
       })
     } catch (clientEmailErr) {
-      console.error('Client confirmation email error (non-bloquant):', clientEmailErr)
+      console.error('[reservation] client email error (non-bloquant):', clientEmailErr)
     }
 
-    // ── Notifier le venue avec liens confirm/décline rapides ──
-    if (insertedId) {
+    // ── 7. Notifier le venue si connexion de confiance ────────────
+    if (rpSlug) {
       try {
         const { data: venueProfile } = await supabase
           .from('venues_profiles')
-          .select('email, venue_name')
+          .select('slug, email, venue_name')
           .ilike('venue_name', establishment)
           .eq('active', true)
           .maybeSingle()
 
-        // Ne pas envoyer à la venue si c'est le même email que le RP (évite les doublons)
-        if (venueProfile?.email && venueProfile.email.toLowerCase() !== (rpEmail || '').toLowerCase()) {
-          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'
-          const confirmToken = generateActionToken(insertedId, 'confirmed')
-          const declineToken = generateActionToken(insertedId, 'declined')
+        if (venueProfile) {
+          const { data: connection } = await supabase
+            .from('venue_rp_connections')
+            .select('venue_slug')
+            .eq('venue_slug', venueProfile.slug)
+            .eq('rp_slug', rpSlug)
+            .maybeSingle()
 
-          await sendVenueQuickActionEmail({
-            firstName, lastName, email, phone,
-            date: formattedDate,
-            time,
-            guests: parseInt(guests),
-            occasion,
-            specialRequests,
-            establishment,
-            destination,
-            venueEmail: venueProfile.email,
-            confirmUrl: `${baseUrl}/api/host/quick-action?id=${insertedId}&action=confirmed&token=${confirmToken}`,
-            declineUrl: `${baseUrl}/api/host/quick-action?id=${insertedId}&action=declined&token=${declineToken}`,
-            rpDisplayName,
-            vipTag: clientVipTag || undefined,
-            internalNote: clientInternalNote || undefined,
-          })
+          if (connection) {
+            // Rattacher le venue à la réservation
+            await supabase
+              .from('reservations')
+              .update({ venue_slug: venueProfile.slug })
+              .eq('id', reservationId)
+
+            // Notifier le venue si email différent du RP
+            if (venueProfile.email && venueProfile.email.toLowerCase() !== (rpEmail || '').toLowerCase()) {
+              await sendVenueQuickActionEmail({
+                firstName, lastName, email, phone,
+                date: formattedDate,
+                time,
+                guests: parseInt(guests),
+                occasion,
+                specialRequests,
+                establishment,
+                destination,
+                venueEmail: venueProfile.email,
+                viewUrl,   // même page pour le venue
+                rpDisplayName,
+                vipTag: clientVipTag || undefined,
+                internalNote: clientInternalNote || undefined,
+              })
+              console.log(`[reservation] venue notifié — rp: ${rpSlug}, venue: ${venueProfile.slug}`)
+            }
+          }
         }
       } catch (venueErr) {
-        console.error('Venue quick-action email error (non-bloquant):', venueErr)
+        console.error('[reservation] venue notification error (non-bloquant):', venueErr)
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      saved: !supabaseError,
-      ...(supabaseError ? { supabaseError } : {}),
-    })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Reservation error:', error)
     return NextResponse.json({ error: 'Erreur interne' }, { status: 500 })

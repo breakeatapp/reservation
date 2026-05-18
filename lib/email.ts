@@ -55,6 +55,7 @@ export type TripBooking = {
   specialRequests?: string
   establishmentEmail: string
   establishmentPhone: string
+  viewUrl?: string   // lien vers /host/confirm/[id] — page interactive confirm/décline
 }
 
 export type TripData = {
@@ -68,60 +69,139 @@ export type TripData = {
   rpWhatsapp?: string  // WhatsApp du RP
 }
 
-// ── Email récap voyage (UN seul email pour tout le trip) ───
+// ── Génère le message WhatsApp de transfert pour UNE réservation du trip ──
+function buildTripBookingWhatsappMessage(
+  b: TripBooking,
+  firstName: string,
+  lastName: string,
+  phone: string,
+  email: string,
+): string {
+  const lines: string[] = []
+
+  // Lien de gestion en tête — page interactive confirm/décline
+  if (b.viewUrl) {
+    lines.push(`📋 *Voir & gérer la réservation :*`)
+    lines.push(b.viewUrl)
+    lines.push(``)
+  }
+
+  // Détails réservation
+  lines.push(
+    `📍 *${b.establishment}*${b.destination ? ` · ${b.destination}` : ''}`,
+    `📅 ${b.date} · ${b.time}`,
+    `👥 ${b.guests} personne${b.guests > 1 ? 's' : ''}`,
+  )
+  if (b.occasion) lines.push(`🎉 ${b.occasion}`)
+  if (b.seating) lines.push(`🪑 ${b.seating}`)
+  if (b.specialRequests) lines.push(`💬 ${b.specialRequests}`)
+
+  // Client
+  lines.push(``, `👤 *${firstName} ${lastName}*`, `📞 ${phone}`, `✉️ ${email}`)
+
+  // Contact restaurant
+  if (b.establishmentPhone) {
+    lines.push(
+      ``,
+      `📲 Contacter le restaurant :`,
+      `https://wa.me/${toWaPhone(b.establishmentPhone)}?text=${encodeURIComponent(`Bonjour, réservation pour ${b.guests} pers. le ${b.date} à ${b.time} — ${firstName} ${lastName}.${b.occasion ? ` Occasion : ${b.occasion}.` : ''}${b.specialRequests ? ` Notes : ${b.specialRequests}` : ''}`)}`
+    )
+  }
+
+  return lines.join('\n')
+}
+
+// ── Email récap voyage — UN seul email, une section + bouton WhatsApp par réservation ──
 export async function sendTripSummaryEmail(data: TripData) {
   const managerName = process.env.MANAGER_NAME || 'ITINERA'
   const rpName = data.rpDisplayName || managerName
 
-  const bookingRows = data.bookings.map((b, i) => `
-    <div style="margin-bottom: 28px; padding: 24px; background: #1a1a1a; border: 1px solid #2a2a2a; border-left: 3px solid #C9A84C;">
-      <div style="color: #C9A84C; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 12px;">
-        Réservation ${i + 1} / ${data.bookings.length}
-      </div>
-      <div style="margin-bottom: 16px;">
-        <span style="color: #f5f0e8; font-size: 20px; font-style: italic;">${b.establishment}</span>
-        ${b.destination ? `<span style="color: #C9A84C; font-size: 13px; margin-left: 10px; letter-spacing: 1px;">· ${b.destination.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</span>` : ''}
-      </div>
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr>
-          <td style="padding: 6px 0; color: #9a9a9a; font-size: 11px; width: 50%;">
-            <span style="font-size: 9px; letter-spacing: 2px; text-transform: uppercase; display: block; margin-bottom: 2px;">Date</span>
-            <span style="color: #f5f0e8; font-size: 14px;">${b.date}</span>
-          </td>
-          <td style="padding: 6px 0; color: #9a9a9a; font-size: 11px;">
-            <span style="font-size: 9px; letter-spacing: 2px; text-transform: uppercase; display: block; margin-bottom: 2px;">Service</span>
-            <span style="color: #f5f0e8; font-size: 14px;">${b.time}</span>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 6px 0;">
-            <span style="font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #9a9a9a; display: block; margin-bottom: 2px;">Personnes</span>
-            <span style="color: #f5f0e8; font-size: 14px;">${b.guests} personne${b.guests > 1 ? 's' : ''}</span>
-          </td>
-          ${b.occasion ? `<td style="padding: 6px 0;">
-            <span style="font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #9a9a9a; display: block; margin-bottom: 2px;">Occasion</span>
-            <span style="color: #f5f0e8; font-size: 14px;">${b.occasion}</span>
-          </td>` : '<td></td>'}
-        </tr>
-        ${b.seating ? `<tr><td colspan="2" style="padding: 6px 0;">
-          <span style="font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #9a9a9a; display: block; margin-bottom: 2px;">Placement</span>
-          <span style="color: #f5f0e8; font-size: 14px;">${b.seating}</span>
-        </td></tr>` : ''}
-        ${b.specialRequests ? `<tr><td colspan="2" style="padding: 8px 0 0;">
-          <div style="background: #141414; border-left: 2px solid #C9A84C; padding: 10px 14px; font-style: italic; color: #c4c4c4; font-size: 13px;">"${b.specialRequests}"</div>
-        </td></tr>` : ''}
-      </table>
-      ${b.establishmentPhone || b.establishmentEmail ? `
-      <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #2a2a2a;">
-        <span style="font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #666;">Contact établissement</span>
-        <div style="margin-top: 6px; color: #888; font-size: 12px;">
-          ${b.establishmentPhone ? `📞 ${b.establishmentPhone}` : ''}
-          ${b.establishmentPhone && b.establishmentEmail ? ' &nbsp;·&nbsp; ' : ''}
-          ${b.establishmentEmail ? `✉️ ${b.establishmentEmail}` : ''}
+  const bookingRows = data.bookings.map((b, i) => {
+    // Message WhatsApp spécifique à cette réservation
+    const waMsg = buildTripBookingWhatsappMessage(b, data.firstName, data.lastName, data.phone, data.email)
+
+    return `
+    <!-- ══ Réservation ${i + 1} ══ -->
+    <div style="margin-bottom: 8px; background: #1a1a1a; border: 1px solid #2a2a2a; border-left: 3px solid #C9A84C;">
+
+      <!-- En-tête réservation -->
+      <div style="padding: 18px 24px 14px; border-bottom: 1px solid #242424;">
+        <div style="color: #C9A84C; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px;">
+          Réservation ${i + 1} / ${data.bookings.length}
         </div>
-      </div>` : ''}
-    </div>
-  `).join('')
+        <div>
+          <span style="color: #f5f0e8; font-size: 19px; font-style: italic;">${b.establishment}</span>
+          ${b.destination ? `<span style="color: #C9A84C; font-size: 12px; margin-left: 8px; letter-spacing: 1px;">· ${b.destination}</span>` : ''}
+        </div>
+      </div>
+
+      <!-- Détails -->
+      <div style="padding: 16px 24px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 5px 0; width: 50%;">
+              <span style="font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #666; display: block; margin-bottom: 2px;">Date</span>
+              <span style="color: #f5f0e8; font-size: 14px;">${b.date}</span>
+            </td>
+            <td style="padding: 5px 0;">
+              <span style="font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #666; display: block; margin-bottom: 2px;">Service</span>
+              <span style="color: #f5f0e8; font-size: 14px;">${b.time}</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0;">
+              <span style="font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #666; display: block; margin-bottom: 2px;">Personnes</span>
+              <span style="color: #f5f0e8; font-size: 14px;">${b.guests} personne${b.guests > 1 ? 's' : ''}</span>
+            </td>
+            ${b.occasion ? `<td style="padding: 5px 0;">
+              <span style="font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #666; display: block; margin-bottom: 2px;">Occasion</span>
+              <span style="color: #f5f0e8; font-size: 14px;">${b.occasion}</span>
+            </td>` : '<td></td>'}
+          </tr>
+          ${b.seating ? `<tr><td colspan="2" style="padding: 5px 0;">
+            <span style="font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #666; display: block; margin-bottom: 2px;">Placement</span>
+            <span style="color: #f5f0e8; font-size: 14px;">${b.seating}</span>
+          </td></tr>` : ''}
+          ${b.specialRequests ? `<tr><td colspan="2" style="padding: 8px 0 0;">
+            <div style="background: #141414; border-left: 2px solid #C9A84C; padding: 10px 14px; font-style: italic; color: #c4c4c4; font-size: 13px;">"${b.specialRequests}"</div>
+          </td></tr>` : ''}
+        </table>
+      </div>
+
+      <!-- Boutons d'action propres à cette réservation -->
+      <div style="padding: 0 24px 20px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 0 5px 0 0; width: 50%;">
+              <a href="https://wa.me/?text=${encodeURIComponent(waMsg)}"
+                 style="display: block; background: #1e1e1e; border: 1px solid rgba(201,168,76,0.45); color: #C9A84C; padding: 13px 10px; text-decoration: none; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; text-align: center; font-family: Helvetica, Arial, sans-serif;">
+                💬 Transférer à mon contact WhatsApp
+              </a>
+            </td>
+            <td style="padding: 0 0 0 5px;">
+              <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, j'ai bien reçu votre demande pour ${b.establishment} le ${b.date} à ${b.time}. Je reviens vers vous rapidement.`)}"
+                 style="display: block; background: #1e1e1e; border: 1px solid rgba(255,255,255,0.1); color: #d4d4d4; padding: 13px 10px; text-decoration: none; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; text-align: center; font-family: Helvetica, Arial, sans-serif;">
+                💬 Répondre au client
+              </a>
+            </td>
+          </tr>
+        </table>
+        ${b.viewUrl ? `
+        <!-- Bouton gérer — page interactive confirm/décline -->
+        <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+          <tr>
+            <td>
+              <a href="${b.viewUrl}"
+                 style="display: block; background: rgba(201,168,76,0.08); border: 1px solid rgba(201,168,76,0.3); color: #C9A84C; padding: 11px 10px; text-decoration: none; font-size: 9px; letter-spacing: 2px; text-transform: uppercase; text-align: center; font-family: Helvetica, Arial, sans-serif;">
+                📋 Voir & gérer la réservation
+              </a>
+            </td>
+          </tr>
+        </table>` : ''}
+      </div>
+
+    </div>`
+  }).join('')
 
   const html = `
 <!DOCTYPE html>
@@ -143,42 +223,36 @@ export async function sendTripSummaryEmail(data: TripData) {
     <div style="padding: 36px 40px;">
 
       <!-- Client -->
-      <div style="background: #1e1e1e; border: 1px solid rgba(201,168,76,0.25); padding: 20px 24px; margin-bottom: 32px;">
+      <div style="background: #1e1e1e; border: 1px solid rgba(201,168,76,0.25); padding: 20px 24px; margin-bottom: 28px;">
         <div style="color: #C9A84C; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 14px;">Client</div>
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
             <td style="padding: 4px 0; width: 50%;">
-              <span style="color: #9a9a9a; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;">Nom</span><br>
+              <span style="color: #9a9a9a; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">Nom</span><br>
               <span style="color: #f5f0e8; font-size: 16px;">${data.firstName} ${data.lastName}</span>
             </td>
             <td style="padding: 4px 0;">
-              <span style="color: #9a9a9a; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;">Téléphone</span><br>
+              <span style="color: #9a9a9a; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">Téléphone</span><br>
               <span style="color: #f5f0e8; font-size: 16px;">${data.phone}</span>
             </td>
           </tr>
           <tr>
             <td colspan="2" style="padding: 8px 0 0;">
-              <span style="color: #9a9a9a; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;">Email</span><br>
+              <span style="color: #9a9a9a; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">Email</span><br>
               <span style="color: #f5f0e8; font-size: 16px;">${data.email}</span>
             </td>
           </tr>
         </table>
       </div>
 
-      <!-- Réservations -->
-      <div style="color: #C9A84C; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 20px;">
-        Programme du séjour
+      <!-- Titre programme -->
+      <div style="color: #C9A84C; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px;">
+        Programme du séjour — ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''}
       </div>
 
+      <!-- Réservations (une section par restaurant) -->
       ${bookingRows}
 
-      <!-- WhatsApp -->
-      <div style="text-align: center; margin-top: 32px;">
-        <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, j'ai bien reçu votre demande de planning — ${data.bookings.length} réservation${data.bookings.length > 1 ? 's' : ''}. Je traite votre itinéraire et reviens vers vous rapidement.`)}"
-           style="display: inline-block; background: #25D366; color: white; padding: 12px 28px; text-decoration: none; font-size: 14px; margin-top: 8px;">
-          💬 Répondre via WhatsApp
-        </a>
-      </div>
     </div>
 
     <div style="padding: 24px 40px; text-align: center; border-top: 1px solid #2a2a2a;">
@@ -319,30 +393,51 @@ export type ReservationData = {
   rpDisplayName?: string  // nom du RP expéditeur
   rpWhatsapp?: string     // WhatsApp du RP (affiché dans l'email client)
   rpNotificationPref?: 'email' | 'whatsapp' | 'both'  // préférence de notification du RP
+  viewUrl?: string        // lien vers /host/confirm/[id] — page interactive confirm/décline
 }
 
 // ── Génère le message WhatsApp récap réservation pour le RP ─
 function buildRpWhatsappMessage(data: ReservationData): string {
-  const lines: string[] = [
-    `👤 *${data.firstName} ${data.lastName}*`,
-    `📞 ${data.phone}`,
-    `✉️ ${data.email}`,
-    ``,
+  const lines: string[] = []
+
+  // ── 1. Lien de gestion EN TÊTE — page interactive confirm/décline ──
+  if (data.viewUrl) {
+    lines.push(`📋 *Voir & gérer la réservation :*`)
+    lines.push(data.viewUrl)
+    lines.push(``)
+  }
+
+  // ── 2. Détails réservation ──
+  lines.push(
     `📍 *${data.establishment}*${data.destination ? ` · ${data.destination}` : ''}`,
     `📅 ${data.date} · ${data.time}`,
     `👥 ${data.guests} personne${data.guests > 1 ? 's' : ''}`,
-  ]
+  )
   if (data.occasion) lines.push(`🎉 ${data.occasion}`)
   if (data.specialRequests) lines.push(`💬 ${data.specialRequests}`)
-  if (data.vipLevel) lines.push(``, `⭐ VIP : ${data.vipLevel}`)
+  if (data.vipLevel) lines.push(`⭐ VIP : ${data.vipLevel}`)
   if (data.internalNote) {
     const note = formatInternalNote(data.internalNote)
     if (note) lines.push(`📝 ${note}`)
   }
+
+  // ── 3. Client ──
+  lines.push(
+    ``,
+    `👤 *${data.firstName} ${data.lastName}*`,
+    `📞 ${data.phone}`,
+    `✉️ ${data.email}`,
+  )
+
+  // ── 4. Contact restaurant ──
   if (data.establishmentPhone) {
-    lines.push(``, `📲 Confirmer avec le restaurant :`)
-    lines.push(`https://wa.me/${toWaPhone(data.establishmentPhone)}?text=${encodeURIComponent(`Bonjour, j'ai une demande de réservation pour ${data.guests} personne${data.guests > 1 ? 's' : ''} le ${data.date} à ${data.time} au nom de ${data.firstName} ${data.lastName}.${data.occasion ? ` Occasion : ${data.occasion}.` : ''}${data.specialRequests ? ` Demandes : ${data.specialRequests}` : ''}`)}`    )
+    lines.push(
+      ``,
+      `📲 Contacter le restaurant :`,
+      `https://wa.me/${toWaPhone(data.establishmentPhone)}?text=${encodeURIComponent(`Bonjour, réservation pour ${data.guests} pers. le ${data.date} à ${data.time} — ${data.firstName} ${data.lastName}.${data.occasion ? ` Occasion : ${data.occasion}.` : ''}${data.specialRequests ? ` Notes : ${data.specialRequests}` : ''}`)}`
+    )
   }
+
   return lines.join('\n')
 }
 
@@ -456,6 +551,18 @@ export async function sendReservationEmail(data: ReservationData) {
           </td>
         </tr>
       </table>
+      ${data.viewUrl ? `
+      <!-- Bouton gérer la réservation -->
+      <table style="width:100%;border-collapse:collapse;margin-top:8px;">
+        <tr>
+          <td>
+            <a href="${data.viewUrl}"
+               style="display:block;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);color:#C9A84C;padding:14px 12px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;">
+              📋 Voir & gérer la réservation
+            </a>
+          </td>
+        </tr>
+      </table>` : ''}
 
       ${data.rpNotificationPref === 'whatsapp' ? `
       <div style="margin-top: 16px; padding: 12px 20px; background: rgba(37,211,102,0.08); border: 1px solid rgba(37,211,102,0.2); text-align: center;">
@@ -643,7 +750,7 @@ export async function sendClientConfirmationEmail(data: ReservationData) {
   })
 }
 
-// ── Email rapide au venue avec boutons confirm/décline ────────
+// ── Email rapide au venue avec bouton vers la page de gestion ─
 export type VenueQuickActionEmailData = {
   firstName: string
   lastName: string
@@ -657,8 +764,7 @@ export type VenueQuickActionEmailData = {
   occasion?: string
   specialRequests?: string
   venueEmail: string
-  confirmUrl: string
-  declineUrl: string
+  viewUrl: string        // lien vers /host/confirm/[id] — page interactive
   rpDisplayName?: string
   vipTag?: string
   internalNote?: string
@@ -730,28 +836,23 @@ export async function sendVenueQuickActionEmail(data: VenueQuickActionEmailData)
     </div>
 
     <p style="color:#666;font-size:11px;text-align:center;margin-bottom:16px;letter-spacing:1px;">
-      Répondez en un clic — aucune connexion requise
+      Confirmez ou déclinez en un clic — aucune connexion requise
     </p>
 
     <table style="width:100%;border-collapse:collapse;">
       <tr>
-        <td style="padding:0 6px 0 0;width:50%;">
-          <a href="${data.confirmUrl}"
-             style="display:block;background:#22c55e;color:white;padding:18px;text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;font-weight:bold;">
-            ✅ Confirmer
-          </a>
-        </td>
-        <td style="padding:0 0 0 6px;">
-          <a href="${data.declineUrl}"
-             style="display:block;background:#ef4444;color:white;padding:18px;text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;font-weight:bold;">
-            ❌ Décliner
+        <td>
+          <a href="${data.viewUrl}"
+             style="display:block;background:#C9A84C;color:#0a0a0a;padding:20px;text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;font-weight:bold;">
+            📋 Voir & Gérer la réservation
           </a>
         </td>
       </tr>
     </table>
 
     <p style="color:#444;font-size:11px;text-align:center;margin-top:16px;line-height:1.6;">
-      Ce lien est sécurisé. L'action est transmise automatiquement au client et à son concierge.
+      Vous verrez les détails complets et pourrez confirmer ou décliner.<br>
+      Le statut est mis à jour en temps réel. Le client et son concierge sont notifiés automatiquement.
     </p>
   </div>
 

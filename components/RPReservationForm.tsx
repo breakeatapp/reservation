@@ -70,7 +70,7 @@ const SERVICES = [
 const OCCASIONS = ['Anniversaire', 'Romantique', 'Dîner d\'affaires', 'Célébration', 'Soirée VIP', 'Fête', 'Autre']
 
 export default function RPReservationForm({ estOptions, defaultVenue, defaultDestination, rpSlug, rpProfile, venueServices, destinations, establishments, venueConfigs }: Props) {
-  const accent = rpProfile?.accent_color || '#5B3DF5'
+  const accent = rpProfile?.accent_color || '#6E5BFF'
 
   // ── Sélecteur de ville ────────────────────────────────────
   // Si une seule destination active : pré-sélection automatique sans afficher le picker
@@ -406,8 +406,8 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
 
         {/* 01 — Destination + Établissement */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent + '50' }}>
-            <span className="w-px h-3" style={{ background: accent + '30' }} />
+          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent }}>
+            <span className="w-px h-3" style={{ background: accent + 'AA' }} />
             01 — Établissement
           </p>
 
@@ -478,8 +478,8 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
 
         {/* 02 — Date & Service */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent + '50' }}>
-            <span className="w-px h-3" style={{ background: accent + '30' }} />
+          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent }}>
+            <span className="w-px h-3" style={{ background: accent + 'AA' }} />
             02 — Date & Service
           </p>
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -529,8 +529,8 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
 
         {/* 03 — Préférences */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent + '50' }}>
-            <span className="w-px h-3" style={{ background: accent + '30' }} />
+          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent }}>
+            <span className="w-px h-3" style={{ background: accent + 'AA' }} />
             03 — Préférences
           </p>
           <div className="grid grid-cols-1 gap-4">
@@ -548,8 +548,8 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
 
         {/* 04 — Coordonnées */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent + '50' }}>
-            <span className="w-px h-3" style={{ background: accent + '30' }} />
+          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent }}>
+            <span className="w-px h-3" style={{ background: accent + 'AA' }} />
             04 — Vos coordonnées
           </p>
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -587,8 +587,8 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
 
         {/* 05 — Notes */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent + '50' }}>
-            <span className="w-px h-3" style={{ background: accent + '30' }} />
+          <p className="text-[9px] tracking-[0.4em] uppercase mb-5 flex items-center gap-3" style={{ color: accent }}>
+            <span className="w-px h-3" style={{ background: accent + 'AA' }} />
             05 — Notes
           </p>
           <textarea rows={2} placeholder="Informations complémentaires..."

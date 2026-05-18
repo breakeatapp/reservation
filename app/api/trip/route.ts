@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTripSummaryEmail, sendTripClientConfirmationEmail, sendVenueQuickActionEmail, type TripBooking } from '@/lib/email'
+import { randomUUID } from 'crypto'
+import {
+  sendTripSummaryEmail,
+  sendTripClientConfirmationEmail,
+  sendVenueQuickActionEmail,
+  type TripBooking,
+} from '@/lib/email'
 import { getRPProfile } from '@/lib/rp'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { establishments } from '@/lib/data'
-import { generateActionToken } from '@/lib/action-token'
 
 const supabase = supabaseAdmin
 
@@ -26,13 +31,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 })
     }
 
-    // Résoudre le profil RP (pour les emails)
+    // ── Profil RP ─────────────────────────────────────────────────
     const rpProfile = rpSlug ? await getRPProfile(rpSlug) : null
     const rpDisplayName = rpProfile?.display_name
     const rpEmail = rpProfile?.email
     const rpWhatsapp = rpProfile?.whatsapp
 
-    // Construire un index des venues personnalisées du RP (slug destination → name)
+    // Index destinations des venues custom du RP
     const rpCustomVenueDestMap: Record<string, string> = {}
     if (rpProfile?.activated_venues) {
       const { parseVenueEntry } = await import('@/lib/venue-utils')
@@ -42,24 +47,47 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Enrichir chaque réservation avec les infos de l'établissement
-    const enrichedBookings: TripBooking[] = (bookings as RawBooking[]).map(b => {
+    // ── Fiche client ──────────────────────────────────────────────
+    let clientVipTag = ''
+    let clientInternalNote = ''
+    if (rpSlug && email) {
+      try {
+        const { data: clientNote } = await supabase
+          .from('rp_client_notes')
+          .select('vip_tag, internal_note')
+          .eq('rp_slug', rpSlug)
+          .eq('client_email', email.toLowerCase())
+          .single()
+        if (clientNote) {
+          clientVipTag = clientNote.vip_tag || ''
+          clientInternalNote = clientNote.internal_note || ''
+        }
+      } catch { /* non-bloquant */ }
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'
+    const enrichedBookings: TripBooking[] = []
+
+    for (const b of bookings as RawBooking[]) {
       const est = establishments.find(e => e.name === b.establishment)
       let destination = est
         ? est.destination.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
         : ''
-
-      // Fallback : venue personnalisée → chercher la destination dans la config RP
       if (!destination && rpCustomVenueDestMap[b.establishment]) {
-        const destSlug = rpCustomVenueDestMap[b.establishment]
-        destination = destSlug.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+        destination = rpCustomVenueDestMap[b.establishment]
+          .replace(/-/g, ' ')
+          .replace(/\b\w/g, (l: string) => l.toUpperCase())
       }
 
       const formattedDate = new Date(b.date).toLocaleDateString('fr-FR', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
       })
 
-      return {
+      // ── UUID pré-généré : lien valide car on insert avec cet ID ──
+      const bookingId = randomUUID()
+      const viewUrl = `${baseUrl}/host/confirm/${bookingId}`
+
+      const booking: TripBooking = {
         establishment: b.establishment,
         destination,
         date: formattedDate,
@@ -70,109 +98,121 @@ export async function POST(req: NextRequest) {
         specialRequests: b.specialRequests,
         establishmentEmail: est?.email || '',
         establishmentPhone: est?.phone || '',
+        viewUrl,
       }
-    })
 
-    // Sauvegarder toutes les réservations dans Supabase (non-bloquant)
-    try {
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('VOTRE')) {
-        const rows = enrichedBookings.map(b => ({
-          first_name: firstName,
-          last_name: lastName,
-          email,
-          phone,
-          establishment: b.establishment,
-          destination: b.destination,
-          date: b.date,
-          time: b.time,
-          guests: b.guests,
-          occasion: b.occasion || '',
-          seating: b.seating || '',
-          vip_level: '',
-          budget_level: '',
-          special_requests: b.specialRequests || '',
-          status: 'pending',
-          establishment_phone: b.establishmentPhone,
-          establishment_email: b.establishmentEmail,
-          rp_slug: rpSlug || '',
-        }))
-
-        const { data: insertedRows, error: sbError } = await supabase
-          .from('reservations')
-          .insert(rows)
-          .select('id, establishment')
-        if (sbError) {
-          console.error('Supabase trip insert error:', sbError.message)
-        } else if (insertedRows && insertedRows.length > 0) {
-          // Notify each venue with quick-action links
-          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'
-          for (const row of insertedRows) {
-            try {
-              const { data: vp } = await supabase
-                .from('venues_profiles')
-                .select('email')
-                .ilike('venue_name', row.establishment)
-                .eq('active', true)
-                .maybeSingle()
-              if (vp?.email) {
-                const eb = enrichedBookings.find(b => b.establishment === row.establishment)
-                if (eb) {
-                  const confirmToken = generateActionToken(row.id, 'confirmed')
-                  const declineToken = generateActionToken(row.id, 'declined')
-                  await sendVenueQuickActionEmail({
-                    firstName,
-                    lastName,
-                    email,
-                    phone,
-                    date: eb.date,
-                    time: eb.time,
-                    guests: eb.guests,
-                    occasion: eb.occasion,
-                    specialRequests: eb.specialRequests,
-                    establishment: eb.establishment,
-                    destination: eb.destination,
-                    venueEmail: vp.email,
-                    confirmUrl: `${baseUrl}/api/host/quick-action?id=${row.id}&action=confirmed&token=${confirmToken}`,
-                    declineUrl: `${baseUrl}/api/host/quick-action?id=${row.id}&action=declined&token=${declineToken}`,
-                    rpDisplayName,
-                  })
-                }
-              }
-            } catch (ve) {
-              console.error('Venue quick-action email (trip, non-bloquant):', ve)
-            }
-          }
-        }
-      }
-    } catch (sbErr) {
-      console.error('Supabase non-bloquant:', sbErr)
-    }
-
-    // Envoyer UN SEUL email récapitulatif au RP
-    await sendTripSummaryEmail({
-      firstName,
-      lastName,
-      email,
-      phone,
-      bookings: enrichedBookings,
-      rpDisplayName,
-      rpEmail,        // ← email du concierge destinataire
-    })
-
-    // Envoyer l'email de confirmation au client (non-bloquant)
-    try {
-      await sendTripClientConfirmationEmail({
-        firstName,
-        lastName,
+      // ── Insert en base — OBLIGATOIRE ──────────────────────────
+      const row = {
+        id: bookingId,
+        first_name: firstName,
+        last_name: lastName,
         email,
         phone,
+        establishment: booking.establishment,
+        destination: booking.destination,
+        date: booking.date,
+        time: booking.time,
+        guests: booking.guests,
+        occasion: booking.occasion || '',
+        seating: booking.seating || '',
+        vip_level: clientVipTag || '',
+        budget_level: '',
+        special_requests: booking.specialRequests || '',
+        status: 'pending',
+        establishment_phone: booking.establishmentPhone,
+        establishment_email: booking.establishmentEmail,
+        rp_slug: rpSlug || '',
+      }
+
+      const { error: sbError1 } = await supabase
+        .from('reservations')
+        .insert({ ...row, nationality: '' })
+
+      if (sbError1) {
+        if (sbError1.message?.includes('nationality') || sbError1.code === '42703') {
+          const { error: sbError2 } = await supabase
+            .from('reservations')
+            .insert(row)
+
+          if (sbError2) {
+            console.error('[trip] insert échoué (x2):', b.establishment, sbError2.message)
+            return NextResponse.json({ error: `Impossible de sauvegarder la réservation pour ${b.establishment}. Veuillez réessayer.` }, { status: 500 })
+          }
+        } else {
+          console.error('[trip] insert échoué:', b.establishment, sbError1.message)
+          return NextResponse.json({ error: `Impossible de sauvegarder la réservation pour ${b.establishment}. Veuillez réessayer.` }, { status: 500 })
+        }
+      }
+
+      console.log('[trip] sauvegardé — établissement:', booking.establishment, '| id:', bookingId)
+      enrichedBookings.push(booking)
+
+      // ── Notifier le venue si connexion de confiance ───────────
+      if (rpSlug) {
+        try {
+          const { data: venueProfile } = await supabase
+            .from('venues_profiles')
+            .select('slug, email, venue_name')
+            .ilike('venue_name', booking.establishment)
+            .eq('active', true)
+            .maybeSingle()
+
+          if (venueProfile) {
+            const { data: connection } = await supabase
+              .from('venue_rp_connections')
+              .select('venue_slug')
+              .eq('venue_slug', venueProfile.slug)
+              .eq('rp_slug', rpSlug)
+              .maybeSingle()
+
+            if (connection) {
+              await supabase
+                .from('reservations')
+                .update({ venue_slug: venueProfile.slug })
+                .eq('id', bookingId)
+
+              if (venueProfile.email && venueProfile.email.toLowerCase() !== (rpEmail || '').toLowerCase()) {
+                await sendVenueQuickActionEmail({
+                  firstName, lastName, email, phone,
+                  date: booking.date, time: booking.time, guests: booking.guests,
+                  occasion: booking.occasion,
+                  specialRequests: booking.specialRequests,
+                  establishment: booking.establishment,
+                  destination: booking.destination,
+                  venueEmail: venueProfile.email,
+                  viewUrl,
+                  rpDisplayName,
+                  vipTag: clientVipTag || undefined,
+                  internalNote: clientInternalNote || undefined,
+                })
+              }
+            }
+          }
+        } catch (venueErr) {
+          console.error('[trip] venue notification error (non-bloquant):', venueErr)
+        }
+      }
+    }
+
+    // ── UN seul email au RP avec toutes les réservations ─────────
+    await sendTripSummaryEmail({
+      firstName, lastName, email, phone,
+      bookings: enrichedBookings,
+      rpDisplayName,
+      rpEmail,
+    })
+
+    // ── Email récapitulatif au client ─────────────────────────────
+    try {
+      await sendTripClientConfirmationEmail({
+        firstName, lastName, email, phone,
         bookings: enrichedBookings,
         rpDisplayName,
-        rpEmail,      // ← pour reply-to
-        rpWhatsapp,   // ← bouton WhatsApp dans l'email client
+        rpEmail,
+        rpWhatsapp,
       })
     } catch (clientErr) {
-      console.error('Client trip confirmation email error:', clientErr)
+      console.error('[trip] client confirmation email error:', clientErr)
     }
 
     return NextResponse.json({ success: true, count: enrichedBookings.length })

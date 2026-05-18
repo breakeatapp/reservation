@@ -10,6 +10,8 @@ function redirect(path: string) {
 }
 
 // GET /api/host/quick-action?id=RESA_ID&action=confirmed&token=TOKEN
+// Conservé pour rétro-compatibilité avec d'éventuels anciens liens.
+// Les nouveaux liens passent par /host/confirm/[id] (page interactive).
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const id     = searchParams.get('id')
@@ -36,7 +38,8 @@ export async function GET(req: NextRequest) {
     .single()
 
   if (fetchError || !resa) {
-    return redirect('/host/action-result?error=notfound')
+    // Réservation introuvable — rediriger vers la page de gestion si possible
+    return redirect(`/host/confirm/${id}`)
   }
 
   // Already processed?
@@ -59,7 +62,7 @@ export async function GET(req: NextRequest) {
     return redirect('/host/action-result?error=update')
   }
 
-  // Send emails non-blocking
+  // Send emails
   try {
     let rpEmail: string | undefined
     let rpDisplayName: string | undefined
@@ -76,7 +79,6 @@ export async function GET(req: NextRequest) {
       rpWhatsapp = rp?.whatsapp
     }
 
-    // Find venue display name
     let venueName = resa.establishment
     const { data: vp } = await supabaseAdmin
       .from('venues_profiles')
@@ -109,12 +111,8 @@ export async function GET(req: NextRequest) {
       sendVenueStatusToClient(emailData),
       sendVenueStatusToRP(emailData),
     ])
-    if (clientResult.status === 'rejected') {
-      console.error('[quick-action] sendVenueStatusToClient failed:', clientResult.reason)
-    }
-    if (rpResult.status === 'rejected') {
-      console.error('[quick-action] sendVenueStatusToRP failed:', rpResult.reason)
-    }
+    if (clientResult.status === 'rejected') console.error('[quick-action] client email failed:', clientResult.reason)
+    if (rpResult.status === 'rejected') console.error('[quick-action] rp email failed:', rpResult.reason)
   } catch (e) {
     console.error('[quick-action] email error (non-bloquant):', e)
   }
