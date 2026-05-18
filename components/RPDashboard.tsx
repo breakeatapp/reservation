@@ -222,6 +222,8 @@ export default function RPDashboard({ profile }: Props) {
   const [configVenues, setConfigVenues] = useState<string[]>(profile.activated_venues ?? [])
   const configAccent = '#5B3DF5'
   const [configLogoText, setConfigLogoText] = useState(profile.logo_text || '')
+  const [configWhatsapp, setConfigWhatsapp] = useState(profile.whatsapp || '')
+  const [configNotifPref, setConfigNotifPref] = useState<'email' | 'whatsapp' | 'both'>(profile.notification_pref || 'email')
   const [configSaving, setConfigSaving] = useState(false)
   const [configSaved, setConfigSaved] = useState(false)
   const [configError, setConfigError] = useState('')
@@ -1004,6 +1006,8 @@ export default function RPDashboard({ profile }: Props) {
           activated_destinations: configDests,
           activated_venues: configVenues,
           logo_text: configLogoText,
+          whatsapp: configWhatsapp.trim() || null,
+          notification_pref: configNotifPref,
         }),
       })
       if (res.ok) {
@@ -1179,6 +1183,67 @@ export default function RPDashboard({ profile }: Props) {
                   placeholder="ÉLITE"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* ── Notifications WhatsApp ── */}
+          <div className="bg-[#141414] border border-white/5 p-5">
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-1">Notifications</p>
+            <p className="text-[#F5F5F3]/25 text-xs mb-4 leading-relaxed">
+              Recevez chaque nouvelle réservation par email et/ou WhatsApp.
+            </p>
+
+            {/* Numéro WhatsApp */}
+            <div className="mb-4">
+              <label className="block text-[8px] tracking-wider text-[#F5F5F3]/30 uppercase mb-1.5">
+                Votre numéro WhatsApp
+              </label>
+              <input
+                type="tel"
+                value={configWhatsapp}
+                onChange={e => setConfigWhatsapp(e.target.value)}
+                placeholder="+33 6 12 34 56 78"
+                className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-[#25D366]/40 transition-colors placeholder-[#F5F5F3]/20"
+              />
+              <p className="text-[#F5F5F3]/20 text-[10px] mt-1">Format international : +33 6 XX XX XX XX</p>
+            </div>
+
+            {/* Préférence de notification */}
+            <div>
+              <label className="block text-[8px] tracking-wider text-[#F5F5F3]/30 uppercase mb-2">
+                Je veux recevoir mes réservations
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { value: 'email', label: '✉️ Email', desc: 'Email seulement' },
+                  { value: 'whatsapp', label: '📲 WhatsApp', desc: 'WhatsApp seulement' },
+                  { value: 'both', label: '✉️ + 📲 Les deux', desc: 'Email et WhatsApp' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setConfigNotifPref(opt.value)}
+                    className={`px-3 py-3 text-[9px] tracking-wide border transition-all text-center ${
+                      configNotifPref === opt.value
+                        ? 'border-[#25D366]/50 bg-[#25D366]/10 text-[#F5F5F3]'
+                        : 'border-white/8 text-[#F5F5F3]/40 hover:border-white/15 hover:text-[#F5F5F3]/60'
+                    }`}
+                  >
+                    <div className="text-sm mb-1">{opt.label.split(' ')[0]}</div>
+                    <div className="uppercase tracking-wider">{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+              {configNotifPref !== 'email' && !configWhatsapp.trim() && (
+                <p className="text-amber-400/60 text-[10px] mt-2">
+                  ⚠️ Entrez votre numéro WhatsApp pour activer cette option.
+                </p>
+              )}
+              {configNotifPref !== 'email' && configWhatsapp.trim() && (
+                <p className="text-[#25D366]/60 text-[10px] mt-2">
+                  📲 Chaque réservation apparaîtra dans votre email avec un bouton "Voir sur WhatsApp" pour l'ouvrir directement.
+                </p>
+              )}
             </div>
           </div>
 

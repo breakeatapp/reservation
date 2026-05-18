@@ -86,11 +86,13 @@ export async function POST(req: NextRequest) {
     let rpEmail: string | undefined
     let rpDisplayName: string | undefined
     let rpWhatsapp: string | undefined
+    let rpNotificationPref: 'email' | 'whatsapp' | 'both' | undefined
     try {
       const rpProfile = rpSlug ? await getRPProfile(rpSlug) : null
       rpEmail = rpProfile?.email
       rpDisplayName = rpProfile?.display_name
       rpWhatsapp = rpProfile?.whatsapp
+      rpNotificationPref = rpProfile?.notification_pref
     } catch { /* non-bloquant */ }
 
     // Récupérer la fiche client (VIP tag + note interne) pour enrichir l'email RP
@@ -126,6 +128,8 @@ export async function POST(req: NextRequest) {
       establishmentPhone: est?.phone || '',
       rpEmail,
       rpDisplayName,
+      rpWhatsapp,
+      rpNotificationPref,
       vipLevel: clientVipTag || undefined,
       internalNote: clientInternalNote || undefined,
     })

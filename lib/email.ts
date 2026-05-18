@@ -318,6 +318,33 @@ export type ReservationData = {
   rpEmail?: string        // email du RP destinataire (priorité sur MANAGER_EMAIL)
   rpDisplayName?: string  // nom du RP expéditeur
   rpWhatsapp?: string     // WhatsApp du RP (affiché dans l'email client)
+  rpNotificationPref?: 'email' | 'whatsapp' | 'both'  // préférence de notification du RP
+}
+
+// ── Génère le message WhatsApp récap réservation pour le RP ─
+function buildRpWhatsappMessage(data: ReservationData): string {
+  const lines: string[] = [
+    `🔔 *Nouvelle réservation ITINERA*`,
+    ``,
+    `👤 *${data.firstName} ${data.lastName}*`,
+    `📞 ${data.phone}`,
+    ``,
+    `📍 *${data.establishment}*${data.destination ? ` · ${data.destination}` : ''}`,
+    `📅 ${data.date} · ${data.time}`,
+    `👥 ${data.guests} personne${data.guests > 1 ? 's' : ''}`,
+  ]
+  if (data.occasion) lines.push(`🎉 ${data.occasion}`)
+  if (data.specialRequests) lines.push(`💬 "${data.specialRequests}"`)
+  if (data.vipLevel) lines.push(``, `⭐ VIP : ${data.vipLevel}`)
+  if (data.internalNote) {
+    const note = formatInternalNote(data.internalNote)
+    if (note) lines.push(`📝 ${note}`)
+  }
+  if (data.establishmentPhone) {
+    lines.push(``, `📲 Confirmer avec le restaurant :`)
+    lines.push(`https://wa.me/${toWaPhone(data.establishmentPhone)}?text=${encodeURIComponent(`Bonjour, j'ai une demande de réservation pour ${data.guests} personne${data.guests > 1 ? 's' : ''} le ${data.date} à ${data.time} au nom de ${data.firstName} ${data.lastName}.${data.occasion ? ` Occasion : ${data.occasion}.` : ''}${data.specialRequests ? ` Demandes : ${data.specialRequests}` : ''}`)}`    )
+  }
+  return lines.join('\n')
 }
 
 export async function sendReservationEmail(data: ReservationData) {
@@ -413,12 +440,28 @@ export async function sendReservationEmail(data: ReservationData) {
       <div class="special">"${data.specialRequests}"</div>
       ` : ''}
 
-      <div style="text-align: center; margin-top: 32px;">
+      <!-- Boutons d'action -->
+      <div style="text-align: center; margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+
+        <!-- WhatsApp récap pour le RP (envoyer à soi-même ou au restaurant) -->
+        <a href="https://wa.me/?text=${encodeURIComponent(buildRpWhatsappMessage(data))}"
+           style="display: inline-block; background: #25D366; color: white; padding: 14px 28px; text-decoration: none; font-size: 13px; letter-spacing: 1px; margin: 4px;">
+          📲 Voir sur WhatsApp
+        </a>
+
+        <!-- WhatsApp vers le client -->
         <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, j'ai bien reçu votre demande de réservation chez ${data.establishment} — le ${data.date}, ${data.time}, pour ${data.guests} personne${data.guests > 1 ? 's' : ''}. Je reviens vers vous rapidement.`)}"
-           class="whatsapp-btn" style="background:#25D366; padding: 14px 36px; font-size: 13px; letter-spacing: 1px;">
-          💬 Envoyer à mon contact
+           style="display: inline-block; background: #128C7E; color: white; padding: 14px 28px; text-decoration: none; font-size: 13px; letter-spacing: 1px; margin: 4px;">
+          💬 Répondre au client
         </a>
       </div>
+
+      ${data.rpNotificationPref === 'whatsapp' ? `
+      <div style="margin-top: 16px; padding: 12px 20px; background: rgba(37,211,102,0.08); border: 1px solid rgba(37,211,102,0.2); text-align: center;">
+        <p style="color: #25D366; font-size: 11px; letter-spacing: 1px; margin: 0;">
+          📲 Cliquez "Voir sur WhatsApp" pour recevoir ce récap directement dans vos messages
+        </p>
+      </div>` : ''}
     </div>
 
     <div class="footer">

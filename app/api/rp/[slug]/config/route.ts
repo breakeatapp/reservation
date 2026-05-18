@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
   const { data, error } = await supabase
     .from('rp_profiles')
-    .select('activated_destinations, activated_venues, tagline, display_name, accent_color, logo_text, whatsapp, email')
+    .select('activated_destinations, activated_venues, tagline, display_name, accent_color, logo_text, whatsapp, email, notification_pref')
     .eq('slug', params.slug)
     .single()
 
@@ -31,7 +31,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const body = await req.json()
 
   // Champs autorisés à modifier
-  const allowed = ['activated_destinations', 'activated_venues', 'tagline', 'accent_color', 'logo_text']
+  const allowed = ['activated_destinations', 'activated_venues', 'tagline', 'accent_color', 'logo_text', 'whatsapp', 'notification_pref']
   const updates: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) updates[key] = body[key]

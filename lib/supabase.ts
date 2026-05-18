@@ -59,4 +59,5 @@ export type RPProfile = {
   logo_text?: string
   accent_color: string
   created_at: string
+  notification_pref?: 'email' | 'whatsapp' | 'both'  // préférence de notification réservations
 }
