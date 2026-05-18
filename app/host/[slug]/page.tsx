@@ -28,6 +28,22 @@ type Reservation = {
   created_at?: string
 }
 
+// Couleurs VIP identiques au dashboard RP
+const VIP_COLORS: Record<string, { text: string; border: string; bg: string }> = {
+  'Ultra VIP': { text: 'text-rose-300',    border: 'border-rose-300/40',    bg: 'bg-rose-300/10' },
+  'VVIP':      { text: 'text-fuchsia-400', border: 'border-fuchsia-400/40', bg: 'bg-fuchsia-400/10' },
+  'VIP':       { text: 'text-purple-400',  border: 'border-purple-400/40',  bg: 'bg-purple-400/10' },
+  'Premium':   { text: 'text-emerald-400', border: 'border-emerald-400/40', bg: 'bg-emerald-400/10' },
+  'Gold':      { text: 'text-amber-400',   border: 'border-amber-400/40',   bg: 'bg-amber-400/10' },
+  'Régulier':  { text: 'text-blue-400',    border: 'border-blue-400/40',    bg: 'bg-blue-400/10' },
+  'Corporate': { text: 'text-cyan-400',    border: 'border-cyan-400/40',    bg: 'bg-cyan-400/10' },
+  'Blacklist': { text: 'text-red-400',     border: 'border-red-400/40',     bg: 'bg-red-400/10' },
+}
+
+function getVipStyle(tag: string) {
+  return VIP_COLORS[tag] ?? { text: 'text-amber-300', border: 'border-amber-300/40', bg: 'bg-amber-300/10' }
+}
+
 // Parse la note interne JSON du concierge
 function parseClientProfile(raw?: string): { note: string; nationality: string; products: string[] } {
   if (!raw) return { note: '', nationality: '', products: [] }
@@ -270,12 +286,16 @@ export default function HostDashboardPage() {
                           <p className="text-[#F5F7FA]/80 font-medium text-sm">
                             {r.first_name} {r.last_name}
                           </p>
-                          {/* VIP — or/amber */}
-                          {(r.vip_tag || r.vip_level) && (
-                            <span className="text-[9px] tracking-[0.15em] uppercase px-2 py-0.5 border border-amber-400/40 text-amber-300 bg-amber-400/10 font-medium">
-                              ✦ {r.vip_tag || r.vip_level}
-                            </span>
-                          )}
+                          {/* VIP — couleur selon le statut */}
+                          {(r.vip_tag || r.vip_level) && (() => {
+                            const tag = r.vip_tag || r.vip_level || ''
+                            const s = getVipStyle(tag)
+                            return (
+                              <span className={`text-[9px] tracking-[0.15em] uppercase px-2 py-0.5 border font-medium ${s.text} ${s.border} ${s.bg}`}>
+                                ✦ {tag}
+                              </span>
+                            )
+                          })()}
                           {/* Produits — violet */}
                           {(() => {
                             const prof = parseClientProfile(r.internal_note)
