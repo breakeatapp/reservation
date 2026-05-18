@@ -1337,11 +1337,14 @@ export async function sendVenueStatusToClient(data: VenueStatusEmailData) {
       </table>
     </div>
 
-    ${isConfirmed && data.phone ? `
-    <div style="text-align:center;margin-top:24px;">
-      <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, votre réservation chez ${data.establishment} le ${data.date} à ${data.time} est bien confirmée. À très bientôt !`)}"
-         style="display:inline-block;background:#25D366;color:white;padding:14px 32px;text-decoration:none;font-size:13px;letter-spacing:1px;">
-        💬 Nous contacter sur WhatsApp
+    ${data.phone ? `
+    <div style="margin-top:28px;padding-top:24px;border-top:1px solid #1e1e1e;">
+      <p style="color:#555;font-size:9px;letter-spacing:3px;text-transform:uppercase;text-align:center;margin:0 0 14px;">
+        ${isConfirmed ? 'Une question ?' : 'Trouver une alternative'}
+      </p>
+      <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(isConfirmed ? `Bonjour ${data.firstName}, votre réservation chez ${data.establishment} le ${data.date} à ${data.time} est bien confirmée. À très bientôt !` : `Bonjour ${data.firstName}, je reviens vers vous concernant votre demande chez ${data.establishment}. Trouvons une alternative ensemble.`)}"
+         style="display:block;background:#1a1a1a;border:1px solid ${isConfirmed ? 'rgba(201,168,76,0.4)' : 'rgba(239,68,68,0.4)'};color:${isConfirmed ? '#C9A84C' : '#f87171'};padding:16px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;">
+        💬 Contacter votre concierge
       </a>
     </div>` : ''}
 
