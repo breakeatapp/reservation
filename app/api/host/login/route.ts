@@ -2,22 +2,36 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function POST(req: Request) {
   try {
-    const { slug, password } = await req.json()
+    const { venue_name, destination, password, slug } = await req.json()
 
-    if (!slug || !password) {
+    if (!password) {
+      return Response.json({ error: 'Mot de passe manquant.' }, { status: 400 })
+    }
+
+    let query = supabaseAdmin
+      .from('venues_profiles')
+      .select('*')
+      .eq('password', password)
+      .eq('active', true)
+
+    if (slug) {
+      // Legacy: login by slug (kept for compatibility)
+      query = query.eq('slug', slug.trim().toLowerCase())
+    } else if (venue_name && destination) {
+      // New: login by venue name (case-insensitive) + destination
+      query = query.ilike('venue_name', venue_name.trim()).eq('destination', destination.trim())
+    } else {
       return Response.json({ error: 'Identifiants manquants.' }, { status: 400 })
     }
 
-    const { data, error } = await supabaseAdmin
-      .from('venues_profiles')
-      .select('*')
-      .eq('slug', slug)
-      .eq('password', password)
-      .eq('active', true)
-      .single()
+    const { data, error } = await query.maybeSingle()
 
-    if (error || !data) {
-      return Response.json({ error: 'Identifiants incorrects.' }, { status: 401 })
+    if (error) {
+      console.error('[host/login]', error)
+    }
+
+    if (!data) {
+      return Response.json({ error: 'Identifiants incorrects. Vérifiez le nom, la ville et le mot de passe.' }, { status: 401 })
     }
 
     return Response.json({
@@ -26,7 +40,8 @@ export async function POST(req: Request) {
       slug: data.slug,
       destination: data.destination ?? null,
     })
-  } catch {
+  } catch (e) {
+    console.error('[host/login] exception:', e)
     return Response.json({ error: 'Erreur serveur.' }, { status: 500 })
   }
 }
