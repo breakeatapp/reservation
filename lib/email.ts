@@ -1278,7 +1278,7 @@ export type VenueStatusEmailData = {
   firstName: string
   lastName: string
   email: string          // email du client
-  phone?: string
+  phone?: string         // téléphone du client
   establishment: string
   destination?: string
   date: string
@@ -1290,10 +1290,15 @@ export type VenueStatusEmailData = {
   venueName: string      // nom affiché du venue
   rpEmail?: string       // email du RP pour notification
   rpDisplayName?: string
+  rpWhatsapp?: string    // WhatsApp du RP (pour le lien dans l'email client)
 }
 
 // ── Email au CLIENT quand le venue confirme ou décline ────
 export async function sendVenueStatusToClient(data: VenueStatusEmailData) {
+  if (!data.email) {
+    console.warn('[sendVenueStatusToClient] email manquant — email non envoyé')
+    return
+  }
   const isConfirmed = data.status === 'confirmed'
   const brand = process.env.MANAGER_NAME || 'ITINERA'
 
@@ -1351,12 +1356,12 @@ export async function sendVenueStatusToClient(data: VenueStatusEmailData) {
       </table>
     </div>
 
-    ${data.phone ? `
+    ${data.rpWhatsapp ? `
     <div style="margin-top:28px;padding-top:24px;border-top:1px solid #1e1e1e;">
       <p style="color:#555;font-size:9px;letter-spacing:3px;text-transform:uppercase;text-align:center;margin:0 0 14px;">
         ${isConfirmed ? 'Une question ?' : 'Trouver une alternative'}
       </p>
-      <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(isConfirmed ? `Bonjour ${data.firstName}, votre réservation chez ${data.establishment} le ${data.date} à ${data.time} est bien confirmée. À très bientôt !` : `Bonjour ${data.firstName}, je reviens vers vous concernant votre demande chez ${data.establishment}. Trouvons une alternative ensemble.`)}"
+      <a href="https://wa.me/${toWaPhone(data.rpWhatsapp)}?text=${encodeURIComponent(isConfirmed ? `Bonjour ${data.firstName}, votre réservation chez ${data.establishment} le ${data.date} à ${data.time} est bien confirmée. À très bientôt !` : `Bonjour ${data.firstName}, je reviens vers vous concernant votre demande chez ${data.establishment}. Trouvons une alternative ensemble.`)}"
          style="display:block;background:#1a1a1a;border:1px solid ${isConfirmed ? 'rgba(201,168,76,0.4)' : 'rgba(239,68,68,0.4)'};color:${isConfirmed ? '#C9A84C' : '#f87171'};padding:16px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;">
         💬 Contacter ${data.rpDisplayName ? data.rpDisplayName.split(' ')[0] : 'votre concierge'} via WhatsApp
       </a>

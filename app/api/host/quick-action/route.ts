@@ -63,15 +63,17 @@ export async function GET(req: NextRequest) {
   try {
     let rpEmail: string | undefined
     let rpDisplayName: string | undefined
+    let rpWhatsapp: string | undefined
 
     if (resa.rp_slug) {
       const { data: rp } = await supabaseAdmin
         .from('rp_profiles')
-        .select('email, display_name')
+        .select('email, display_name, whatsapp')
         .eq('slug', resa.rp_slug)
         .single()
       rpEmail = rp?.email
       rpDisplayName = rp?.display_name
+      rpWhatsapp = rp?.whatsapp
     }
 
     // Find venue display name
@@ -100,6 +102,7 @@ export async function GET(req: NextRequest) {
       venueName,
       rpEmail,
       rpDisplayName,
+      rpWhatsapp,
     }
 
     await Promise.allSettled([

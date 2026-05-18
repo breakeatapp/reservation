@@ -47,18 +47,15 @@ export async function GET(
       return Response.json({ error: 'Établissement introuvable.' }, { status: 401 })
     }
 
-    // Filter by establishment name (case-insensitive), and optionally by destination
-    // ilike without wildcards = exact match ignoring case
-    let query = supabaseAdmin
+    // Filter by establishment name (case-insensitive)
+    // Note: destination is NOT used as a filter because venues store it as a slug ("saint-tropez")
+    // while reservations store it as a formatted string ("Saint Tropez") — they never match via ilike.
+    // The establishment name alone is sufficient to scope the query.
+    const query = supabaseAdmin
       .from('reservations')
       .select('*')
       .ilike('establishment', host.venue_name)
       .order('created_at', { ascending: true })
-
-    if (host.destination) {
-      // Match destination (case-insensitive) OR empty destination (custom venues not enriched)
-      query = query.or(`destination.ilike.${host.destination},destination.eq.,destination.is.null`)
-    }
 
     const { data, error } = await query
 
@@ -158,22 +155,18 @@ export async function PATCH(
       return Response.json({ error: 'Non autorisé.' }, { status: 401 })
     }
 
-    // Verify the reservation belongs to this venue (case-insensitive, + destination if set)
-    let verifyQuery = supabaseAdmin
+    // Verify the reservation belongs to this venue (by ID + establishment name, case-insensitive)
+    // Note: destination is intentionally excluded — it's stored in different formats
+    // (slug "saint-tropez" in venues_profiles vs formatted "Saint Tropez" in reservations)
+    const { data: existing, error: fetchError } = await supabaseAdmin
       .from('reservations')
-      .select('id, establishment, destination')
+      .select('id, establishment')
       .eq('id', id)
       .ilike('establishment', host.venue_name)
-
-    if (host.destination) {
-      verifyQuery = verifyQuery.or(
-        `destination.ilike.${host.destination},destination.eq.,destination.is.null`
-      )
-    }
-
-    const { data: existing, error: fetchError } = await verifyQuery.single()
+      .maybeSingle()
 
     if (fetchError || !existing) {
+      console.error('[venue/patch] verify failed — slug:', slug, 'id:', id, 'venue_name:', host.venue_name, 'fetchError:', fetchError?.message)
       return Response.json({ error: 'Non autorisé.' }, { status: 403 })
     }
 
@@ -186,6 +179,8 @@ export async function PATCH(
       return Response.json({ error: 'Erreur lors de la mise à jour.' }, { status: 500 })
     }
 
+    console.log('[venue/patch] status updated — fetching resa for emails, id:', id)
+
     // ── Fetch full reservation + RP profile for emails ────────
     try {
       const { data: resa } = await supabaseAdmin
@@ -195,17 +190,19 @@ export async function PATCH(
         .single()
 
       if (resa) {
-        // Fetch RP profile for email + display name
+        // Fetch RP profile for email + display name + whatsapp
         let rpEmail: string | undefined
         let rpDisplayName: string | undefined
+        let rpWhatsapp: string | undefined
         if (resa.rp_slug) {
           const { data: rpProfile } = await supabaseAdmin
             .from('rp_profiles')
-            .select('email, display_name')
+            .select('email, display_name, whatsapp')
             .eq('slug', resa.rp_slug)
             .single()
           rpEmail = rpProfile?.email
           rpDisplayName = rpProfile?.display_name
+          rpWhatsapp = rpProfile?.whatsapp
         }
 
         const emailData = {
@@ -224,13 +221,22 @@ export async function PATCH(
           venueName: host.venue_name,
           rpEmail,
           rpDisplayName,
+          rpWhatsapp,
         }
 
+        console.log('[venue/patch] sending emails — client:', resa.email, '| rp:', rpEmail || '(none)')
+
         // Send to client and RP in parallel (non-blocking)
-        await Promise.allSettled([
+        const [clientResult, rpResult] = await Promise.allSettled([
           sendVenueStatusToClient(emailData),
           sendVenueStatusToRP(emailData),
         ])
+        if (clientResult.status === 'rejected') {
+          console.error('[venue/patch] sendVenueStatusToClient failed:', clientResult.reason)
+        }
+        if (rpResult.status === 'rejected') {
+          console.error('[venue/patch] sendVenueStatusToRP failed:', rpResult.reason)
+        }
       }
     } catch (emailErr) {
       console.error('[venue/patch] email error (non-bloquant):', emailErr)
