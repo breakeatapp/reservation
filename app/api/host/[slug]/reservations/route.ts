@@ -166,7 +166,9 @@ export async function PATCH(
       .ilike('establishment', host.venue_name)
 
     if (host.destination) {
-      verifyQuery = verifyQuery.ilike('destination', host.destination)
+      verifyQuery = verifyQuery.or(
+        `destination.ilike.${host.destination},destination.eq.,destination.is.null`
+      )
     }
 
     const { data: existing, error: fetchError } = await verifyQuery.single()
