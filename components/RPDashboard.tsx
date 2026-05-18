@@ -40,18 +40,30 @@ const VIP_COLORS: Record<string, string> = {
   Blacklist: 'text-red-400',
 }
 
-function buildWhatsAppMessage(r: Reservation, profile: RPProfile, internalNote?: string): string {
+function buildWhatsAppMessage(
+  r: Reservation,
+  profile: RPProfile,
+  internalNote?: string,
+  vipTag?: string,
+  privateMode?: boolean
+): string {
   const extras = [
     r.occasion ? `🎉 Occasion : ${r.occasion}` : '',
     r.seating ? `🪑 Placement : ${r.seating}` : '',
-    r.vip_level && r.vip_level !== '' ? `⭐ Profil : ${r.vip_level}` : '',
     r.budget_level && r.budget_level !== '' ? `💰 Budget : ${r.budget_level}` : '',
   ].filter(Boolean)
 
   // Parse la note interne (JSON ou texte brut)
   const parsedNote = internalNote ? parseClientProfile(internalNote) : null
 
+  // VIP tag (depuis fiche client RP)
+  const effectiveVip = vipTag || r.vip_level || ''
+
   const confirmUrl = r.id ? `https://itinera.click/host/confirm/${r.id}` : null
+
+  // En mode privé : remplacer contact client par contact RP
+  const contactPhone = privateMode ? (profile.whatsapp || '—') : r.phone
+  const contactEmail = privateMode ? (profile.email || '—') : r.email
 
   return [
     `🏠 *${r.establishment}*`,
@@ -61,12 +73,13 @@ function buildWhatsAppMessage(r: Reservation, profile: RPProfile, internalNote?:
     `🕐 ${r.time}`,
     `👥 ${r.guests} personne${r.guests > 1 ? 's' : ''}`,
     ``,
-    `👤 *CLIENT*`,
+    `👤 *${privateMode ? 'CONTACT' : 'CLIENT'}*`,
     `${r.first_name} ${r.last_name}`,
-    `📞 ${r.phone}`,
-    `✉️ ${r.email}`,
+    `📞 ${contactPhone}`,
+    `✉️ ${contactEmail}`,
     extras.length > 0 ? `` : '',
     ...extras,
+    effectiveVip ? `⭐ ${effectiveVip}` : '',
     r.special_requests ? `` : '',
     r.special_requests ? `📝 ${r.special_requests}` : '',
     parsedNote?.note ? `` : '',
@@ -76,7 +89,7 @@ function buildWhatsAppMessage(r: Reservation, profile: RPProfile, internalNote?:
     confirmUrl ? `` : '',
     confirmUrl ? `✅ Confirmer / ❌ Décliner :` : '',
     confirmUrl ? confirmUrl : '',
-  ].filter(l => l !== undefined).join('\n')
+  ].filter(l => l !== undefined && l !== '').join('\n')
 }
 
 type MainView = 'list' | 'clients' | 'config' | 'book-for-client'
@@ -545,7 +558,8 @@ export default function RPDashboard({ profile }: Props) {
 
   // ── VUE DÉTAIL ────────────────────────────────────────────────
   if (selected) {
-    const msg = buildWhatsAppMessage(selected, profile, clientNote?.internal_note || undefined)
+    const msg = buildWhatsAppMessage(selected, profile, clientNote?.internal_note || undefined, clientNote?.vip_tag || undefined)
+    const msgPrivate = buildWhatsAppMessage(selected, profile, clientNote?.internal_note || undefined, clientNote?.vip_tag || undefined, true)
     const vipColor = VIP_COLORS[editVipTag] || 'text-[#F5F5F3]/20'
 
     return (
@@ -567,7 +581,7 @@ export default function RPDashboard({ profile }: Props) {
           {/* Réservation */}
           <div className="bg-[#141414] border border-white/5 p-5">
             <div className="flex items-start justify-between mb-3">
-              <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">Réservation</p>
+              <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase">Réservation</p>
               {selected.status !== 'cancelled' && !editingResa && (
                 <button
                   onClick={() => {
@@ -674,7 +688,7 @@ export default function RPDashboard({ profile }: Props) {
           {/* Client */}
           <div className="bg-[#141414] border border-white/5 p-5">
             <div className="flex items-start justify-between mb-3">
-              <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">Client</p>
+              <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase">Client</p>
               {editVipTag && (
                 <span className={`text-[9px] tracking-[0.15em] uppercase font-medium ${vipColor}`}>
                   ✦ {editVipTag}
@@ -709,17 +723,26 @@ export default function RPDashboard({ profile }: Props) {
 
           {/* WhatsApp */}
           <div className="bg-[#141414] border border-white/5 p-5">
-            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-3">Envoyer sur WhatsApp</p>
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-3">Envoyer sur WhatsApp</p>
             <div className="bg-[#0B0B0B] p-3 rounded mb-3 font-mono text-[10px] text-[#F5F5F3]/30 leading-relaxed whitespace-pre-wrap max-h-32 overflow-y-auto">
               {msg}
             </div>
             <div className="space-y-2">
+              {/* Mode Public — coordonnées client visibles */}
               <a
-                href={whatsappShare(selected)}
+                href={`https://wa.me/?text=${encodeURIComponent(msg)}`}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full bg-[#25D366] text-white text-[11px] tracking-[0.2em] uppercase py-3.5 hover:opacity-90 transition-opacity"
               >
-                <WhatsAppIcon /> Transférer à mon contact
+                <WhatsAppIcon /> Transférer — mode public
+              </a>
+              {/* Mode Privé — coordonnées RP à la place du client */}
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(msgPrivate)}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full border border-[#25D366]/30 text-[#25D366]/70 text-[11px] tracking-[0.2em] uppercase py-3 hover:bg-[#25D366]/5 hover:border-[#25D366]/50 hover:text-[#25D366] transition-all"
+              >
+                <WhatsAppIcon /> Transférer — mode privé
               </a>
               <button
                 onClick={() => copyMessage(selected)}
@@ -733,7 +756,7 @@ export default function RPDashboard({ profile }: Props) {
           {/* Actions statut — masqué seulement si annulé par le client */}
           {selected.status !== 'cancelled' && (
             <div className="bg-[#141414] border border-white/5 p-5">
-              <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-4">Modifier le statut</p>
+              <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-4">Modifier le statut</p>
               <div className="grid grid-cols-2 gap-2">
 
                 {/* ✓ Confirmer — disponible si pas déjà confirmé */}
@@ -993,7 +1016,7 @@ export default function RPDashboard({ profile }: Props) {
       <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
         <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4 flex items-center justify-between">
           <div>
-            <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/40 uppercase">Configuration</p>
+            <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase">Configuration</p>
             <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -1024,7 +1047,7 @@ export default function RPDashboard({ profile }: Props) {
 
           {/* ── Lien d'invitation ── */}
           <div className="bg-[#141414] border border-[#5B3DF5]/20 p-5">
-            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-3">Votre lien d'invitation</p>
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-3">Votre lien d'invitation</p>
             <p className="text-[#F5F5F3]/30 text-xs mb-4 leading-relaxed">
               Partagez ce lien à vos guests pour accéder à votre espace.
             </p>
@@ -1056,7 +1079,7 @@ export default function RPDashboard({ profile }: Props) {
 
           {/* ── Profil ── */}
           <div className="bg-[#141414] border border-white/5 p-5">
-            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-4">Profil public</p>
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-4">Profil public</p>
 
             <div className="space-y-4">
               <div>
@@ -1074,7 +1097,7 @@ export default function RPDashboard({ profile }: Props) {
 
           {/* ── Notifications WhatsApp ── */}
           <div className="bg-[#141414] border border-white/5 p-5">
-            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-1">Notifications</p>
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-1">Notifications</p>
             <p className="text-[#F5F5F3]/25 text-xs mb-4 leading-relaxed">
               Recevez chaque nouvelle réservation par email et/ou WhatsApp.
             </p>
@@ -1136,7 +1159,7 @@ export default function RPDashboard({ profile }: Props) {
           {/* ── Destinations ── */}
           <div className="bg-[#141414] border border-white/5 p-5">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">Destinations actives</p>
+              <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase">Destinations actives</p>
               <span className="text-[10px] text-[#F5F5F3]/40">{configDests.length} active{configDests.length > 1 ? 's' : ''}</span>
             </div>
 
@@ -1263,7 +1286,7 @@ export default function RPDashboard({ profile }: Props) {
 
           {/* ── Restaurants & Venues ── */}
           <div className="bg-[#141414] border border-white/5 p-5">
-            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-1">Restaurants & venues</p>
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-1">Restaurants & venues</p>
             <div className="flex items-center gap-2 bg-green-500/5 border border-green-500/15 px-3 py-2 mb-5">
               <span className="text-green-400 text-sm">✓</span>
               <p className="text-green-400/70 text-[11px]">
@@ -1987,7 +2010,7 @@ export default function RPDashboard({ profile }: Props) {
         {/* Header */}
         <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4 flex items-center justify-between">
           <div>
-            <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/40 uppercase">Réserver pour un client</p>
+            <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase">Réserver pour un client</p>
             <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
           </div>
           <button onClick={() => setMainView('list')}
@@ -2000,7 +2023,7 @@ export default function RPDashboard({ profile }: Props) {
 
           {/* ── Sélection du client ── */}
           <div className="bg-[#141414] border border-white/5 p-5">
-            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-4">Pour quel client ?</p>
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-4">Pour quel client ?</p>
 
             {!bfcUseManual ? (
               <>
@@ -2126,7 +2149,7 @@ export default function RPDashboard({ profile }: Props) {
           {/* ── Type de réservation ── */}
           {hasClient && (
             <div className="bg-[#141414] border border-white/5 p-5">
-              <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-4">Type de réservation</p>
+              <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-4">Type de réservation</p>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setBookForType('single')}
@@ -2151,7 +2174,7 @@ export default function RPDashboard({ profile }: Props) {
             <>
               {/* Destination */}
               <div className="bg-[#141414] border border-white/5 p-5">
-                <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-4">01 — Destination</p>
+                <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-4">01 — Destination</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {activeDests.map(d => (
                     <button key={d.slug} type="button"
@@ -2168,7 +2191,7 @@ export default function RPDashboard({ profile }: Props) {
               {/* Établissement + Date + Service */}
               {bfcDest && (
                 <div className="bg-[#141414] border border-white/5 p-5 space-y-4">
-                  <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">02 — Établissement & Date</p>
+                  <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase">02 — Établissement & Date</p>
 
                   <div>
                     <label className={labelCls}>Établissement *</label>
@@ -2219,7 +2242,7 @@ export default function RPDashboard({ profile }: Props) {
               {/* Détails */}
               {bfcDest && bfcVenue && (
                 <div className="bg-[#141414] border border-white/5 p-5 space-y-4">
-                  <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">03 — Détails</p>
+                  <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase">03 — Détails</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className={labelCls}>Occasion</label>
@@ -2293,7 +2316,7 @@ export default function RPDashboard({ profile }: Props) {
               {/* ── Step 1 : Destination ── */}
               {bfcTripStep === 'dest' && (
                 <div className="bg-[#141414] border border-white/5 p-5">
-                  <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-4">01 — Destination du séjour</p>
+                  <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-4">01 — Destination du séjour</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {activeDests.map(d => (
                       <button key={d.slug} type="button"
@@ -2312,7 +2335,7 @@ export default function RPDashboard({ profile }: Props) {
               {bfcTripStep === 'dates' && (
                 <div className="bg-[#141414] border border-white/5 p-5 space-y-4">
                   <div className="flex items-center justify-between">
-                    <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">02 — Dates du séjour</p>
+                    <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase">02 — Dates du séjour</p>
                     <button onClick={() => setBfcTripStep('dest')}
                       className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 hover:text-[#F5F5F3]/50 transition-colors">
                       ← {activeDests.find(d => d.slug === bfcTripDest)?.name}
@@ -2358,7 +2381,7 @@ export default function RPDashboard({ profile }: Props) {
                   {/* Header séjour */}
                   <div className="bg-[#141414] border border-white/5 p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase mb-1">Séjour</p>
+                      <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-1">Séjour</p>
                       <p className="text-sm text-[#F5F5F3]/70">
                         {activeDests.find(d => d.slug === bfcTripDest)?.emoji}{' '}
                         {activeDests.find(d => d.slug === bfcTripDest)?.name}
@@ -2522,7 +2545,7 @@ export default function RPDashboard({ profile }: Props) {
                 <>
                   <div className="bg-[#141414] border border-white/5 p-5">
                     <div className="flex items-center justify-between mb-4">
-                      <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5]/40 uppercase">Récapitulatif du séjour</p>
+                      <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase">Récapitulatif du séjour</p>
                       <button onClick={() => setBfcTripStep('planner')}
                         className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/25 hover:text-[#F5F5F3]/50 transition-colors">
                         ← Modifier
@@ -2605,7 +2628,7 @@ export default function RPDashboard({ profile }: Props) {
         {/* Ligne 1 : titre + déconnexion */}
         <div className="px-4 py-3 flex items-center justify-between">
           <div>
-            <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/40 uppercase">Dashboard RP</p>
+            <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase">Dashboard RP</p>
             <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
           </div>
           <button
