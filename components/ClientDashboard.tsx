@@ -912,6 +912,11 @@ export default function ClientDashboard({ profile }: Props) {
                       <div className="flex-1">
                         <p className={`text-xs font-medium ${cfg.color}`}>{cfg.label}</p>
                         <p className="text-[#F5F5F3]/20 text-[10px]">{cfg.sublabel}</p>
+                        {r.created_at && (
+                          <p className="text-[#F5F5F3]/15 text-[9px] mt-0.5">
+                            Réservé le {new Date(r.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        )}
                       </div>
                       {/* RP tag */}
                       <div className="flex items-center gap-1.5 flex-shrink-0">

@@ -566,6 +566,11 @@ export default function RPDashboard({ profile }: Props) {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-[#F5F5F3] truncate">{selected.first_name} {selected.last_name}</p>
             <p className="text-[10px] text-[#F5F5F3]/30 truncate">{selected.establishment}{selected.destination ? ` · ${selected.destination}` : ''} · {selected.date}</p>
+            {selected.created_at && (
+              <p className="text-[9px] text-[#F5F5F3]/15">
+                Reçue le {new Date(selected.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </p>
+            )}
           </div>
           <span className={`text-[9px] tracking-wider uppercase border px-2 py-1 flex-shrink-0 ${STATUS_STYLES[selected.status]}`}>
             {STATUS_LABELS[selected.status]}
@@ -2798,6 +2803,11 @@ export default function RPDashboard({ profile }: Props) {
                       <span>{r.guests} pers.</span>
                       {r.occasion && <><span>·</span><span>{r.occasion}</span></>}
                     </div>
+                    {r.created_at && (
+                      <p className="text-[#F5F5F3]/15 text-[9px] mt-0.5">
+                        Reçue le {new Date(r.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    )}
                   </div>
                   <span className="text-[#F5F5F3]/10 flex-shrink-0 mt-1">›</span>
                 </div>

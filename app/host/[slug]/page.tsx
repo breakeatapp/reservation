@@ -316,6 +316,13 @@ export default function HostDashboardPage() {
                         {r.occasion && (
                           <p className="text-[#F5F7FA]/35 text-xs mt-0.5">🎉 {r.occasion}</p>
                         )}
+
+                        {/* Date de réception */}
+                        {r.created_at && (
+                          <p className="text-[#F5F7FA]/15 text-[9px] mt-1">
+                            Reçue le {new Date(r.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        )}
                       </div>
 
                       {/* Right: status + expand arrow */}

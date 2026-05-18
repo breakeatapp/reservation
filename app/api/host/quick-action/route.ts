@@ -105,10 +105,16 @@ export async function GET(req: NextRequest) {
       rpWhatsapp,
     }
 
-    await Promise.allSettled([
+    const [clientResult, rpResult] = await Promise.allSettled([
       sendVenueStatusToClient(emailData),
       sendVenueStatusToRP(emailData),
     ])
+    if (clientResult.status === 'rejected') {
+      console.error('[quick-action] sendVenueStatusToClient failed:', clientResult.reason)
+    }
+    if (rpResult.status === 'rejected') {
+      console.error('[quick-action] sendVenueStatusToRP failed:', rpResult.reason)
+    }
   } catch (e) {
     console.error('[quick-action] email error (non-bloquant):', e)
   }
