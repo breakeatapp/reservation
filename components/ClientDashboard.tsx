@@ -101,7 +101,11 @@ export default function ClientDashboard({ profile }: Props) {
 
   // Identité client
   const [email, setEmail] = useState('')
-  const [clientFirstName, setClientFirstName] = useState('')
+  // Initialisation synchrone depuis localStorage pour éviter le flash "Compléter votre profil"
+  const [clientFirstName, setClientFirstName] = useState<string>(() => {
+    if (typeof window === 'undefined') return ''
+    return localStorage.getItem('itinera_guest_name') || ''
+  })
   const [rpList, setRpList] = useState<RPSummary[]>([])
   const [identifyLoading, setIdentifyLoading] = useState(false)
   const [notRegistered, setNotRegistered] = useState(false)
