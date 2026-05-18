@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -59,10 +59,22 @@ const BUDGETS = ['Standard', 'Élevé (500€+/pers.)', 'Premium (1000€+/pers.
 export default function ReservationForm({ estOptions, defaultLieu }: Props) {
   const [status, setStatus] = useState<Status>('idle')
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { establishment: defaultLieu || '' },
   })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const firstName = localStorage.getItem('itinera_guest_name') || ''
+    const lastName = localStorage.getItem('itinera_guest_lastname') || ''
+    const email = localStorage.getItem('itinera_guest_email') || ''
+    const phone = localStorage.getItem('itinera_guest_phone') || ''
+    if (firstName) setValue('firstName', firstName)
+    if (lastName) setValue('lastName', lastName)
+    if (email) setValue('email', email)
+    if (phone) setValue('phone', phone)
+  }, [setValue])
 
   const onSubmit = async (data: FormData) => {
     setStatus('loading')
@@ -112,8 +124,8 @@ export default function ReservationForm({ estOptions, defaultLieu }: Props) {
 
         {/* 01 — Établissement */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/70 uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/40" />
+          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase mb-5 flex items-center gap-3">
+            <span className="w-px h-3 bg-[#5B3DF5]/70" />
             01 — Établissement
           </p>
           <label className={labelClass}>Choisissez votre établissement *</label>
@@ -130,8 +142,8 @@ export default function ReservationForm({ estOptions, defaultLieu }: Props) {
 
         {/* 02 — Date & Heure */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/70 uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/40" />
+          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase mb-5 flex items-center gap-3">
+            <span className="w-px h-3 bg-[#5B3DF5]/70" />
             02 — Date & Heure
           </p>
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -172,8 +184,8 @@ export default function ReservationForm({ estOptions, defaultLieu }: Props) {
 
         {/* 03 — Préférences */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/70 uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/40" />
+          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase mb-5 flex items-center gap-3">
+            <span className="w-px h-3 bg-[#5B3DF5]/70" />
             03 — Préférences
           </p>
           <div className="grid grid-cols-2 gap-4">
@@ -212,8 +224,8 @@ export default function ReservationForm({ estOptions, defaultLieu }: Props) {
 
         {/* 04 — Coordonnées */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/70 uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/40" />
+          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase mb-5 flex items-center gap-3">
+            <span className="w-px h-3 bg-[#5B3DF5]/70" />
             04 — Vos coordonnées
           </p>
           <div className="grid grid-cols-2 gap-4 mb-4">
@@ -246,8 +258,8 @@ export default function ReservationForm({ estOptions, defaultLieu }: Props) {
 
         {/* 05 — Notes */}
         <div>
-          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5]/70 uppercase mb-5 flex items-center gap-3">
-            <span className="w-px h-3 bg-[#5B3DF5]/40" />
+          <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase mb-5 flex items-center gap-3">
+            <span className="w-px h-3 bg-[#5B3DF5]/70" />
             05 — Notes complémentaires
           </p>
           <textarea

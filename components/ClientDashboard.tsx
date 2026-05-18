@@ -269,22 +269,8 @@ export default function ClientDashboard({ profile }: Props) {
         }
         setRpList(rps)
 
-        // ── Redirection directe vers les réservations ──────────
-        const rp = rps.find(r => r.slug === profile.slug) ?? {
-          slug: profile.slug,
-          displayName: profile.display_name,
-          accentColor: accent,
-          logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
-          totalCount: 0, pendingCount: 0, confirmedCount: 0,
-        }
-        setViewingRp(rp)
-        setScreen('reservations')
-        setResaLoading(true)
-        fetch(`/api/client/reservations?email=${encodeURIComponent(saved)}&rpSlug=${profile.slug}`)
-          .then(r => r.json())
-          .then(d => setReservations(Array.isArray(d) ? d : []))
-          .catch(() => {})
-          .finally(() => setResaLoading(false))
+        // ── Retour à l'accueil (menu principal) ──────────────────
+        setScreen('home')
       })
       .catch(() => {})
       .finally(() => { setIdentifyLoading(false); setAutoLoginDone(true) })
@@ -662,10 +648,10 @@ export default function ClientDashboard({ profile }: Props) {
             <p className="font-playfair italic text-lg text-white/35 truncate capitalize">{clientFirstName}</p>
           </div>
           <button
-            onClick={() => setScreen('reservations')}
+            onClick={() => setScreen('home')}
             className="flex-shrink-0 text-[#F5F5F3]/25 hover:text-[#F5F5F3]/60 transition-colors text-[10px] tracking-[0.2em] uppercase border border-white/8 hover:border-white/20 px-3 py-1.5"
           >
-            ← Mes réservations
+            ← Accueil
           </button>
         </div>
 

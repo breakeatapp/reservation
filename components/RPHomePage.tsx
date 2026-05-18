@@ -153,11 +153,6 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
             <Link href={`/${slug}/mon-espace`} className="flex items-center gap-3 text-[12px] tracking-[0.2em] uppercase text-[#F5F5F3]/70 py-2" onClick={() => setMenuOpen(false)}>
               <span>👤</span> Mon Compte
             </Link>
-            <div className="pt-2">
-              <Link href={`/${slug}/book`} className="block text-[11px] tracking-[0.2em] uppercase text-white py-3 text-center" style={{ background: `linear-gradient(135deg, ${accent}, ${accent}bb)` }} onClick={() => setMenuOpen(false)}>
-                Faire une réservation unique
-              </Link>
-            </div>
           </div>
         )}
       </nav>
