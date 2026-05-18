@@ -105,10 +105,11 @@ export default function LandingPage() {
             className="object-cover opacity-10"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0F1115]/90 via-[#0F1115]/60 to-[#0F1115]" />
+          {/* Gradient plus opaque en haut pour couvrir la navbar */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0F1115] via-[#0F1115]/70 to-[#0F1115]" />
         </div>
 
-        <div className="relative z-10 w-full max-w-3xl mx-auto text-center">
+        <div className="relative z-10 w-full max-w-3xl mx-auto text-center pt-24 pb-8">
 
           {/* Headline */}
           <h1 className="font-playfair text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#F5F7FA] mb-5 text-center leading-snug tracking-wide px-4">
@@ -276,47 +277,56 @@ export default function LandingPage() {
 
           ) : (
             /* ── Choix initial GUEST / RP / VENUE ── */
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 max-w-2xl mx-auto">
 
               {/* GUEST */}
               <button
                 onClick={() => setUserType('guest')}
-                className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-10 transition-all duration-300 flex flex-col items-center justify-center gap-5 text-center backdrop-blur-sm"
+                className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-4 sm:p-10 transition-all duration-300 flex flex-col items-center justify-center gap-2 sm:gap-5 text-center backdrop-blur-sm"
               >
-                <span className="font-playfair text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
+                <span className="font-playfair text-sm sm:text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
                   GUEST
                 </span>
-                <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
-                <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
+                <span className="w-5 sm:w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
+                <span className="hidden sm:block text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
                   Book access to<br />experiences
+                </span>
+                <span className="sm:hidden text-[8px] tracking-[0.15em] uppercase text-[#F5F7FA]/30 leading-relaxed">
+                  Guest
                 </span>
               </button>
 
               {/* RP */}
               <button
                 onClick={() => router.push('/register')}
-                className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-10 transition-all duration-300 flex flex-col items-center justify-center gap-5 text-center backdrop-blur-sm"
+                className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-4 sm:p-10 transition-all duration-300 flex flex-col items-center justify-center gap-2 sm:gap-5 text-center backdrop-blur-sm"
               >
-                <span className="font-playfair text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
+                <span className="font-playfair text-sm sm:text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
                   RP
                 </span>
-                <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
-                <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
+                <span className="w-5 sm:w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
+                <span className="hidden sm:block text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
                   Organize WhatsApp reservations<br />for your guests
+                </span>
+                <span className="sm:hidden text-[8px] tracking-[0.15em] uppercase text-[#F5F7FA]/30 leading-relaxed">
+                  Concierge
                 </span>
               </button>
 
               {/* VENUE */}
               <button
                 onClick={() => router.push('/host')}
-                className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-10 transition-all duration-300 flex flex-col items-center justify-center gap-5 text-center backdrop-blur-sm"
+                className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-4 sm:p-10 transition-all duration-300 flex flex-col items-center justify-center gap-2 sm:gap-5 text-center backdrop-blur-sm"
               >
-                <span className="font-playfair text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
+                <span className="font-playfair text-sm sm:text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
                   VENUE
                 </span>
-                <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
-                <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
+                <span className="w-5 sm:w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
+                <span className="hidden sm:block text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
                   Manage reservations<br />for your venue
+                </span>
+                <span className="sm:hidden text-[8px] tracking-[0.15em] uppercase text-[#F5F7FA]/30 leading-relaxed">
+                  Venue
                 </span>
               </button>
 
@@ -342,7 +352,7 @@ export default function LandingPage() {
       {/* ── FOOTER ── */}
       <footer className="py-8 px-6 border-t border-white/5 text-center">
         <p className="text-[#F5F7FA]/30 text-[10px] tracking-wider uppercase">
-          ITINERA · Hospitality Planning Between RPs & Guests
+          ITINERA · Hospitality Planning · RPs, Guests & Venues
         </p>
       </footer>
 
