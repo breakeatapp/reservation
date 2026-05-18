@@ -541,8 +541,8 @@ export default function ClientDashboard({ profile }: Props) {
     // showEmailForm est true → le bloc ci-dessus le capte
 
     // ── 3. Session présente mais profil incomplet ────────────────
-    const savedPhone = localStorage.getItem('itinera_guest_phone') || ''
-    const needsProfile = !clientFirstName || !savedPhone
+    // On ne bloque que si le prénom est manquant — le téléphone est collecté à la réservation
+    const needsProfile = !clientFirstName
 
     if (showProfileCompletion || needsProfile) {
       return (
