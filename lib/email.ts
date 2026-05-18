@@ -333,7 +333,7 @@ function buildRpWhatsappMessage(data: ReservationData): string {
     `👥 ${data.guests} personne${data.guests > 1 ? 's' : ''}`,
   ]
   if (data.occasion) lines.push(`🎉 ${data.occasion}`)
-  if (data.specialRequests) lines.push(`💬 "${data.specialRequests}"`)
+  if (data.specialRequests) lines.push(`💬 ${data.specialRequests}`)
   if (data.vipLevel) lines.push(``, `⭐ VIP : ${data.vipLevel}`)
   if (data.internalNote) {
     const note = formatInternalNote(data.internalNote)
@@ -703,7 +703,7 @@ export async function sendVenueQuickActionEmail(data: VenueQuickActionEmailData)
           </td>` : '<td></td>'}
         </tr>
         ${data.specialRequests ? `<tr><td colspan="2" style="padding:8px 0 0;">
-          <div style="background:#141414;border-left:2px solid #C9A84C;padding:10px 14px;font-style:italic;color:#c4c4c4;font-size:13px;">"${data.specialRequests}"</div>
+          <div style="background:#141414;border-left:2px solid #C9A84C;padding:10px 14px;font-style:italic;color:#c4c4c4;font-size:13px;">${data.specialRequests}</div>
         </td></tr>` : ''}
       </table>
     </div>

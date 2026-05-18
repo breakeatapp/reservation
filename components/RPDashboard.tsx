@@ -48,6 +48,11 @@ function buildWhatsAppMessage(r: Reservation, profile: RPProfile, internalNote?:
     r.budget_level && r.budget_level !== '' ? `💰 Budget : ${r.budget_level}` : '',
   ].filter(Boolean)
 
+  // Parse la note interne (JSON ou texte brut)
+  const parsedNote = internalNote ? parseClientProfile(internalNote) : null
+
+  const confirmUrl = r.id ? `https://itinera.click/host/confirm/${r.id}` : null
+
   return [
     `🏠 *${r.establishment}*`,
     r.destination ? `📍 ${r.destination}` : '',
@@ -63,9 +68,14 @@ function buildWhatsAppMessage(r: Reservation, profile: RPProfile, internalNote?:
     extras.length > 0 ? `` : '',
     ...extras,
     r.special_requests ? `` : '',
-    r.special_requests ? `📝 "${r.special_requests}"` : '',
-    internalNote ? `` : '',
-    internalNote ? `💡 Note : "${internalNote}"` : '',
+    r.special_requests ? `📝 ${r.special_requests}` : '',
+    parsedNote?.note ? `` : '',
+    parsedNote?.note ? `💡 ${parsedNote.note}` : '',
+    parsedNote?.nationality ? `🌍 ${parsedNote.nationality}` : '',
+    parsedNote?.products?.length ? `🍾 ${parsedNote.products.join(', ')}` : '',
+    confirmUrl ? `` : '',
+    confirmUrl ? `✅ Confirmer / ❌ Décliner :` : '',
+    confirmUrl ? confirmUrl : '',
   ].filter(l => l !== undefined).join('\n')
 }
 
@@ -654,7 +664,7 @@ export default function RPDashboard({ profile }: Props) {
                 )}
                 {selected.special_requests && (
                   <div className="mt-3 pt-3 border-t border-white/5 border-l-2 border-l-[#5B3DF5]/30 pl-3">
-                    <p className="text-[#F5F5F3]/40 text-xs italic">"{selected.special_requests}"</p>
+                    <p className="text-[#F5F5F3]/40 text-xs italic">{selected.special_requests}</p>
                   </div>
                 )}
               </>
@@ -685,7 +695,7 @@ export default function RPDashboard({ profile }: Props) {
               return (
                 <div className="mt-3 pt-3 border-t border-white/5 border-l-2 border-l-amber-500/30 pl-3">
                   <p className="text-[8px] tracking-wider text-amber-400/40 uppercase mb-1">Note privée</p>
-                  {cp.note && <p className="text-[#F5F5F3]/40 text-xs italic mb-1">"{cp.note}"</p>}
+                  {cp.note && <p className="text-[#F5F5F3]/40 text-xs italic mb-1">{cp.note}</p>}
                   <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
                     {cp.nationality && <span className="text-[10px] text-[#F5F5F3]/30">🌍 {cp.nationality}</span>}
                     {cp.products.map(p => (
@@ -695,115 +705,6 @@ export default function RPDashboard({ profile }: Props) {
                 </div>
               )
             })()}
-          </div>
-
-          {/* ── FICHE CLIENT ── */}
-          <div className="bg-[#141414] border border-amber-500/10 p-5">
-            <p className="text-[9px] tracking-[0.3em] text-amber-400/40 uppercase mb-4">Fiche client privée</p>
-
-            <div className="mb-3">
-              <label className="block text-[8px] tracking-wider text-[#F5F5F3]/25 uppercase mb-2">Tag VIP</label>
-              <div className="flex flex-wrap gap-2">
-                {VIP_TAGS.map(tag => (
-                  <button
-                    key={tag || 'none'}
-                    onClick={() => setEditVipTag(tag)}
-                    className={`px-3 py-1.5 text-[9px] tracking-[0.2em] uppercase border transition-all ${
-                      editVipTag === tag
-                        ? `border-current ${VIP_COLORS[tag] || 'text-[#F5F5F3]/30'} bg-current/10`
-                        : 'border-white/10 text-[#F5F5F3]/25 hover:border-white/20'
-                    }`}
-                  >
-                    {tag || 'Aucun'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-[8px] tracking-wider text-[#F5F5F3]/25 uppercase mb-2">Note interne</label>
-              <textarea
-                rows={3}
-                value={editInternalNote}
-                onChange={e => setEditInternalNote(e.target.value)}
-                className="w-full bg-[#0B0B0B] border border-white/8 text-[#F5F5F3] px-3 py-2.5 text-xs focus:border-amber-500/30 outline-none resize-none placeholder-[#F5F5F3]/15"
-                placeholder="Notes confidentielles sur ce client..."
-              />
-            </div>
-
-            <button
-              onClick={saveClientNote}
-              disabled={savingNote}
-              className="w-full border border-amber-500/20 text-amber-400/60 text-[10px] tracking-[0.2em] uppercase py-3 hover:bg-amber-500/5 hover:border-amber-500/40 transition-all disabled:opacity-40"
-            >
-              {savingNote ? 'Enregistrement...' : noteSaved ? '✓ Fiche sauvegardée' : '✎ Sauvegarder la fiche'}
-            </button>
-
-            {clientNote && (
-              <p className="text-[8px] text-[#F5F5F3]/15 text-center mt-2">
-                {clientNote.total_resas} réservation{clientNote.total_resas > 1 ? 's' : ''} au total avec ce RP
-              </p>
-            )}
-
-            {/* ── Bloquer / Supprimer ── */}
-            <div className="mt-5 pt-4 border-t border-white/5 space-y-2">
-              {/* Blacklister */}
-              <button
-                onClick={() => {
-                  setEditVipTag('Blacklist')
-                  setTimeout(() => saveClientNote(), 50)
-                }}
-                disabled={savingNote || editVipTag === 'Blacklist'}
-                className="w-full py-2.5 text-[9px] tracking-[0.2em] uppercase border border-red-500/15 text-red-400/40 hover:bg-red-500/5 hover:border-red-500/30 hover:text-red-400/70 transition-all disabled:opacity-25"
-              >
-                {editVipTag === 'Blacklist' ? '✕ Client blacklisté' : '✕ Blacklister ce client'}
-              </button>
-
-              {/* Supprimer la fiche */}
-              {!deleteClientConfirm ? (
-                <button
-                  onClick={() => setDeleteClientConfirm(true)}
-                  className="w-full py-2.5 text-[9px] tracking-[0.2em] uppercase border border-white/5 text-[#F5F5F3]/15 hover:border-red-500/20 hover:text-red-400/30 transition-all"
-                >
-                  🗑 Supprimer la fiche client
-                </button>
-              ) : (
-                <div className="border border-red-500/20 bg-red-500/5 p-3 space-y-2">
-                  <p className="text-red-400/70 text-xs text-center">Supprimer définitivement la fiche de {selected.first_name} {selected.last_name} ?</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setDeleteClientConfirm(false)}
-                      className="py-2 text-[9px] tracking-[0.15em] uppercase border border-white/10 text-[#F5F5F3]/30 hover:border-white/20 transition-colors"
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      disabled={deletingClient}
-                      onClick={async () => {
-                        setDeletingClient(true)
-                        try {
-                          await fetch(`/api/rp/${profile.slug}/clients?email=${encodeURIComponent(selected.email)}`, {
-                            method: 'DELETE',
-                            headers: { 'x-rp-password': password },
-                          })
-                          setClientNote(null)
-                          setClientNotes(prev => {
-                            const next = { ...prev }
-                            delete next[selected.email.toLowerCase()]
-                            return next
-                          })
-                          setDeleteClientConfirm(false)
-                        } catch { /* ignore */ }
-                        finally { setDeletingClient(false) }
-                      }}
-                      className="py-2 text-[9px] tracking-[0.15em] uppercase bg-red-500/80 hover:bg-red-500 text-white transition-colors disabled:opacity-40"
-                    >
-                      {deletingClient ? '...' : 'Confirmer'}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
 
           {/* WhatsApp */}
@@ -827,21 +728,6 @@ export default function RPDashboard({ profile }: Props) {
                 {copied === selected.id ? '✓ Copié !' : '📋 Copier le message'}
               </button>
             </div>
-          </div>
-
-          {/* Envoyer au restaurant */}
-          <div className="bg-[#141414] border border-white/5 p-5">
-            <p className="text-[9px] tracking-[0.3em] text-green-500/40 uppercase mb-3">Envoyer au restaurant</p>
-            <div className="bg-[#0B0B0B] p-3 rounded mb-3 font-mono text-[10px] text-[#F5F5F3]/30 leading-relaxed whitespace-pre-wrap max-h-32 overflow-y-auto">
-              {buildRestaurantWhatsAppMessage(selected)}
-            </div>
-            <a
-              href={whatsappToRestaurant(selected)}
-              target="_blank" rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full bg-green-700/80 hover:bg-green-700 text-white text-[11px] tracking-[0.2em] uppercase py-3.5 transition-opacity hover:opacity-90"
-            >
-              <WhatsAppIcon /> Envoyer au restaurant
-            </a>
           </div>
 
           {/* Actions statut — masqué seulement si annulé par le client */}
@@ -2148,7 +2034,7 @@ export default function RPDashboard({ profile }: Props) {
                           const cp = parseClientProfile(bfcSelectedClient.internal_note)
                           return (
                             <>
-                              {cp.note && <p className="text-[10px] text-amber-400/60 italic">"{cp.note}"</p>}
+                              {cp.note && <p className="text-[10px] text-amber-400/60 italic">{cp.note}</p>}
                               <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
                                 {cp.nationality && <span className="text-[9px] text-[#F5F5F3]/30">🌍 {cp.nationality}</span>}
                                 {cp.products.map(p => (
