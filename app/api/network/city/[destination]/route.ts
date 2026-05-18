@@ -1,5 +1,13 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
+function parseDestSlug(raw: string): string {
+  try {
+    const p = JSON.parse(raw)
+    if (p && typeof p === 'object' && p.slug) return p.slug
+  } catch { /* pas du JSON */ }
+  return raw
+}
+
 export async function GET(
   req: Request,
   { params }: { params: { destination: string } }
@@ -9,12 +17,18 @@ export async function GET(
     const rpSlug = searchParams.get('rp_slug') || ''
     const { destination } = params
 
-    // RPs active in this destination
-    const { data: rps } = await supabaseAdmin
+    // RPs active in this destination — on fetch tout et on filtre côté serveur
+    // car les entrées JSON dans activated_destinations ne matchent pas .contains()
+    const { data: allRps } = await supabaseAdmin
       .from('rp_profiles')
       .select('slug, display_name, tagline, activated_destinations')
       .eq('active', true)
-      .contains('activated_destinations', [destination])
+
+    const rps = (allRps ?? []).filter(rp =>
+      (rp.activated_destinations ?? []).some(
+        (raw: string) => parseDestSlug(raw) === destination
+      )
+    )
 
     if (!rps || rps.length === 0) return Response.json([])
 
@@ -38,7 +52,9 @@ export async function GET(
       slug: rp.slug,
       display_name: rp.display_name,
       tagline: rp.tagline || '',
-      destinations: (rp.activated_destinations ?? []).slice(0, 5),
+      destinations: (rp.activated_destinations ?? [])
+        .map((raw: string) => parseDestSlug(raw))
+        .slice(0, 5),
       connection_status: rp.slug === rpSlug ? 'self' : (connMap[rp.slug] ?? 'none'),
     }))
 
