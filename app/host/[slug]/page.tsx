@@ -19,9 +19,29 @@ type Reservation = {
   destination?: string
   phone?: string
   email?: string
+  nationality?: string
+  vip_level?: string
+  vip_tag?: string          // depuis rp_client_notes
+  internal_note?: string    // JSON: { note, nationality, products }
   rp_name?: string
   rp_slug?: string
   created_at?: string
+}
+
+// Parse la note interne JSON du concierge
+function parseClientProfile(raw?: string): { note: string; nationality: string; products: string[] } {
+  if (!raw) return { note: '', nationality: '', products: [] }
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object') {
+      return {
+        note: parsed.note || '',
+        nationality: parsed.nationality || '',
+        products: Array.isArray(parsed.products) ? parsed.products : [],
+      }
+    }
+  } catch { /* texte brut */ }
+  return { note: raw, nationality: '', products: [] }
 }
 
 type FilterTab = 'pending' | 'confirmed' | 'declined' | 'all'
@@ -302,85 +322,132 @@ export default function HostDashboardPage() {
                   </div>
 
                   {/* ── Expanded detail ── */}
-                  {isExpanded && (
-                    <div className="border-t border-white/5 px-5 pb-5">
+                  {isExpanded && (() => {
+                    const profile = parseClientProfile(r.internal_note)
+                    const vip = r.vip_tag || r.vip_level || ''
+                    const hasClientProfile = vip || profile.note || profile.nationality || profile.products.length > 0
 
-                      {/* Special requests */}
-                      {r.special_requests && (
-                        <div className="mt-4 bg-[#0F1115] border-l-2 border-[#6E5BFF]/30 px-4 py-3">
-                          <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F7FA]/25 mb-1">Demandes spéciales</p>
-                          <p className="text-[#F5F7FA]/60 text-sm italic">"{r.special_requests}"</p>
+                    return (
+                      <div className="border-t border-white/5 px-5 pb-5 space-y-4 mt-1">
+
+                        {/* ── Fiche client VIP ── */}
+                        {hasClientProfile && (
+                          <div className="mt-4 bg-[#0F1115] border border-amber-400/15 p-4">
+                            <p className="text-[8px] tracking-[0.3em] uppercase text-amber-400/50 mb-3">Profil client</p>
+                            <div className="space-y-2">
+                              {vip && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-amber-400 text-xs">✦</span>
+                                  <span className="text-amber-400/80 text-xs tracking-wider uppercase">{vip}</span>
+                                </div>
+                              )}
+                              {profile.nationality && (
+                                <div className="flex items-start gap-2">
+                                  <span className="text-[#F5F7FA]/25 text-[9px] tracking-wider uppercase w-20 flex-shrink-0 pt-0.5">Nationalité</span>
+                                  <span className="text-[#F5F7FA]/70 text-sm">{profile.nationality}</span>
+                                </div>
+                              )}
+                              {profile.products.length > 0 && (
+                                <div className="flex items-start gap-2">
+                                  <span className="text-[#F5F7FA]/25 text-[9px] tracking-wider uppercase w-20 flex-shrink-0 pt-0.5">Produits</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {profile.products.map((p, i) => (
+                                      <span key={i} className="text-[10px] border border-amber-400/20 text-amber-400/70 px-2 py-0.5">
+                                        🍾 {p}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              {profile.note && (
+                                <div className="flex items-start gap-2">
+                                  <span className="text-[#F5F7FA]/25 text-[9px] tracking-wider uppercase w-20 flex-shrink-0 pt-0.5">Note</span>
+                                  <span className="text-[#F5F7FA]/60 text-sm italic">{profile.note}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ── Demandes spéciales ── */}
+                        {r.special_requests && (
+                          <div className="bg-[#0F1115] border-l-2 border-[#6E5BFF]/30 px-4 py-3">
+                            <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F7FA]/25 mb-1">Demandes spéciales</p>
+                            <p className="text-[#F5F7FA]/60 text-sm italic">"{r.special_requests}"</p>
+                          </div>
+                        )}
+
+                        {/* ── Contact client ── */}
+                        <div className="grid grid-cols-2 gap-3">
+                          {r.phone && (
+                            <div>
+                              <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F7FA]/25 mb-1">Téléphone</p>
+                              <a href={`tel:${r.phone}`} className="text-[#F5F7FA]/60 text-sm hover:text-[#F5F7FA] transition-colors">
+                                {r.phone}
+                              </a>
+                            </div>
+                          )}
+                          {r.email && (
+                            <div>
+                              <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F7FA]/25 mb-1">Email</p>
+                              <p className="text-[#F5F7FA]/60 text-sm truncate">{r.email}</p>
+                            </div>
+                          )}
+                          {r.nationality && !profile.nationality && (
+                            <div>
+                              <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F7FA]/25 mb-1">Nationalité</p>
+                              <p className="text-[#F5F7FA]/60 text-sm">{r.nationality}</p>
+                            </div>
+                          )}
                         </div>
-                      )}
 
-                      {/* Contact grid */}
-                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        {/* ── Concierge ── */}
+                        {r.rp_name && (
+                          <div className="flex items-center gap-2 pt-1">
+                            <span className="text-[8px] tracking-[0.3em] uppercase text-[#F5F7FA]/20">Via concierge</span>
+                            <span className="text-[10px] tracking-[0.15em] text-[#6E5BFF]/60 uppercase">{r.rp_name}</span>
+                          </div>
+                        )}
+
+                        {/* ── WhatsApp client ── */}
                         {r.phone && (
-                          <div>
-                            <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F7FA]/25 mb-1">Téléphone</p>
-                            <a
-                              href={`tel:${r.phone}`}
-                              className="text-[#F5F7FA]/60 text-sm hover:text-[#F5F7FA] transition-colors"
-                            >
-                              {r.phone}
-                            </a>
-                          </div>
-                        )}
-                        {r.email && (
-                          <div>
-                            <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F7FA]/25 mb-1">Email</p>
-                            <p className="text-[#F5F7FA]/60 text-sm truncate">{r.email}</p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Concierge */}
-                      {r.rp_name && (
-                        <div className="mt-4 flex items-center gap-2">
-                          <span className="text-[8px] tracking-[0.3em] uppercase text-[#F5F7FA]/20">Via concierge</span>
-                          <span className="text-[10px] tracking-[0.15em] text-[#6E5BFF]/60 uppercase">{r.rp_name}</span>
-                        </div>
-                      )}
-
-                      {/* WhatsApp button (if phone) */}
-                      {r.phone && (
-                        <div className="mt-4">
                           <a
                             href={`https://wa.me/${r.phone.replace(/[^0-9]/g, '').replace(/^0/, '33')}?text=${encodeURIComponent(`Bonjour ${r.first_name}, votre réservation chez ${r.establishment} le ${r.date} à ${r.time} pour ${r.guests} personne${r.guests > 1 ? 's' : ''} est`)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 text-[10px] tracking-[0.2em] uppercase text-[#25D366] border border-[#25D366]/20 hover:bg-[#25D366]/10 px-4 py-2 transition-colors"
                           >
-                            <span>💬</span> Contacter le client
+                            💬 Contacter le client
                           </a>
-                        </div>
-                      )}
+                        )}
 
-                      {/* Action buttons */}
-                      {r.status !== 'cancelled' && (
-                        <div className="flex gap-2 mt-4">
-                          {r.status !== 'confirmed' && (
-                            <button
-                              onClick={() => updateStatus(r.id, 'confirmed')}
-                              disabled={updating === r.id}
-                              className="flex-1 py-3 text-[10px] tracking-[0.25em] uppercase bg-emerald-500/8 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/15 transition-colors disabled:opacity-40"
-                            >
-                              ✓ Confirmer
-                            </button>
-                          )}
-                          {r.status !== 'declined' && (
-                            <button
-                              onClick={() => updateStatus(r.id, 'declined')}
-                              disabled={updating === r.id}
-                              className="flex-1 py-3 text-[10px] tracking-[0.25em] uppercase bg-red-500/8 border border-red-500/25 text-red-400 hover:bg-red-500/15 transition-colors disabled:opacity-40"
-                            >
-                              ✗ Décliner
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        {/* ── Actions confirmer / décliner ── */}
+                        {r.status !== 'cancelled' && (
+                          <div className="flex gap-2">
+                            {r.status !== 'confirmed' && (
+                              <button
+                                onClick={() => updateStatus(r.id, 'confirmed')}
+                                disabled={updating === r.id}
+                                className="flex-1 py-3 text-[10px] tracking-[0.25em] uppercase bg-emerald-500/8 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/15 transition-colors disabled:opacity-40"
+                              >
+                                ✓ Confirmer
+                              </button>
+                            )}
+                            {r.status !== 'declined' && (
+                              <button
+                                onClick={() => updateStatus(r.id, 'declined')}
+                                disabled={updating === r.id}
+                                className="flex-1 py-3 text-[10px] tracking-[0.25em] uppercase bg-red-500/8 border border-red-500/25 text-red-400 hover:bg-red-500/15 transition-colors disabled:opacity-40"
+                              >
+                                ✗ Décliner
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                      </div>
+                    )
+                  })()}
                 </div>
               )
             })}

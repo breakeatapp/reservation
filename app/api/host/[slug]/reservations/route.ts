@@ -51,7 +51,7 @@ export async function GET(
 
     const reservations = data ?? []
 
-    // Enrich with RP display name — batch fetch all unique rp_slugs
+    // ── 1. Batch fetch RP display names ──────────────────────
     const rpSlugsSet: Record<string, true> = {}
     reservations.forEach((r: { rp_slug: string }) => { if (r.rp_slug) rpSlugsSet[r.rp_slug] = true })
     const rpSlugs = Object.keys(rpSlugsSet)
@@ -68,10 +68,43 @@ export async function GET(
       })
     }
 
-    const enriched = reservations.map((r: Record<string, unknown>) => ({
-      ...r,
-      rp_name: rpNames[r.rp_slug as string] || r.rp_slug || '',
-    }))
+    // ── 2. Batch fetch client notes (VIP, products, nationality) ──
+    // Build list of (rp_slug, email) pairs to look up
+    type ClientNoteKey = { rp_slug: string; email: string }
+    const pairs: ClientNoteKey[] = reservations
+      .filter((r: Record<string, unknown>) => r.rp_slug && r.email)
+      .map((r: Record<string, unknown>) => ({ rp_slug: r.rp_slug as string, email: (r.email as string).toLowerCase() }))
+
+    // Key: `${rp_slug}::${email}`
+    const clientNoteMap: Record<string, { vip_tag: string; internal_note: string }> = {}
+
+    if (pairs.length > 0) {
+      // Fetch all matching client notes for this venue's reservations
+      const emailSet: Record<string, true> = {}
+      pairs.forEach(p => { emailSet[p.email] = true })
+      const emails = Object.keys(emailSet)
+      const { data: notes } = await supabaseAdmin
+        .from('rp_client_notes')
+        .select('rp_slug, client_email, vip_tag, internal_note')
+        .in('client_email', emails)
+
+      notes?.forEach((n: { rp_slug: string; client_email: string; vip_tag: string; internal_note: string }) => {
+        const key = `${n.rp_slug}::${n.client_email.toLowerCase()}`
+        clientNoteMap[key] = { vip_tag: n.vip_tag || '', internal_note: n.internal_note || '' }
+      })
+    }
+
+    // ── 3. Enrich each reservation ────────────────────────────
+    const enriched = reservations.map((r: Record<string, unknown>) => {
+      const key = `${r.rp_slug}::${(r.email as string || '').toLowerCase()}`
+      const clientNote = clientNoteMap[key]
+      return {
+        ...r,
+        rp_name: rpNames[r.rp_slug as string] || r.rp_slug || '',
+        vip_tag: clientNote?.vip_tag || r.vip_level || '',
+        internal_note: clientNote?.internal_note || '',
+      }
+    })
 
     return Response.json(enriched)
   } catch {
