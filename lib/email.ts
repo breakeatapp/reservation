@@ -324,10 +324,9 @@ export type ReservationData = {
 // ── Génère le message WhatsApp récap réservation pour le RP ─
 function buildRpWhatsappMessage(data: ReservationData): string {
   const lines: string[] = [
-    `🔔 *Nouvelle réservation ITINERA*`,
-    ``,
     `👤 *${data.firstName} ${data.lastName}*`,
     `📞 ${data.phone}`,
+    `✉️ ${data.email}`,
     ``,
     `📍 *${data.establishment}*${data.destination ? ` · ${data.destination}` : ''}`,
     `📅 ${data.date} · ${data.time}`,
@@ -639,6 +638,120 @@ export async function sendClientConfirmationEmail(data: ReservationData) {
     to: [data.email],
     subject: `ITINERA · ✦ Demande reçue — ${data.establishment}${data.destination ? ` · ${data.destination}` : ''} · ${data.date}`,
     html: clientHtml,
+  })
+}
+
+// ── Email rapide au venue avec boutons confirm/décline ────────
+export type VenueQuickActionEmailData = {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  establishment: string
+  destination?: string
+  date: string
+  time: string
+  guests: number
+  occasion?: string
+  specialRequests?: string
+  venueEmail: string
+  confirmUrl: string
+  declineUrl: string
+  rpDisplayName?: string
+}
+
+export async function sendVenueQuickActionEmail(data: VenueQuickActionEmailData) {
+  const brand = process.env.MANAGER_NAME || 'ITINERA'
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family:Georgia,serif;background:#0a0a0a;color:#f5f0e8;margin:0;padding:0;">
+<div style="max-width:600px;margin:0 auto;background:#141414;">
+
+  <div style="background:linear-gradient(135deg,#0a0a0a,#1e1e1e);padding:40px;text-align:center;border-bottom:2px solid #C9A84C;">
+    <div style="color:#C9A84C;font-size:10px;letter-spacing:5px;text-transform:uppercase;margin-bottom:12px;">✦ Nouvelle demande de réservation</div>
+    <h1 style="color:#f5f0e8;font-size:26px;margin:0;font-style:italic;font-weight:normal;">${data.firstName} ${data.lastName}</h1>
+    <p style="color:#9a9a9a;font-size:13px;margin:10px 0 0;">${data.establishment}${data.destination ? ` · ${data.destination}` : ''}</p>
+  </div>
+
+  <div style="padding:36px 40px;">
+
+    <div style="background:#1e1e1e;border:1px solid rgba(201,168,76,0.25);padding:24px;margin-bottom:24px;">
+      <div style="color:#C9A84C;font-size:9px;letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;">Détails de la réservation</div>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="padding:6px 0;width:50%;">
+            <span style="color:#666;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:3px;">Date</span>
+            <span style="color:#f5f0e8;font-size:15px;">${data.date}</span>
+          </td>
+          <td style="padding:6px 0;">
+            <span style="color:#666;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:3px;">Heure</span>
+            <span style="color:#f5f0e8;font-size:15px;">${data.time}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;">
+            <span style="color:#666;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:3px;">Personnes</span>
+            <span style="color:#f5f0e8;font-size:15px;">${data.guests} personne${data.guests > 1 ? 's' : ''}</span>
+          </td>
+          ${data.occasion ? `<td style="padding:6px 0;">
+            <span style="color:#666;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:3px;">Occasion</span>
+            <span style="color:#f5f0e8;font-size:15px;">${data.occasion}</span>
+          </td>` : '<td></td>'}
+        </tr>
+        ${data.specialRequests ? `<tr><td colspan="2" style="padding:8px 0 0;">
+          <div style="background:#141414;border-left:2px solid #C9A84C;padding:10px 14px;font-style:italic;color:#c4c4c4;font-size:13px;">"${data.specialRequests}"</div>
+        </td></tr>` : ''}
+      </table>
+    </div>
+
+    <div style="background:#1e1e1e;border:1px solid rgba(255,255,255,0.06);padding:20px 24px;margin-bottom:32px;">
+      <div style="color:#C9A84C;font-size:9px;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;">Client</div>
+      <p style="color:#f5f0e8;font-size:16px;margin:0 0 8px;">${data.firstName} ${data.lastName}</p>
+      <p style="color:#9a9a9a;font-size:13px;margin:0 0 4px;">📞 ${data.phone}</p>
+      <p style="color:#9a9a9a;font-size:13px;margin:0;">✉️ ${data.email}</p>
+    </div>
+
+    <p style="color:#666;font-size:11px;text-align:center;margin-bottom:16px;letter-spacing:1px;">
+      Répondez en un clic — aucune connexion requise
+    </p>
+
+    <table style="width:100%;border-collapse:collapse;">
+      <tr>
+        <td style="padding:0 6px 0 0;width:50%;">
+          <a href="${data.confirmUrl}"
+             style="display:block;background:#22c55e;color:white;padding:18px;text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;font-weight:bold;">
+            ✅ Confirmer
+          </a>
+        </td>
+        <td style="padding:0 0 0 6px;">
+          <a href="${data.declineUrl}"
+             style="display:block;background:#ef4444;color:white;padding:18px;text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;font-weight:bold;">
+            ❌ Décliner
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="color:#444;font-size:11px;text-align:center;margin-top:16px;line-height:1.6;">
+      Ce lien est sécurisé. L'action est transmise automatiquement au client et à son concierge.
+    </p>
+  </div>
+
+  <div style="padding:20px 40px;text-align:center;border-top:1px solid #2a2a2a;">
+    <p style="color:#444;font-size:11px;letter-spacing:1px;margin:0;">${brand}${data.rpDisplayName ? ` · ${data.rpDisplayName}` : ''} — Système de réservation privé</p>
+  </div>
+</div>
+</body>
+</html>`
+
+  await sendEmail({
+    from: `${senderName(data.rpDisplayName)} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    to: [data.venueEmail],
+    subject: `📋 Réservation — ${data.firstName} ${data.lastName} · ${data.date} · ${data.time} · ${data.guests}p`,
+    html,
+    reply_to: data.email,
   })
 }
 
@@ -1291,6 +1404,14 @@ export async function sendVenueStatusToRP(data: VenueStatusEmailData) {
           <td style="padding:5px 0;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Client</td>
           <td style="padding:5px 0;color:#f5f0e8;font-size:14px;">${data.firstName} ${data.lastName}</td>
         </tr>
+        <tr>
+          <td style="padding:5px 0;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Email</td>
+          <td style="padding:5px 0;color:#f5f0e8;font-size:14px;">${data.email}</td>
+        </tr>
+        ${data.phone ? `<tr>
+          <td style="padding:5px 0;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Téléphone</td>
+          <td style="padding:5px 0;color:#f5f0e8;font-size:14px;">${data.phone}</td>
+        </tr>` : ''}
         <tr>
           <td style="padding:5px 0;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Date</td>
           <td style="padding:5px 0;color:#f5f0e8;font-size:14px;">${data.date} · ${data.time}</td>

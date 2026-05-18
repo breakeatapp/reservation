@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sendReservationEmail, sendClientConfirmationEmail } from '@/lib/email'
+import { sendReservationEmail, sendClientConfirmationEmail, sendVenueQuickActionEmail } from '@/lib/email'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { establishments } from '@/lib/data'
 import { getRPProfile } from '@/lib/rp'
+import { generateActionToken } from '@/lib/action-token'
 
 const supabase = supabaseAdmin
 
@@ -57,25 +58,37 @@ export async function POST(req: NextRequest) {
       rp_slug: rpSlug || '',  // rattacher au RP
     }
 
+    let insertedId: string | null = null
+
     try {
       // Tentative avec nationality (colonne optionnelle ajoutée après le schéma initial)
-      const { error: sbError } = await supabase.from('reservations').insert({
-        ...baseInsert,
-        nationality: nationality || '',
-      })
+      const { data: ins, error: sbError } = await supabase
+        .from('reservations')
+        .insert({ ...baseInsert, nationality: nationality || '' })
+        .select('id')
+        .single()
+
       if (sbError) {
         // Si l'erreur est liée à la colonne nationality manquante → réessayer sans
         if (sbError.message?.includes('nationality') || sbError.code === '42703') {
           console.warn('Colonne nationality manquante — insert sans nationality')
-          const { error: sbError2 } = await supabase.from('reservations').insert(baseInsert)
+          const { data: ins2, error: sbError2 } = await supabase
+            .from('reservations')
+            .insert(baseInsert)
+            .select('id')
+            .single()
           if (sbError2) {
             supabaseError = sbError2.message
             console.error('Supabase insert error (fallback):', sbError2.message, sbError2.details, sbError2.hint)
+          } else {
+            insertedId = ins2?.id || null
           }
         } else {
           supabaseError = sbError.message
           console.error('Supabase insert error:', sbError.message, sbError.details, sbError.hint)
         }
+      } else {
+        insertedId = ins?.id || null
       }
     } catch (sbErr) {
       supabaseError = String(sbErr)
@@ -154,6 +167,41 @@ export async function POST(req: NextRequest) {
       })
     } catch (clientEmailErr) {
       console.error('Client confirmation email error (non-bloquant):', clientEmailErr)
+    }
+
+    // ── Notifier le venue avec liens confirm/décline rapides ──
+    if (insertedId) {
+      try {
+        const { data: venueProfile } = await supabase
+          .from('venues_profiles')
+          .select('email, venue_name')
+          .ilike('venue_name', establishment)
+          .eq('active', true)
+          .maybeSingle()
+
+        if (venueProfile?.email) {
+          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'
+          const confirmToken = generateActionToken(insertedId, 'confirmed')
+          const declineToken = generateActionToken(insertedId, 'declined')
+
+          await sendVenueQuickActionEmail({
+            firstName, lastName, email, phone,
+            date: formattedDate,
+            time,
+            guests: parseInt(guests),
+            occasion,
+            specialRequests,
+            establishment,
+            destination,
+            venueEmail: venueProfile.email,
+            confirmUrl: `${baseUrl}/api/host/quick-action?id=${insertedId}&action=confirmed&token=${confirmToken}`,
+            declineUrl: `${baseUrl}/api/host/quick-action?id=${insertedId}&action=declined&token=${declineToken}`,
+            rpDisplayName,
+          })
+        }
+      } catch (venueErr) {
+        console.error('Venue quick-action email error (non-bloquant):', venueErr)
+      }
     }
 
     return NextResponse.json({

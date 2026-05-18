@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sendTripSummaryEmail, sendTripClientConfirmationEmail, type TripBooking } from '@/lib/email'
+import { sendTripSummaryEmail, sendTripClientConfirmationEmail, sendVenueQuickActionEmail, type TripBooking } from '@/lib/email'
 import { getRPProfile } from '@/lib/rp'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { establishments } from '@/lib/data'
+import { generateActionToken } from '@/lib/action-token'
 
 const supabase = supabaseAdmin
 
@@ -96,8 +97,52 @@ export async function POST(req: NextRequest) {
           rp_slug: rpSlug || '',
         }))
 
-        const { error: sbError } = await supabase.from('reservations').insert(rows)
-        if (sbError) console.error('Supabase trip insert error:', sbError.message)
+        const { data: insertedRows, error: sbError } = await supabase
+          .from('reservations')
+          .insert(rows)
+          .select('id, establishment')
+        if (sbError) {
+          console.error('Supabase trip insert error:', sbError.message)
+        } else if (insertedRows && insertedRows.length > 0) {
+          // Notify each venue with quick-action links
+          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'
+          for (const row of insertedRows) {
+            try {
+              const { data: vp } = await supabase
+                .from('venues_profiles')
+                .select('email')
+                .ilike('venue_name', row.establishment)
+                .eq('active', true)
+                .maybeSingle()
+              if (vp?.email) {
+                const eb = enrichedBookings.find(b => b.establishment === row.establishment)
+                if (eb) {
+                  const confirmToken = generateActionToken(row.id, 'confirmed')
+                  const declineToken = generateActionToken(row.id, 'declined')
+                  await sendVenueQuickActionEmail({
+                    firstName,
+                    lastName,
+                    email,
+                    phone,
+                    date: eb.date,
+                    time: eb.time,
+                    guests: eb.guests,
+                    occasion: eb.occasion,
+                    specialRequests: eb.specialRequests,
+                    establishment: eb.establishment,
+                    destination: eb.destination,
+                    venueEmail: vp.email,
+                    confirmUrl: `${baseUrl}/api/host/quick-action?id=${row.id}&action=confirmed&token=${confirmToken}`,
+                    declineUrl: `${baseUrl}/api/host/quick-action?id=${row.id}&action=declined&token=${declineToken}`,
+                    rpDisplayName,
+                  })
+                }
+              }
+            } catch (ve) {
+              console.error('Venue quick-action email (trip, non-bloquant):', ve)
+            }
+          }
+        }
       }
     } catch (sbErr) {
       console.error('Supabase non-bloquant:', sbErr)
