@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { sendVenueStatusToClient, sendVenueStatusToRP } from '@/lib/email'
 
 type HostProfile = {
   venue_name: string
@@ -159,6 +160,56 @@ export async function PATCH(
 
     if (error) {
       return Response.json({ error: 'Erreur lors de la mise à jour.' }, { status: 500 })
+    }
+
+    // ── Fetch full reservation + RP profile for emails ────────
+    try {
+      const { data: resa } = await supabaseAdmin
+        .from('reservations')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (resa) {
+        // Fetch RP profile for email + display name
+        let rpEmail: string | undefined
+        let rpDisplayName: string | undefined
+        if (resa.rp_slug) {
+          const { data: rpProfile } = await supabaseAdmin
+            .from('rp_profiles')
+            .select('email, display_name')
+            .eq('slug', resa.rp_slug)
+            .single()
+          rpEmail = rpProfile?.email
+          rpDisplayName = rpProfile?.display_name
+        }
+
+        const emailData = {
+          firstName: resa.first_name,
+          lastName: resa.last_name,
+          email: resa.email,
+          phone: resa.phone,
+          establishment: resa.establishment,
+          destination: resa.destination,
+          date: resa.date,
+          time: resa.time,
+          guests: resa.guests,
+          occasion: resa.occasion,
+          specialRequests: resa.special_requests,
+          status: status as 'confirmed' | 'declined',
+          venueName: host.venue_name,
+          rpEmail,
+          rpDisplayName,
+        }
+
+        // Send to client and RP in parallel (non-blocking)
+        await Promise.allSettled([
+          sendVenueStatusToClient(emailData),
+          sendVenueStatusToRP(emailData),
+        ])
+      }
+    } catch (emailErr) {
+      console.error('[venue/patch] email error (non-bloquant):', emailErr)
     }
 
     return Response.json({ success: true })

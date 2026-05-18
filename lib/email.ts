@@ -1143,3 +1143,194 @@ export async function sendModificationAckToClient(data: ModificationAckData) {
     ...(data.rpEmail ? { reply_to: data.rpEmail } : {}),
   })
 }
+
+// ── Type pour les emails de statut venue ──────────────────
+export type VenueStatusEmailData = {
+  firstName: string
+  lastName: string
+  email: string          // email du client
+  phone?: string
+  establishment: string
+  destination?: string
+  date: string
+  time: string
+  guests: number
+  occasion?: string
+  specialRequests?: string
+  status: 'confirmed' | 'declined'
+  venueName: string      // nom affiché du venue
+  rpEmail?: string       // email du RP pour notification
+  rpDisplayName?: string
+}
+
+// ── Email au CLIENT quand le venue confirme ou décline ────
+export async function sendVenueStatusToClient(data: VenueStatusEmailData) {
+  const isConfirmed = data.status === 'confirmed'
+  const brand = process.env.MANAGER_NAME || 'ITINERA'
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family:Georgia,serif;background:#0a0a0a;color:#f5f0e8;margin:0;padding:0;">
+<div style="max-width:600px;margin:0 auto;background:#141414;">
+
+  <div style="background:linear-gradient(135deg,#0a0a0a,#1e1e1e);padding:48px 40px;text-align:center;border-bottom:2px solid ${isConfirmed ? '#22c55e' : '#ef4444'};">
+    <div style="font-size:32px;margin-bottom:16px;">${isConfirmed ? '✅' : '❌'}</div>
+    <div style="color:${isConfirmed ? '#22c55e' : '#ef4444'};font-size:10px;letter-spacing:5px;text-transform:uppercase;margin-bottom:12px;">
+      ${isConfirmed ? 'Réservation confirmée' : 'Réservation déclinée'}
+    </div>
+    <h1 style="color:#f5f0e8;font-size:28px;margin:0;font-style:italic;font-weight:normal;">
+      ${isConfirmed ? 'Votre table est confirmée' : 'Demande non disponible'}
+    </h1>
+  </div>
+
+  <div style="padding:40px;">
+
+    <p style="color:#d4d4d4;font-size:15px;line-height:1.8;margin-bottom:32px;">
+      Bonjour <strong style="color:#f5f0e8;">${data.firstName}</strong>,<br><br>
+      ${isConfirmed
+        ? `Nous avons le plaisir de vous confirmer votre réservation chez <strong style="color:#f5f0e8;">${data.establishment}</strong>. Votre table vous attend.`
+        : `Nous avons le regret de vous informer que votre demande chez <strong style="color:#f5f0e8;">${data.establishment}</strong> ne peut pas être honorée pour ce créneau. Votre concierge va vous recontacter pour trouver une alternative.`
+      }
+    </p>
+
+    <div style="background:#1e1e1e;border:1px solid ${isConfirmed ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.15)'};padding:28px;margin-bottom:28px;">
+      <div style="color:#C9A84C;font-size:9px;letter-spacing:3px;text-transform:uppercase;margin-bottom:20px;">Détails de votre réservation</div>
+      <div style="color:#f5f0e8;font-size:22px;font-style:italic;margin-bottom:4px;">${data.establishment}</div>
+      ${data.destination ? `<div style="color:#9a9a9a;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;">${data.destination}</div>` : '<div style="margin-bottom:16px;"></div>'}
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="padding:6px 0;width:50%;">
+            <span style="color:#666;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:3px;">Date</span>
+            <span style="color:#f5f0e8;font-size:15px;">${data.date}</span>
+          </td>
+          <td style="padding:6px 0;">
+            <span style="color:#666;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:3px;">Heure</span>
+            <span style="color:#f5f0e8;font-size:15px;">${data.time}</span>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="2" style="padding:6px 0;">
+            <span style="color:#666;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:3px;">Personnes</span>
+            <span style="color:#f5f0e8;font-size:15px;">${data.guests} personne${data.guests > 1 ? 's' : ''}</span>
+          </td>
+        </tr>
+        ${data.occasion ? `<tr><td colspan="2" style="padding:6px 0;">
+          <span style="color:#666;font-size:9px;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:3px;">Occasion</span>
+          <span style="color:#f5f0e8;font-size:15px;">${data.occasion}</span>
+        </td></tr>` : ''}
+      </table>
+    </div>
+
+    ${isConfirmed && data.phone ? `
+    <div style="text-align:center;margin-top:24px;">
+      <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, votre réservation chez ${data.establishment} le ${data.date} à ${data.time} est bien confirmée. À très bientôt !`)}"
+         style="display:inline-block;background:#25D366;color:white;padding:14px 32px;text-decoration:none;font-size:13px;letter-spacing:1px;">
+        💬 Nous contacter sur WhatsApp
+      </a>
+    </div>` : ''}
+
+  </div>
+
+  <div style="padding:24px 40px;text-align:center;border-top:1px solid #2a2a2a;">
+    <p style="color:#555;font-size:11px;letter-spacing:1px;margin:0;">${brand}${data.rpDisplayName ? ` · ${data.rpDisplayName}` : ''} — Conciergerie privée</p>
+  </div>
+
+</div>
+</body>
+</html>`
+
+  await sendEmail({
+    from: `${senderName(data.rpDisplayName)} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    to: [data.email],
+    subject: isConfirmed
+      ? `✅ Confirmée — ${data.establishment} · ${data.date} · ${data.time}`
+      : `❌ Non disponible — ${data.establishment} · ${data.date}`,
+    html,
+    ...(data.rpEmail ? { reply_to: data.rpEmail } : {}),
+  })
+}
+
+// ── Email au RP quand le venue confirme ou décline ────────
+export async function sendVenueStatusToRP(data: VenueStatusEmailData) {
+  if (!data.rpEmail) return
+  const isConfirmed = data.status === 'confirmed'
+  const brand = process.env.MANAGER_NAME || 'ITINERA'
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family:Georgia,serif;background:#0a0a0a;color:#f5f0e8;margin:0;padding:0;">
+<div style="max-width:600px;margin:0 auto;background:#141414;">
+
+  <div style="background:linear-gradient(135deg,#0a0a0a,#1e1e1e);padding:36px 40px;text-align:center;border-bottom:2px solid ${isConfirmed ? '#22c55e' : '#ef4444'};">
+    <div style="color:${isConfirmed ? '#22c55e' : '#ef4444'};font-size:10px;letter-spacing:5px;text-transform:uppercase;margin-bottom:8px;">
+      ${isConfirmed ? '✅ Confirmée par le venue' : '❌ Déclinée par le venue'}
+    </div>
+    <h1 style="color:#f5f0e8;font-size:24px;margin:0;font-style:italic;font-weight:normal;">
+      ${data.firstName} ${data.lastName}
+    </h1>
+  </div>
+
+  <div style="padding:36px 40px;">
+    <p style="color:#9a9a9a;font-size:13px;margin-bottom:24px;line-height:1.6;">
+      ${isConfirmed
+        ? `<strong style="color:#22c55e;">${data.venueName}</strong> a <strong>confirmé</strong> la réservation de votre client.`
+        : `<strong style="color:#ef4444;">${data.venueName}</strong> a <strong>décliné</strong> la réservation. Veuillez recontacter votre client pour trouver une alternative.`
+      }
+    </p>
+
+    <div style="background:#1e1e1e;border:1px solid #2a2a2a;padding:24px;margin-bottom:20px;">
+      <div style="color:#C9A84C;font-size:9px;letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;">Détails</div>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="padding:5px 0;width:40%;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Établissement</td>
+          <td style="padding:5px 0;color:#f5f0e8;font-size:14px;">${data.establishment}${data.destination ? ` · ${data.destination}` : ''}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Client</td>
+          <td style="padding:5px 0;color:#f5f0e8;font-size:14px;">${data.firstName} ${data.lastName}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Date</td>
+          <td style="padding:5px 0;color:#f5f0e8;font-size:14px;">${data.date} · ${data.time}</td>
+        </tr>
+        <tr>
+          <td style="padding:5px 0;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Personnes</td>
+          <td style="padding:5px 0;color:#f5f0e8;font-size:14px;">${data.guests} personne${data.guests > 1 ? 's' : ''}</td>
+        </tr>
+        ${data.occasion ? `<tr>
+          <td style="padding:5px 0;color:#666;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Occasion</td>
+          <td style="padding:5px 0;color:#f5f0e8;font-size:14px;">${data.occasion}</td>
+        </tr>` : ''}
+      </table>
+    </div>
+
+    ${data.phone ? `
+    <div style="text-align:center;margin-top:20px;">
+      <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, ${isConfirmed ? `votre réservation chez ${data.establishment} le ${data.date} à ${data.time} est confirmée !` : `votre demande chez ${data.establishment} n'est malheureusement pas disponible. Je vous recontacte pour trouver une alternative.`}`)}"
+         style="display:inline-block;background:#25D366;color:white;padding:12px 28px;text-decoration:none;font-size:13px;letter-spacing:1px;">
+        💬 Contacter le client
+      </a>
+    </div>` : ''}
+
+  </div>
+
+  <div style="padding:20px 40px;text-align:center;border-top:1px solid #2a2a2a;">
+    <p style="color:#555;font-size:11px;letter-spacing:1px;margin:0;">${brand} — Notification automatique venue</p>
+  </div>
+
+</div>
+</body>
+</html>`
+
+  await sendEmail({
+    from: `${senderName()} <${process.env.RESEND_FROM_EMAIL || 'contact@itinera.click'}>`,
+    to: [data.rpEmail],
+    subject: isConfirmed
+      ? `✅ ${data.venueName} a confirmé — ${data.firstName} ${data.lastName} · ${data.date}`
+      : `❌ ${data.venueName} a décliné — ${data.firstName} ${data.lastName} · ${data.date}`,
+    html,
+    reply_to: data.email,
+  })
+}
