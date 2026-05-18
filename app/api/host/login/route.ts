@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     }
 
     const { data, error } = await supabaseAdmin
-      .from('host_profiles')
+      .from('venues_profiles')
       .select('*')
       .eq('slug', slug)
       .eq('password', password)

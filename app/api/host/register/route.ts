@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     // Check if table exists first
     const { error: tableCheckError } = await supabaseAdmin
-      .from('host_profiles')
+      .from('venues_profiles')
       .select('id')
       .limit(1)
 
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
     // Check for duplicate venue+destination
     const { data: existing, error: existingError } = await supabaseAdmin
-      .from('host_profiles')
+      .from('venues_profiles')
       .select('id')
       .ilike('venue_name', venue_name.trim())
       .ilike('destination', destination.trim())
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     let slug = generateSlug(venue_name.trim(), destination.trim())
 
     const { data: slugCheck } = await supabaseAdmin
-      .from('host_profiles')
+      .from('venues_profiles')
       .select('slug')
       .eq('slug', slug)
       .maybeSingle()
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 
     // Try full insert (with category + email columns)
     const { error: fullError } = await supabaseAdmin
-      .from('host_profiles')
+      .from('venues_profiles')
       .insert({
         slug,
         venue_name: venue_name.trim(),
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
       // Columns category/email missing → retry without them
       if (fullError.code === '42703' || fullError.message?.includes('column')) {
         const { error: fallbackError } = await supabaseAdmin
-          .from('host_profiles')
+          .from('venues_profiles')
           .insert({
             slug,
             venue_name: venue_name.trim(),

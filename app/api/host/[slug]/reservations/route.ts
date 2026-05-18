@@ -8,7 +8,7 @@ type HostProfile = {
 // Resolve host slug → { venue_name, destination }, return null if not found or inactive
 async function resolveHost(slug: string): Promise<HostProfile | null> {
   const { data, error } = await supabaseAdmin
-    .from('host_profiles')
+    .from('venues_profiles')
     .select('venue_name, destination')
     .eq('slug', slug)
     .eq('active', true)
