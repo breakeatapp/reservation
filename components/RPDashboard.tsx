@@ -47,49 +47,45 @@ function buildWhatsAppMessage(
   vipTag?: string,
   privateMode?: boolean
 ): string {
-  const extras = [
-    r.occasion ? `🎉 Occasion : ${r.occasion}` : '',
-    r.seating ? `🪑 Placement : ${r.seating}` : '',
-    r.budget_level && r.budget_level !== '' ? `💰 Budget : ${r.budget_level}` : '',
-  ].filter(Boolean)
-
-  // Parse la note interne (JSON ou texte brut)
   const parsedNote = internalNote ? parseClientProfile(internalNote) : null
-
-  // VIP tag (depuis fiche client RP)
   const effectiveVip = vipTag || r.vip_level || ''
-
   const confirmUrl = r.id ? `https://itinera.click/host/confirm/${r.id}` : null
-
-  // En mode privé : remplacer contact client par contact RP
   const contactPhone = privateMode ? (profile.whatsapp || '—') : r.phone
   const contactEmail = privateMode ? (profile.email || '—') : r.email
 
-  return [
+  // ── Section 1 : Lieu & réservation ───────────────────────────
+  const section1 = [
     `🏠 *${r.establishment}*`,
-    r.destination ? `📍 ${r.destination}` : '',
-    ``,
+    r.destination ? `📍 ${r.destination}` : null,
     `📅 ${r.date}`,
     `🕐 ${r.time}`,
     `👥 ${r.guests} personne${r.guests > 1 ? 's' : ''}`,
-    ``,
+    r.occasion ? `🎉 ${r.occasion}` : null,
+    r.seating ? `🪑 ${r.seating}` : null,
+    r.budget_level ? `💰 ${r.budget_level}` : null,
+  ].filter(Boolean).join('\n')
+
+  // ── Section 2 : Client ───────────────────────────────────────
+  const clientLines = [
     `👤 *${privateMode ? 'CONTACT' : 'CLIENT'}*`,
     `${r.first_name} ${r.last_name}`,
     `📞 ${contactPhone}`,
     `✉️ ${contactEmail}`,
-    extras.length > 0 ? `` : '',
-    ...extras,
-    effectiveVip ? `⭐ ${effectiveVip}` : '',
-    r.special_requests ? `` : '',
-    r.special_requests ? `📝 ${r.special_requests}` : '',
-    parsedNote?.note ? `` : '',
-    parsedNote?.note ? `💡 ${parsedNote.note}` : '',
-    parsedNote?.nationality ? `🌍 ${parsedNote.nationality}` : '',
-    parsedNote?.products?.length ? `🍾 ${parsedNote.products.join(', ')}` : '',
-    confirmUrl ? `` : '',
-    confirmUrl ? `✅ Confirmer / ❌ Décliner :` : '',
-    confirmUrl ? confirmUrl : '',
-  ].filter(l => l !== undefined && l !== '').join('\n')
+    effectiveVip ? `⭐ ${effectiveVip}` : null,
+    r.special_requests ? `📝 ${r.special_requests}` : null,
+    parsedNote?.note ? `💡 ${parsedNote.note}` : null,
+    parsedNote?.nationality ? `🌍 ${parsedNote.nationality}` : null,
+    parsedNote?.products?.length ? `🍾 ${parsedNote.products.join(', ')}` : null,
+  ].filter(Boolean).join('\n')
+
+  // ── Section 3 : Lien de confirmation ─────────────────────────
+  const section3 = confirmUrl
+    ? `✅ Confirmer / ❌ Décliner :\n${confirmUrl}`
+    : null
+
+  return [section1, clientLines, section3]
+    .filter(Boolean)
+    .join('\n\n')
 }
 
 type MainView = 'list' | 'clients' | 'config' | 'book-for-client'
