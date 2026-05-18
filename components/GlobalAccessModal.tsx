@@ -53,6 +53,9 @@ type RPCard = {
   tagline: string
   destinations: string[]
   connection_status: ConnectionStatus | 'self'
+  is_ambassador: boolean
+  is_trusted: boolean
+  reservation_count: number
 }
 type CityData = { slug: string; count: number; hasConnection: boolean }
 type Props = { rpSlug: string; rpPassword: string; onClose: () => void }
@@ -125,78 +128,93 @@ export default function GlobalAccessModal({ rpSlug, rpPassword, onClose }: Props
 
       {/* ── Header ── */}
       <div
-        className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-white/5"
+        className="flex-shrink-0 border-b border-white/5"
         style={{ background: 'rgba(4,9,15,0.97)' }}
       >
-        <div>
-          <span className="text-[7px] tracking-[0.6em] text-white/20 uppercase block">Itinera</span>
-          <span className="font-playfair text-lg text-white tracking-widest">GLOBAL ACCESS</span>
+        {/* Ligne 1 : titre + fermer */}
+        <div className="flex items-center justify-between px-5 pt-4 pb-3">
+          <div>
+            <span className="text-[7px] tracking-[0.6em] text-white/20 uppercase block">Itinera</span>
+            <span className="font-playfair text-lg text-white tracking-widest">GLOBAL ACCESS</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* My Partners toggle */}
+            <button
+              onClick={() => setPartnersOnly(!partnersOnly)}
+              className={`hidden md:flex items-center gap-2 px-3 py-2 text-[9px] tracking-[0.15em] uppercase border transition-all ${
+                partnersOnly
+                  ? 'border-[#5B3DF5]/50 text-[#5B3DF5] bg-[#5B3DF5]/10'
+                  : 'border-white/10 text-white/35 hover:border-white/20 hover:text-white/60'
+              }`}
+            >
+              <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current flex-shrink-0">
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+              </svg>
+              Partners {partnerCount > 0 && <span className="opacity-60">{partnerCount}</span>}
+            </button>
+            <button
+              onClick={onClose}
+              className="w-9 h-9 flex items-center justify-center border border-white/10 text-white/35 hover:text-white hover:border-white/25 transition-all text-xl leading-none"
+            >
+              ×
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Search bar */}
-          <div className="relative">
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-2 hover:border-white/20 transition-colors">
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white/30 flex-shrink-0">
-                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-              </svg>
-              <input
-                ref={searchRef}
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Rechercher une ville…"
-                className="bg-transparent text-white/80 text-[11px] tracking-wide placeholder-white/20 outline-none w-36 md:w-48"
-              />
-              {search && (
-                <button onClick={() => setSearch('')} className="text-white/30 hover:text-white/60 text-sm leading-none">×</button>
-              )}
-            </div>
-            {/* Search dropdown */}
-            {searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-[#0d1422] border border-white/10 z-20 shadow-xl">
-                {searchResults.map(([slug, info]) => {
-                  const cityData = cities.find(c => c.slug === slug)
-                  return (
-                    <button
-                      key={slug}
-                      onClick={() => { selectCity(slug); setSearch('') }}
-                      className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0"
-                    >
-                      <span className="text-white/70 text-[12px]">{info.name}</span>
-                      {cityData && (
-                        <span className="text-[10px] text-[#3B82F6]/60">
-                          {cityData.count} RP{cityData.count > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
+        {/* Ligne 2 : barre de recherche ville prominente */}
+        <div className="px-5 pb-3 relative">
+          <div className="flex items-center gap-3 bg-white/4 border border-white/12 px-4 py-3 hover:border-white/20 transition-colors focus-within:border-[#3B82F6]/40 focus-within:bg-[#3B82F6]/4">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white/30 flex-shrink-0">
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+            <input
+              ref={searchRef}
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Rechercher une ville — Paris, Dubai, Miami…"
+              className="bg-transparent text-white/80 text-[13px] tracking-wide placeholder-white/20 outline-none flex-1"
+            />
+            {search ? (
+              <button onClick={() => setSearch('')} className="text-white/30 hover:text-white/70 text-lg leading-none transition-colors">×</button>
+            ) : (
+              <span className="text-[10px] tracking-[0.2em] text-white/15 uppercase hidden sm:block">Ville</span>
             )}
           </div>
 
-          {/* My Partners toggle */}
-          <button
-            onClick={() => setPartnersOnly(!partnersOnly)}
-            className={`hidden md:flex items-center gap-2 px-3 py-2 text-[9px] tracking-[0.15em] uppercase border transition-all ${
-              partnersOnly
-                ? 'border-[#5B3DF5]/50 text-[#5B3DF5] bg-[#5B3DF5]/10'
-                : 'border-white/10 text-white/35 hover:border-white/20 hover:text-white/60'
-            }`}
-          >
-            <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current flex-shrink-0">
-              <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
-            </svg>
-            Partners {partnerCount > 0 && <span className="opacity-60">{partnerCount}</span>}
-          </button>
-
-          <button
-            onClick={onClose}
-            className="w-9 h-9 flex items-center justify-center border border-white/10 text-white/35 hover:text-white hover:border-white/25 transition-all text-xl leading-none"
-          >
-            ×
-          </button>
+          {/* Dropdown résultats */}
+          {searchResults.length > 0 && (
+            <div className="absolute left-5 right-5 top-full mt-0.5 bg-[#0a1220] border border-white/12 z-30 shadow-2xl">
+              {searchResults.map(([slug, info]) => {
+                const cityData = cities.find(c => c.slug === slug)
+                const hasRPs = cityData && cityData.count > 0
+                return (
+                  <button
+                    key={slug}
+                    onClick={() => { selectCity(slug); setSearch('') }}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      {hasRPs && (
+                        <span
+                          className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                          style={{ background: '#3B82F6', boxShadow: '0 0 6px 2px rgba(59,130,246,0.5)' }}
+                        />
+                      )}
+                      <span className={`text-[13px] ${hasRPs ? 'text-white/80' : 'text-white/35'}`}>{info.name}</span>
+                    </div>
+                    {cityData ? (
+                      <span className="text-[10px] text-[#3B82F6]/50 tracking-wider">
+                        {cityData.count} opérateur{cityData.count > 1 ? 's' : ''}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-white/15 tracking-wider">Aucun opérateur</span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -294,7 +312,7 @@ export default function GlobalAccessModal({ rpSlug, rpPassword, onClose }: Props
         })}
 
         {/* Légende */}
-        <div className="absolute bottom-5 left-5 flex items-center gap-4 pointer-events-none">
+        <div className="absolute bottom-5 left-5 flex flex-col gap-1.5 pointer-events-none">
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full block" style={{ background: '#3B82F6', boxShadow: '0 0 6px 2px rgba(59,130,246,0.5)' }} />
             <span className="text-[8px] tracking-[0.2em] uppercase text-white/25">Opérateur actif</span>
@@ -302,6 +320,20 @@ export default function GlobalAccessModal({ rpSlug, rpPassword, onClose }: Props
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full block" style={{ background: '#7C5CFC', boxShadow: '0 0 6px 2px rgba(124,92,252,0.6)' }} />
             <span className="text-[8px] tracking-[0.2em] uppercase text-white/25">Partner</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span
+              className="text-[9px] font-bold leading-none"
+              style={{ color: '#FFE500', textShadow: '0 0 6px rgba(255,229,0,0.6)' }}
+            >★</span>
+            <span className="text-[8px] tracking-[0.2em] uppercase text-white/25">Ambassadeur</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span
+              className="text-[9px] font-bold leading-none"
+              style={{ color: '#00FF87', textShadow: '0 0 6px rgba(0,255,135,0.5)' }}
+            >✓</span>
+            <span className="text-[8px] tracking-[0.2em] uppercase text-white/25">Certifié</span>
           </div>
         </div>
 
@@ -384,7 +416,8 @@ export default function GlobalAccessModal({ rpSlug, rpPassword, onClose }: Props
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                        {/* Nom + badges statut réseau */}
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
                           <p className="text-white text-sm font-medium leading-tight">{rp.display_name}</p>
                           {isMe && (
                             <span className="text-[8px] tracking-[0.2em] uppercase text-[#5B3DF5]/60 border border-[#5B3DF5]/20 px-1.5 py-0.5">Vous</span>
@@ -396,6 +429,39 @@ export default function GlobalAccessModal({ rpSlug, rpPassword, onClose }: Props
                             <span className="text-[8px] tracking-[0.2em] uppercase text-amber-400/70 border border-amber-400/20 px-1.5 py-0.5">Vous a contacté</span>
                           )}
                         </div>
+
+                        {/* Pastilles Ambassador + Trust */}
+                        {(rp.is_ambassador || rp.is_trusted) && (
+                          <div className="flex flex-wrap gap-1.5 mb-1.5">
+                            {rp.is_ambassador && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[9px] tracking-[0.15em] uppercase font-semibold px-2 py-0.5 border"
+                                style={{
+                                  color: '#FFE500',
+                                  borderColor: 'rgba(255,229,0,0.35)',
+                                  background: 'rgba(255,229,0,0.08)',
+                                  boxShadow: '0 0 8px 1px rgba(255,229,0,0.2)',
+                                }}
+                              >
+                                ★ Ambassadeur
+                              </span>
+                            )}
+                            {rp.is_trusted && (
+                              <span
+                                className="inline-flex items-center gap-1 text-[9px] tracking-[0.15em] uppercase font-semibold px-2 py-0.5 border"
+                                style={{
+                                  color: '#00FF87',
+                                  borderColor: 'rgba(0,255,135,0.30)',
+                                  background: 'rgba(0,255,135,0.07)',
+                                  boxShadow: '0 0 8px 1px rgba(0,255,135,0.18)',
+                                }}
+                              >
+                                ✓ Certifié
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                         {rp.tagline && (
                           <p className="text-white/30 text-xs leading-relaxed">{rp.tagline}</p>
                         )}

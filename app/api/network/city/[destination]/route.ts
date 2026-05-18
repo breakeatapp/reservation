@@ -1,5 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
+const TRUST_THRESHOLD = 50 // réservations confirmées pour la pastille Trust
+
 function parseDestSlug(raw: string): string {
   try {
     const p = JSON.parse(raw)
@@ -17,11 +19,10 @@ export async function GET(
     const rpSlug = searchParams.get('rp_slug') || ''
     const { destination } = params
 
-    // RPs active in this destination — on fetch tout et on filtre côté serveur
-    // car les entrées JSON dans activated_destinations ne matchent pas .contains()
+    // RPs actifs dans cette destination
     const { data: allRps } = await supabaseAdmin
       .from('rp_profiles')
-      .select('slug, display_name, tagline, activated_destinations')
+      .select('slug, display_name, tagline, activated_destinations, is_ambassador')
       .eq('active', true)
 
     const rps = (allRps ?? []).filter(rp =>
@@ -32,13 +33,12 @@ export async function GET(
 
     if (!rps || rps.length === 0) return Response.json([])
 
-    // All connection records involving me
+    // Connexions RP-to-RP impliquant moi
     const { data: connections } = await supabaseAdmin
       .from('rp_connections')
       .select('from_slug, to_slug, status')
       .or(`from_slug.eq.${rpSlug},to_slug.eq.${rpSlug}`)
 
-    // Build map: other_slug → status from my perspective
     const connMap: Record<string, 'pending_sent' | 'pending_received' | 'accepted'> = {}
     connections?.forEach(c => {
       if (c.from_slug === rpSlug) {
@@ -48,14 +48,30 @@ export async function GET(
       }
     })
 
+    // Comptage des réservations confirmées par RP (pour pastille Trust)
+    const rpSlugs = rps.map(r => r.slug)
+    const { data: resaRows } = await supabaseAdmin
+      .from('reservations')
+      .select('rp_slug')
+      .in('rp_slug', rpSlugs)
+      .eq('status', 'confirmed')
+
+    const resaCount: Record<string, number> = {}
+    resaRows?.forEach(r => {
+      resaCount[r.rp_slug] = (resaCount[r.rp_slug] ?? 0) + 1
+    })
+
     const result = rps.map(rp => ({
-      slug: rp.slug,
-      display_name: rp.display_name,
-      tagline: rp.tagline || '',
-      destinations: (rp.activated_destinations ?? [])
-        .map((raw: string) => parseDestSlug(raw))
-        .slice(0, 5),
-      connection_status: rp.slug === rpSlug ? 'self' : (connMap[rp.slug] ?? 'none'),
+      slug:               rp.slug,
+      display_name:       rp.display_name,
+      tagline:            rp.tagline || '',
+      destinations:       (rp.activated_destinations ?? [])
+                            .map((raw: string) => parseDestSlug(raw))
+                            .slice(0, 5),
+      connection_status:  rp.slug === rpSlug ? 'self' : (connMap[rp.slug] ?? 'none'),
+      is_ambassador:      !!rp.is_ambassador,
+      is_trusted:         (resaCount[rp.slug] ?? 0) >= TRUST_THRESHOLD,
+      reservation_count:  resaCount[rp.slug] ?? 0,
     }))
 
     return Response.json(result)
