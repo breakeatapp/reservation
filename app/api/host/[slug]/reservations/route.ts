@@ -6,6 +6,21 @@ type HostProfile = {
   destination: string | null
 }
 
+// Parse French formatted date "lundi 15 janvier 2024" → Date for sorting
+function parseFrenchDate(str: string): number {
+  const months: Record<string, number> = {
+    janvier: 0, février: 1, mars: 2, avril: 3, mai: 4, juin: 5,
+    juillet: 6, août: 7, septembre: 8, octobre: 9, novembre: 10, décembre: 11,
+  }
+  const parts = (str || '').toLowerCase().split(' ')
+  // parts: ['lundi', '15', 'janvier', '2024']
+  if (parts.length < 4) return 0
+  const day = parseInt(parts[1]) || 1
+  const month = months[parts[2]] ?? 0
+  const year = parseInt(parts[3]) || 2024
+  return new Date(year, month, day).getTime()
+}
+
 // Resolve host slug → { venue_name, destination }, return null if not found or inactive
 async function resolveHost(slug: string): Promise<HostProfile | null> {
   const { data, error } = await supabaseAdmin
@@ -38,7 +53,7 @@ export async function GET(
       .from('reservations')
       .select('*')
       .ilike('establishment', host.venue_name)
-      .order('date', { ascending: true })
+      .order('created_at', { ascending: true })
 
     if (host.destination) {
       // Match destination (case-insensitive) OR empty destination (custom venues not enriched)
@@ -107,6 +122,12 @@ export async function GET(
         internal_note: clientNote?.internal_note || '',
       }
     })
+
+    // Sort by parsed French date ascending
+    enriched.sort((a, b) =>
+      parseFrenchDate((a as Record<string, unknown>).date as string) -
+      parseFrenchDate((b as Record<string, unknown>).date as string)
+    )
 
     return Response.json(enriched)
   } catch {

@@ -440,20 +440,22 @@ export async function sendReservationEmail(data: ReservationData) {
       ` : ''}
 
       <!-- Boutons d'action -->
-      <div style="text-align: center; margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-
-        <!-- WhatsApp récap pour le RP (envoyer à soi-même ou au restaurant) -->
-        <a href="https://wa.me/?text=${encodeURIComponent(buildRpWhatsappMessage(data))}"
-           style="display: inline-block; background: #25D366; color: white; padding: 14px 28px; text-decoration: none; font-size: 13px; letter-spacing: 1px; margin: 4px;">
-          📲 Voir sur WhatsApp
-        </a>
-
-        <!-- WhatsApp vers le client -->
-        <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, j'ai bien reçu votre demande de réservation chez ${data.establishment} — le ${data.date}, ${data.time}, pour ${data.guests} personne${data.guests > 1 ? 's' : ''}. Je reviens vers vous rapidement.`)}"
-           style="display: inline-block; background: #128C7E; color: white; padding: 14px 28px; text-decoration: none; font-size: 13px; letter-spacing: 1px; margin: 4px;">
-          💬 Répondre au client
-        </a>
-      </div>
+      <table style="width:100%;border-collapse:collapse;margin-top:32px;">
+        <tr>
+          <td style="padding:0 6px 0 0;width:50%;">
+            <a href="https://wa.me/?text=${encodeURIComponent(buildRpWhatsappMessage(data))}"
+               style="display:block;background:#1a1a1a;border:1px solid rgba(201,168,76,0.45);color:#C9A84C;padding:16px 12px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;">
+              📲 Envoyer sur WhatsApp
+            </a>
+          </td>
+          <td style="padding:0 0 0 6px;">
+            <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, j'ai bien reçu votre demande de réservation chez ${data.establishment} — le ${data.date}, ${data.time}, pour ${data.guests} personne${data.guests > 1 ? 's' : ''}. Je reviens vers vous rapidement.`)}"
+               style="display:block;background:#1a1a1a;border:1px solid rgba(255,255,255,0.12);color:#d4d4d4;padding:16px 12px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;text-align:center;font-family:Helvetica,Arial,sans-serif;">
+              💬 Répondre au client
+            </a>
+          </td>
+        </tr>
+      </table>
 
       ${data.rpNotificationPref === 'whatsapp' ? `
       <div style="margin-top: 16px; padding: 12px 20px; background: rgba(37,211,102,0.08); border: 1px solid rgba(37,211,102,0.2); text-align: center;">
