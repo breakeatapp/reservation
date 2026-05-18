@@ -85,6 +85,12 @@ export default function LandingPage() {
           <span className="text-[8px] tracking-[0.5em] text-[#F5F7FA]/20 uppercase block">Private Access</span>
           <span className="font-playfair text-lg text-[#F5F7FA] tracking-wide">ITINERA</span>
         </div>
+        <button
+          onClick={() => setUserType('guest')}
+          className="text-[10px] tracking-[0.25em] uppercase text-[#6E5BFF] hover:text-[#8B7FFF] transition-colors"
+        >
+          Sign In
+        </button>
       </nav>
 
       {/* ── HERO ── */}
@@ -106,12 +112,19 @@ export default function LandingPage() {
 
           {/* Headline */}
           <h1 className="font-playfair text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#F5F7FA] mb-5 text-center leading-snug tracking-wide px-4">
-            Private access to structured hospitality.
+            Structured hospitality,<br />
+            from WhatsApp chaos{' '}
+            <span style={{ color: '#6E5BFF' }}>to clarity.</span>
           </h1>
 
           {/* Sub */}
-          <p className="text-[11px] tracking-[0.25em] uppercase leading-relaxed mb-12 max-w-xs mx-auto" style={{ color: '#6E5BFF' }}>
-            From WhatsApp chaos to modern hospitality planning.
+          <p className="text-[10px] tracking-[0.2em] uppercase leading-relaxed mb-4 max-w-sm mx-auto" style={{ color: '#6E5BFF' }}>
+            From unstructured WhatsApp reservations<br />to organized hospitality.
+          </p>
+
+          {/* Body */}
+          <p className="text-[#F5F7FA]/50 text-sm leading-relaxed mb-10 max-w-md mx-auto">
+            Organize reservations, requests and guest planning<br />in one place.
           </p>
 
           {/* ── Session active (guest connecté) ── */}
@@ -262,58 +275,49 @@ export default function LandingPage() {
             </>
 
           ) : (
-            /* ── Choix initial GUEST / RP / HOST ── */
+            /* ── Choix initial GUEST / RP / VENUE ── */
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
 
               {/* GUEST */}
               <button
                 onClick={() => setUserType('guest')}
-                className="group border border-white/10 hover:border-[#6E5BFF]/60 bg-[#181C23] hover:bg-[#6E5BFF]/8 p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 text-center"
+                className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-10 transition-all duration-300 flex flex-col items-center justify-center gap-5 text-center backdrop-blur-sm"
               >
-                <span className="text-2xl opacity-50 group-hover:opacity-80 transition-opacity">👤</span>
-                <div>
-                  <span className="font-playfair text-xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors block mb-1">
-                    GUEST
-                  </span>
-                  <span className="text-[10px] tracking-[0.15em] uppercase text-[#F5F7FA]/30 group-hover:text-[#F5F7FA]/50 transition-colors">
-                    Book access to experiences
-                  </span>
-                </div>
-                <span className="w-6 h-px bg-[#6E5BFF]/0 group-hover:bg-[#6E5BFF]/60 transition-all duration-300" />
+                <span className="font-playfair text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
+                  GUEST
+                </span>
+                <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
+                <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
+                  Book access to<br />experiences
+                </span>
               </button>
 
               {/* RP */}
               <button
                 onClick={() => router.push('/register')}
-                className="group border border-white/10 hover:border-[#6E5BFF]/60 bg-[#181C23] hover:bg-[#6E5BFF]/8 p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 text-center"
+                className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-10 transition-all duration-300 flex flex-col items-center justify-center gap-5 text-center backdrop-blur-sm"
               >
-                <span className="text-2xl opacity-50 group-hover:opacity-80 transition-opacity">👥</span>
-                <div>
-                  <span className="font-playfair text-xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors block mb-1">
-                    RP
-                  </span>
-                  <span className="text-[10px] tracking-[0.15em] uppercase text-[#F5F7FA]/30 group-hover:text-[#F5F7FA]/50 transition-colors">
-                    Manage access for your guests
-                  </span>
-                </div>
-                <span className="w-6 h-px bg-[#6E5BFF]/0 group-hover:bg-[#6E5BFF]/60 transition-all duration-300" />
+                <span className="font-playfair text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
+                  RP
+                </span>
+                <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
+                <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
+                  Organize WhatsApp reservations<br />for your guests
+                </span>
               </button>
 
-              {/* ITINERA HOST */}
+              {/* VENUE */}
               <button
                 onClick={() => router.push('/host')}
-                className="group border border-white/10 hover:border-[#6E5BFF]/60 bg-[#181C23] hover:bg-[#6E5BFF]/8 p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 text-center"
+                className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-10 transition-all duration-300 flex flex-col items-center justify-center gap-5 text-center backdrop-blur-sm"
               >
-                <span className="text-2xl opacity-50 group-hover:opacity-80 transition-opacity">🔔</span>
-                <div>
-                  <span className="font-playfair text-xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors block mb-1">
-                    HOST
-                  </span>
-                  <span className="text-[10px] tracking-[0.15em] uppercase text-[#F5F7FA]/30 group-hover:text-[#F5F7FA]/50 transition-colors">
-                    Manage reservations for your venue
-                  </span>
-                </div>
-                <span className="w-6 h-px bg-[#6E5BFF]/0 group-hover:bg-[#6E5BFF]/60 transition-all duration-300" />
+                <span className="font-playfair text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
+                  VENUE
+                </span>
+                <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
+                <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
+                  Manage reservations<br />for your venue
+                </span>
               </button>
 
             </div>
@@ -321,13 +325,13 @@ export default function LandingPage() {
 
           {/* Sign in hint — shown only on selection screen */}
           {!userType && !savedSession && !rpPicker && (
-            <p className="mt-8 text-[10px] tracking-[0.25em] uppercase text-[#F5F7FA]/25">
+            <p className="mt-10 text-[10px] tracking-[0.3em] uppercase text-[#F5F7FA]/25">
               Already have an account?{' '}
               <button
                 onClick={() => setUserType('guest')}
-                className="text-[#F5F7FA]/40 hover:text-[#F5F7FA]/70 transition-colors underline underline-offset-2"
+                className="text-[#6E5BFF] hover:text-[#8B7FFF] transition-colors"
               >
-                Sign in
+                Sign In
               </button>
             </p>
           )}
