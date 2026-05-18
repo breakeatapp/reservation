@@ -340,6 +340,63 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── WHO IS ITINERA FOR ── */}
+      <section className="px-5 py-24 max-w-5xl mx-auto">
+
+        {/* Section label */}
+        <div className="flex items-center gap-4 mb-16">
+          <span className="w-8 h-px bg-[#6E5BFF]/50" />
+          <span className="text-[9px] tracking-[0.45em] uppercase text-[#6E5BFF]/50">The Ecosystem</span>
+        </div>
+
+        {/* Three roles */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/5">
+
+          {/* GUEST */}
+          <div className="bg-[#0F1115] p-8 sm:p-10 group hover:bg-[#181C23] transition-colors duration-300">
+            <p className="text-[8px] tracking-[0.5em] uppercase text-[#6E5BFF]/40 mb-5">01</p>
+            <h3 className="font-playfair text-2xl text-[#F5F7FA] tracking-wide mb-5">Guest</h3>
+            <span className="w-6 h-px bg-[#6E5BFF]/30 block mb-5 group-hover:bg-[#6E5BFF]/60 transition-colors" />
+            <p className="text-[#F5F7FA]/40 text-sm leading-relaxed">
+              Private members who access curated dining, venues and experiences
+              through their dedicated concierge. Every reservation, tracked.
+            </p>
+            <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F7FA]/20 mt-6">
+              Invitation only
+            </p>
+          </div>
+
+          {/* RP */}
+          <div className="bg-[#0F1115] p-8 sm:p-10 group hover:bg-[#181C23] transition-colors duration-300 border-t border-white/5 md:border-t-0">
+            <p className="text-[8px] tracking-[0.5em] uppercase text-[#6E5BFF]/40 mb-5">02</p>
+            <h3 className="font-playfair text-2xl text-[#F5F7FA] tracking-wide mb-5">Concierge</h3>
+            <span className="w-6 h-px bg-[#6E5BFF]/30 block mb-5 group-hover:bg-[#6E5BFF]/60 transition-colors" />
+            <p className="text-[#F5F7FA]/40 text-sm leading-relaxed">
+              Operators who manage the full reservation flow — guests, venues,
+              itineraries — from a single dashboard. No more WhatsApp chaos.
+            </p>
+            <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F7FA]/20 mt-6">
+              Professional access
+            </p>
+          </div>
+
+          {/* VENUE */}
+          <div className="bg-[#0F1115] p-8 sm:p-10 group hover:bg-[#181C23] transition-colors duration-300 border-t border-white/5 md:border-t-0">
+            <p className="text-[8px] tracking-[0.5em] uppercase text-[#6E5BFF]/40 mb-5">03</p>
+            <h3 className="font-playfair text-2xl text-[#F5F7FA] tracking-wide mb-5">Venue</h3>
+            <span className="w-6 h-px bg-[#6E5BFF]/30 block mb-5 group-hover:bg-[#6E5BFF]/60 transition-colors" />
+            <p className="text-[#F5F7FA]/40 text-sm leading-relaxed">
+              Restaurants and establishments that receive bookings exclusively
+              from trusted concierges. Confirm, decline, and track — in one place.
+            </p>
+            <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F7FA]/20 mt-6">
+              Trusted partners only
+            </p>
+          </div>
+
+        </div>
+      </section>
+
       {/* ── FOOTER ── */}
       <footer className="py-8 px-6 border-t border-white/5 text-center">
         <p className="text-[#F5F7FA]/30 text-[10px] tracking-wider uppercase">
