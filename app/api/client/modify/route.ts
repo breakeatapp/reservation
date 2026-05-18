@@ -66,62 +66,59 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
-    // ── Envoyer un email de notification au RP ────────────────────
+    // ── Envoyer les emails de notification (non-bloquant) ────────
     try {
       const rpSlug = reservation.rp_slug as string | undefined
       let rpEmail: string | undefined
       let rpDisplayName = ''
+      let rpWhatsapp: string | undefined
 
       if (rpSlug) {
         const rpProfile = await getRPProfile(rpSlug)
         if (rpProfile) {
           rpEmail = rpProfile.email
           rpDisplayName = rpProfile.display_name
+          rpWhatsapp = rpProfile.whatsapp
         }
       }
 
       // Fallback : email de l'établissement
-      if (!rpEmail) rpEmail = reservation.establishment_email
+      if (!rpEmail) rpEmail = reservation.establishment_email || undefined
 
-      if (rpEmail) {
-        await sendModificationEmailToRP({
-          firstName: reservation.first_name,
-          lastName: reservation.last_name,
-          email: reservation.email,
-          phone: reservation.phone,
-          establishment: reservation.establishment,
-          destination: reservation.destination,
-          originalDate: reservation.date,
-          newDate: !isCancel ? newDateFormatted : undefined,
-          newTime: !isCancel && time ? time : undefined,
-          newGuests: !isCancel && guests ? parseInt(String(guests)) : undefined,
-          newNotes: !isCancel ? specialRequests : undefined,
-          action: isCancel ? 'cancelled' : 'modified',
-          rpDisplayName,
-          rpEmail,
-        })
-      }
-
-      // ── Email de confirmation au CLIENT ──────────────────────────
-      const rpProfile = rpSlug ? await getRPProfile(rpSlug) : null
-      await sendModificationAckToClient({
+      const basePayload = {
         firstName: reservation.first_name,
+        lastName: reservation.last_name,
         email: reservation.email,
+        phone: reservation.phone || undefined,
         establishment: reservation.establishment,
-        destination: reservation.destination,
+        destination: reservation.destination || '',
         date: reservation.date,
-        action: isCancel ? 'cancelled' : 'modified',
+        originalDate: reservation.date,
         newDate: !isCancel ? newDateFormatted : undefined,
         newTime: !isCancel && time ? time : undefined,
         newGuests: !isCancel && guests ? parseInt(String(guests)) : undefined,
         newNotes: !isCancel ? specialRequests : undefined,
+        action: isCancel ? 'cancelled' as const : 'modified' as const,
         rpDisplayName,
-        rpWhatsapp: rpProfile?.whatsapp,
         rpEmail,
+      }
+
+      // Envoyer RP + client en parallèle — indépendants l'un de l'autre
+      const tasks: Promise<unknown>[] = [
+        sendModificationAckToClient({ ...basePayload, rpWhatsapp }),
+      ]
+      if (rpEmail) {
+        tasks.push(sendModificationEmailToRP(basePayload))
+      }
+
+      const results = await Promise.allSettled(tasks)
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') {
+          console.error(`[modify] email task ${i} failed:`, r.reason)
+        }
       })
     } catch (emailErr) {
-      // L'email est non-bloquant — on log mais on ne fait pas échouer la requête
-      console.error('Erreur envoi email modification (non-bloquant):', emailErr)
+      console.error('[modify] email setup error (non-bloquant):', emailErr)
     }
 
     return NextResponse.json({ success: true })

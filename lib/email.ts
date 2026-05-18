@@ -840,12 +840,13 @@ export async function sendModificationEmailToRP(data: ModificationData) {
         <p style="color: #ef4444; font-size: 14px; margin: 0;">Le client a annulé cette réservation.<br>Pensez à en informer l'établissement si nécessaire.</p>
       </div>` : ''}
 
+      ${data.phone ? `
       <div style="text-align: center;">
         <a href="https://wa.me/${toWaPhone(data.phone)}?text=${encodeURIComponent(`Bonjour ${data.firstName}, concernant votre ${isCancel ? 'annulation' : 'modification'} de réservation chez ${data.establishment}.`)}"
            style="display: inline-block; background: #25D366; color: white; padding: 12px 28px; text-decoration: none; font-size: 14px;">
           💬 WhatsApp ${data.firstName}
         </a>
-      </div>
+      </div>` : ''}
     </div>
     <div style="padding: 24px 40px; text-align: center; border-top: 1px solid #2a2a2a;">
       <p style="color: #555; font-size: 12px; margin: 0;">${rpName} — Dashboard RP</p>
