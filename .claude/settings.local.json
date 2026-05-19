@@ -51,7 +51,8 @@
       "Bash(curl -s https://www.itinera.click/trip-planner)",
       "Bash(curl -s \"https://www.itinera.click/register\" -A \"Mozilla/5.0 iPhone Safari\" -o /dev/null -w \"HTTP %{http_code}\\\\n\")",
       "Bash(curl -s \"https://www.itinera.click/register\" -A \"Mozilla/5.0 iPhone Safari\")",
-      "Bash(git tag *)"
+      "Bash(git tag *)",
+      "Bash(node node_modules/vercel/dist/index.js --prod --yes)"
     ]
   }
 }

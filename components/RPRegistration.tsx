@@ -265,6 +265,14 @@ export default function RPRegistration({ inviteCode }: { inviteCode: string }) {
     <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg">
 
+        {/* Bouton retour vers l'accueil */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-[#F5F5F3]/30 hover:text-[#F5F5F3]/70 transition-colors text-[10px] tracking-[0.2em] uppercase mb-6"
+        >
+          ← Retour à l'accueil
+        </Link>
+
         {/* Header */}
         <div className="text-center mb-10">
           <p className="text-[10px] tracking-[0.5em] text-[#5B3DF5]/50 uppercase mb-3">Accès sur invitation</p>

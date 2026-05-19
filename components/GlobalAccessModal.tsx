@@ -222,21 +222,37 @@ export default function GlobalAccessModal({ rpSlug, rpPassword, onClose }: Props
         {/* Fond sombre */}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #04090f 0%, #060d18 50%, #04090f 100%)' }} />
 
-        {/* Continents — carte monde équirectangulaire */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: 'url(https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/World_map_blank_without_borders.svg/2560px-World_map_blank_without_borders.svg.png)',
-            backgroundSize: '100% 100%',
-            backgroundPosition: 'center',
-            opacity: 0.13,
-            filter: 'brightness(1.4) contrast(0.8)',
-          }}
-        />
+        {/* Continents — SVG inline équirectangulaire (toujours visible, pas de chargement) */}
+        <svg
+          viewBox="0 0 1000 500"
+          preserveAspectRatio="none"
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          style={{ opacity: 0.18 }}
+        >
+          {/* Amérique du Nord */}
+          <path d="M 110,100 L 130,90 L 160,85 L 200,90 L 230,100 L 250,115 L 270,140 L 280,170 L 275,200 L 260,220 L 240,225 L 220,220 L 200,225 L 180,235 L 160,230 L 140,210 L 125,180 L 115,150 L 110,120 Z" fill="#7a9cc6" />
+          {/* Amérique centrale + Mexique */}
+          <path d="M 230,225 L 250,230 L 265,250 L 270,270 L 260,280 L 245,275 L 235,260 Z" fill="#7a9cc6" />
+          {/* Amérique du Sud */}
+          <path d="M 270,290 L 295,285 L 320,295 L 335,320 L 340,360 L 330,400 L 315,430 L 295,440 L 280,420 L 270,380 L 265,340 L 268,310 Z" fill="#7a9cc6" />
+          {/* Europe */}
+          <path d="M 480,120 L 510,115 L 540,120 L 560,135 L 555,160 L 540,170 L 520,170 L 500,165 L 485,150 Z" fill="#7a9cc6" />
+          {/* Afrique */}
+          <path d="M 490,180 L 530,180 L 565,195 L 585,225 L 590,275 L 580,320 L 565,360 L 545,380 L 525,375 L 510,355 L 495,320 L 485,275 L 482,225 Z" fill="#7a9cc6" />
+          {/* Moyen-Orient */}
+          <path d="M 580,170 L 610,170 L 630,185 L 635,210 L 625,225 L 600,225 L 585,210 Z" fill="#7a9cc6" />
+          {/* Asie */}
+          <path d="M 560,110 L 620,105 L 690,110 L 750,115 L 800,130 L 830,155 L 830,180 L 810,200 L 770,210 L 720,205 L 670,195 L 620,180 L 580,165 Z" fill="#7a9cc6" />
+          {/* Asie du Sud-Est + Inde */}
+          <path d="M 640,210 L 680,215 L 700,230 L 705,255 L 690,275 L 670,275 L 650,260 L 640,240 Z" fill="#7a9cc6" />
+          {/* Asie du Sud-Est insulaire */}
+          <path d="M 750,250 L 790,255 L 800,275 L 785,290 L 760,285 Z" fill="#7a9cc6" />
+          {/* Australie */}
+          <path d="M 780,330 L 830,330 L 860,345 L 860,375 L 840,395 L 810,400 L 785,385 L 775,360 Z" fill="#7a9cc6" />
+        </svg>
 
-        {/* Overlay subtil pour profondeur */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#04090f]/50 via-transparent to-[#04090f]/60 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#04090f]/35 via-transparent to-[#04090f]/35 pointer-events-none" />
+        {/* Overlay très léger pour profondeur — pas trop sombre */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#04090f]/30 via-transparent to-[#04090f]/40 pointer-events-none" />
 
         {/* Empty state */}
         {mapCities.length === 0 && (
@@ -328,10 +344,14 @@ export default function GlobalAccessModal({ rpSlug, rpPassword, onClose }: Props
           </div>
           <div className="flex items-center gap-1.5">
             <span
-              className="text-[9px] font-bold leading-none"
-              style={{ color: '#00FF87', textShadow: '0 0 6px rgba(0,255,135,0.5)' }}
+              className="inline-flex items-center justify-center w-3 h-3 rounded-full text-[7px] font-bold leading-none"
+              style={{
+                color: '#0a1f1a',
+                background: '#00FF87',
+                boxShadow: '0 0 6px rgba(0,255,135,0.6)',
+              }}
             >✓</span>
-            <span className="text-[8px] tracking-[0.2em] uppercase text-white/25">Certifié</span>
+            <span className="text-[8px] tracking-[0.2em] uppercase text-white/25">Trusted</span>
           </div>
         </div>
 
@@ -414,9 +434,33 @@ export default function GlobalAccessModal({ rpSlug, rpPassword, onClose }: Props
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        {/* Nom + badges statut réseau */}
+                        {/* Nom + badge Trusted/Ambassadeur à côté du nom */}
                         <div className="flex flex-wrap items-center gap-1.5 mb-1">
                           <p className="text-white text-sm font-medium leading-tight">{rp.display_name}</p>
+                          {/* Badge Trusted juste à côté du nom — visible pour TOUS les RP (partenaires ou non) */}
+                          {rp.is_trusted && (
+                            <span
+                              className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[8px] font-bold leading-none flex-shrink-0"
+                              style={{
+                                color: '#0a1f1a',
+                                background: '#00FF87',
+                                boxShadow: '0 0 8px rgba(0,255,135,0.6)',
+                              }}
+                              title="Trusted"
+                            >✓</span>
+                          )}
+                          {/* Badge Ambassadeur à côté du nom */}
+                          {rp.is_ambassador && (
+                            <span
+                              className="inline-flex items-center justify-center text-[10px] font-bold leading-none flex-shrink-0"
+                              style={{
+                                color: '#FFE500',
+                                textShadow: '0 0 6px rgba(255,229,0,0.7)',
+                              }}
+                              title="Ambassadeur"
+                            >★</span>
+                          )}
+                          {/* Badges statut réseau */}
                           {isMe && (
                             <span className="text-[8px] tracking-[0.2em] uppercase text-[#5B3DF5]/60 border border-[#5B3DF5]/20 px-1.5 py-0.5">Vous</span>
                           )}
@@ -428,35 +472,20 @@ export default function GlobalAccessModal({ rpSlug, rpPassword, onClose }: Props
                           )}
                         </div>
 
-                        {/* Pastilles Ambassador + Trust */}
-                        {(rp.is_ambassador || rp.is_trusted) && (
+                        {/* Pastille texte "Trusted" complète pour RP non-partenaires (plus visible) */}
+                        {rp.is_trusted && rp.connection_status === 'none' && !isMe && (
                           <div className="flex flex-wrap gap-1.5 mb-1.5">
-                            {rp.is_ambassador && (
-                              <span
-                                className="inline-flex items-center gap-1 text-[9px] tracking-[0.15em] uppercase font-semibold px-2 py-0.5 border"
-                                style={{
-                                  color: '#FFE500',
-                                  borderColor: 'rgba(255,229,0,0.35)',
-                                  background: 'rgba(255,229,0,0.08)',
-                                  boxShadow: '0 0 8px 1px rgba(255,229,0,0.2)',
-                                }}
-                              >
-                                ★ Ambassadeur
-                              </span>
-                            )}
-                            {rp.is_trusted && (
-                              <span
-                                className="inline-flex items-center gap-1 text-[9px] tracking-[0.15em] uppercase font-semibold px-2 py-0.5 border"
-                                style={{
-                                  color: '#00FF87',
-                                  borderColor: 'rgba(0,255,135,0.30)',
-                                  background: 'rgba(0,255,135,0.07)',
-                                  boxShadow: '0 0 8px 1px rgba(0,255,135,0.18)',
-                                }}
-                              >
-                                ✓ Certifié
-                              </span>
-                            )}
+                            <span
+                              className="inline-flex items-center gap-1 text-[9px] tracking-[0.15em] uppercase font-semibold px-2 py-0.5 border"
+                              style={{
+                                color: '#00FF87',
+                                borderColor: 'rgba(0,255,135,0.30)',
+                                background: 'rgba(0,255,135,0.07)',
+                                boxShadow: '0 0 8px 1px rgba(0,255,135,0.18)',
+                              }}
+                            >
+                              ✓ Trusted
+                            </span>
                           </div>
                         )}
 

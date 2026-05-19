@@ -141,7 +141,7 @@ export default function LandingPage() {
                 onClick={() => router.push(`/${savedSession.rp}/mon-espace`)}
                 className="w-full py-3.5 text-white text-[11px] tracking-[0.2em] uppercase bg-[#6E5BFF] hover:bg-[#5B3DF5] transition-colors mb-3"
               >
-                Mon membership →
+                Mon members →
               </button>
               <button
                 onClick={() => {
@@ -193,7 +193,7 @@ export default function LandingPage() {
             <>
               <div className="bg-[#181C23]/90 backdrop-blur-sm border border-white/10 p-6 mb-4">
                 <p className="text-[10px] tracking-[0.4em] uppercase text-[#F5F7FA]/45 mb-4">
-                  Access my membership
+                  Access my members
                 </p>
                 <form onSubmit={handleAccess} className="flex gap-2">
                   <input
@@ -356,10 +356,10 @@ export default function LandingPage() {
           <div className="bg-[#0F1115] p-8 sm:p-10 group hover:bg-[#181C23] transition-colors duration-300">
             <p className="text-[8px] tracking-[0.5em] uppercase text-[#6E5BFF]/40 mb-5">01</p>
             <h3 className="font-playfair text-2xl text-[#F5F7FA] tracking-wide mb-1">Itinera</h3>
-            <h3 className="font-playfair text-2xl text-[#6E5BFF] tracking-wide mb-5">Membership</h3>
+            <h3 className="font-playfair text-2xl text-[#6E5BFF] tracking-wide mb-5">Members</h3>
             <span className="w-6 h-px bg-[#6E5BFF]/30 block mb-5 group-hover:bg-[#6E5BFF]/60 transition-colors" />
             <p className="text-[#F5F7FA]/45 text-sm leading-relaxed mb-5">
-              A private membership space accessible by email — no password, no app to download.
+              A private members space accessible by email — no password, no app to download.
               Every reservation made by your concierge is logged, tracked
               and available in real time from your personal space.
             </p>

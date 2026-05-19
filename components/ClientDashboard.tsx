@@ -273,8 +273,26 @@ export default function ClientDashboard({ profile }: Props) {
         }
         setRpList(rps)
 
-        // ── Retour à l'accueil (menu principal) ──────────────────
-        setScreen('home')
+        // ── Auto-redirect direct vers les réservations (menu intermédiaire supprimé) ──
+        const currentRP = rps.find(r => r.slug === profile.slug) ?? {
+          slug: profile.slug,
+          displayName: profile.display_name,
+          accentColor: accent,
+          logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
+          totalCount: 0, pendingCount: 0, confirmedCount: 0,
+        }
+        setViewingRp(currentRP)
+        setScreen('reservations')
+        setResaLoading(true)
+        try {
+          const resaRes = await fetch(`/api/client/reservations?email=${encodeURIComponent(saved)}&rpSlug=${profile.slug}`)
+          const resaData = await resaRes.json()
+          setReservations(Array.isArray(resaData) ? resaData : [])
+        } catch {
+          setError('Erreur lors du chargement.')
+        } finally {
+          setResaLoading(false)
+        }
       })
       .catch(() => {})
       .finally(() => { setIdentifyLoading(false); setAutoLoginDone(true) })
@@ -573,68 +591,15 @@ export default function ClientDashboard({ profile }: Props) {
       )
     }
 
-    // ── 4. Identifié + profil complet → menu principal ──────────────
-    const goToReservations = () => {
-      const rpSummary: RPSummary = rpList.find(r => r.slug === profile.slug) ?? {
-        slug: profile.slug,
-        displayName: profile.display_name,
-        accentColor: accent,
-        logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
-        totalCount: 0, pendingCount: 0, confirmedCount: 0,
-      }
-      selectRP(rpSummary)
-    }
-
+    // ── 4. Identifié + profil complet → loader pendant l'auto-redirect ──────
+    // Le menu intermédiaire (Mes réservations / Mon compte) a été supprimé.
+    // Un useEffect en haut du composant déclenche selectRP automatiquement ;
+    // ici on n'affiche qu'un loader le temps de la transition.
     return (
       <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center px-6">
-        <div className="w-full max-w-sm">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <p className="text-[9px] tracking-[0.5em] text-[#F5F5F3]/20 uppercase mb-3">✦ Espace privé</p>
-            <h1 className="font-playfair text-3xl text-[#F5F5F3] mb-2">{profile.display_name}</h1>
-            <p className="font-playfair text-base text-[#F5F5F3]/30 italic">
-              Bonjour, <span style={{ color: accent }}>{clientFirstName}</span>
-            </p>
-          </div>
-
-          {/* Menu cards */}
-          <div className="space-y-3">
-            {/* Mes réservations */}
-            <button
-              onClick={goToReservations}
-              className="w-full text-left bg-[#141414] border border-white/8 hover:border-white/20 px-6 py-5 transition-all group"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[9px] tracking-[0.35em] uppercase mb-1" style={{ color: accent + 'aa' }}>Espace</p>
-                  <p className="text-[#F5F5F3] text-base font-medium">Mes réservations</p>
-                </div>
-                <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/50 transition-colors text-lg">→</span>
-              </div>
-            </button>
-
-            {/* Mon compte */}
-            <button
-              onClick={() => {
-                setProfileFirstName(clientFirstName)
-                setProfileLastName(localStorage.getItem('itinera_guest_lastname') || '')
-                setProfilePhone(localStorage.getItem('itinera_guest_phone') || '')
-                setProfileEmail(email)
-                setProfileSaved(false)
-                setScreen('profile')
-              }}
-              className="w-full text-left bg-[#141414] border border-white/8 hover:border-white/20 px-6 py-5 transition-all group"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[9px] tracking-[0.35em] uppercase mb-1" style={{ color: accent + 'aa' }}>Compte</p>
-                  <p className="text-[#F5F5F3] text-base font-medium">Mon compte</p>
-                </div>
-                <span className="text-[#F5F5F3]/20 group-hover:text-[#F5F5F3]/50 transition-colors text-lg">→</span>
-              </div>
-            </button>
-          </div>
-        </div>
+        <p className="text-[10px] tracking-[0.4em] uppercase text-[#F5F5F3]/20 animate-pulse">
+          Chargement de vos réservations…
+        </p>
       </div>
     )
   }
