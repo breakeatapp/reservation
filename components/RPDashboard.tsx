@@ -1190,7 +1190,7 @@ ${profile.display_name}`
                   </p>
                 </div>
 
-                {/* Boutons */}
+                {/* Boutons — empilés icône au-dessus + texte centré, supporte le wrap */}
                 <div className="flex gap-2">
                   {/* Copier */}
                   <button
@@ -1199,20 +1199,20 @@ ${profile.display_name}`
                       setCopied('wa-message')
                       setTimeout(() => setCopied(null), 2500)
                     }}
-                    className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] tracking-[0.2em] uppercase border transition-all ${
+                    className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3 text-[10px] tracking-[0.2em] uppercase border transition-all text-center ${
                       copied === 'wa-message'
                         ? 'border-[#5B3DF5]/50 text-[#5B3DF5] bg-[#5B3DF5]/8'
                         : 'border-white/10 text-[#F5F5F3]/40 hover:border-[#5B3DF5]/30 hover:text-[#5B3DF5]/70'
                     }`}
                   >
                     {copied === 'wa-message' ? (
-                      <>✓ Copié !</>
+                      <span className="text-center">✓ Copié !</span>
                     ) : (
                       <>
-                        <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current flex-shrink-0">
+                        <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current flex-shrink-0">
                           <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
                         </svg>
-                        Copier le message
+                        <span className="text-center leading-tight">Copier le message</span>
                       </>
                     )}
                   </button>
@@ -1222,13 +1222,13 @@ ${profile.display_name}`
                     href={`https://wa.me/?text=${encodeURIComponent(waMessage)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] tracking-[0.2em] uppercase border border-[#25D366]/20 text-[#25D366]/60 hover:bg-[#25D366]/8 hover:text-[#25D366]/90 hover:border-[#25D366]/40 transition-all"
+                    className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 text-[10px] tracking-[0.2em] uppercase border border-[#25D366]/20 text-[#25D366]/60 hover:bg-[#25D366]/8 hover:text-[#25D366]/90 hover:border-[#25D366]/40 transition-all text-center"
                   >
-                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current flex-shrink-0">
+                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current flex-shrink-0">
                       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                       <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.532 5.862L.054 23.486a.75.75 0 00.921.921l5.624-1.478A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.741 9.741 0 01-5.002-1.378l-.36-.214-3.733.981.998-3.648-.235-.374A9.712 9.712 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/>
                     </svg>
-                    Envoyer via WhatsApp
+                    <span className="text-center leading-tight">Envoyer via WhatsApp</span>
                   </a>
                 </div>
               </div>
@@ -1321,72 +1321,75 @@ ${profile.display_name}`
               <span className="text-[10px] text-[#F5F5F3]/40">{configDests.length} active{configDests.length > 1 ? 's' : ''}</span>
             </div>
 
-            {/* Grille unifiée : prédéfinies + personnalisées */}
+            {/* Grille unifiée — prédéfinies + personnalisées toutes triées A→Z ensemble */}
             <div className="grid grid-cols-2 gap-2">
-              {/* Destinations prédéfinies */}
-              {ALL_DESTINATIONS.map(dest => {
-                const active = configDests.includes(dest.slug)
-                return (
+              {(() => {
+                // 1. Construire la liste unifiée
+                type UnifiedDest = {
+                  slug: string
+                  name: string
+                  emoji?: string
+                  country?: string
+                  isCustom: boolean
+                  isActive: boolean
+                  rawCustom?: string  // entrée brute JSON pour les customs (toggle)
+                }
+                const all: UnifiedDest[] = []
+                // — Prédéfinies
+                for (const d of ALL_DESTINATIONS) {
+                  all.push({
+                    slug: d.slug,
+                    name: d.name,
+                    emoji: d.emoji,
+                    isCustom: false,
+                    isActive: configDests.includes(d.slug),
+                  })
+                }
+                // — Custom (parse JSON)
+                for (const raw of configDests) {
+                  try {
+                    const p = JSON.parse(raw)
+                    if (p?.slug && p?.name) {
+                      all.push({
+                        slug: p.slug,
+                        name: p.name,
+                        emoji: p.emoji || '📍',
+                        country: p.country,
+                        isCustom: true,
+                        isActive: p.active !== false,
+                        rawCustom: raw,
+                      })
+                    }
+                  } catch { /* ignore */ }
+                }
+                // 2. Trier tout par nom A→Z (locale FR)
+                all.sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+
+                // 3. Render
+                return all.map(d => (
                   <button
-                    key={dest.slug}
+                    key={d.isCustom ? `custom-${d.slug}` : d.slug}
                     type="button"
-                    onClick={() => toggleDest(dest.slug)}
+                    onClick={() => d.isCustom ? toggleCustomCity(d.slug) : toggleDest(d.slug)}
                     className={`flex items-center gap-3 p-3 border text-left transition-all ${
-                      active
+                      d.isActive
                         ? 'border-[#5B3DF5]/50 bg-[#5B3DF5]/8 text-[#F5F5F3]'
                         : 'border-white/5 text-[#F5F5F3]/30 hover:border-white/15'
                     }`}
                   >
-                    <span className="text-lg">{dest.emoji}</span>
+                    <span className="text-lg">{d.emoji}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{dest.name}</p>
+                      <p className="text-xs font-medium truncate">{d.name}</p>
+                      {d.country && <p className="text-[9px] text-[#F5F5F3]/30 truncate">{d.country}</p>}
                     </div>
                     <div className={`w-4 h-4 flex-shrink-0 border flex items-center justify-center ${
-                      active ? 'border-[#5B3DF5] bg-[#5B3DF5]' : 'border-white/15'
+                      d.isActive ? 'border-[#5B3DF5] bg-[#5B3DF5]' : 'border-white/15'
                     }`}>
-                      {active && <span className="text-white text-[10px]">✓</span>}
+                      {d.isActive && <span className="text-white text-[10px]">✓</span>}
                     </div>
                   </button>
-                )
-              })}
-
-              {/* Villes personnalisées — triées A→Z, même comportement que les prédéfinies */}
-              {configDests
-                .map(raw => {
-                  try {
-                    const p = JSON.parse(raw)
-                    if (p?.slug && p?.name) return p as { slug: string; name: string; country?: string; emoji?: string; active?: boolean }
-                  } catch {}
-                  return null
-                })
-                .filter((c): c is { slug: string; name: string; country?: string; emoji?: string; active?: boolean } => c !== null)
-                .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
-                .map(city => {
-                  const isActive = city.active !== false
-                  return (
-                    <button
-                      key={city.slug}
-                      type="button"
-                      onClick={() => toggleCustomCity(city.slug)}
-                      className={`flex items-center gap-3 p-3 border text-left transition-all ${
-                        isActive
-                          ? 'border-[#5B3DF5]/50 bg-[#5B3DF5]/8 text-[#F5F5F3]'
-                          : 'border-white/5 text-[#F5F5F3]/30 hover:border-white/15'
-                      }`}
-                    >
-                      <span className="text-lg">{city.emoji || '📍'}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium truncate">{city.name}</p>
-                        {city.country && <p className="text-[9px] text-[#F5F5F3]/30 truncate">{city.country}</p>}
-                      </div>
-                      <div className={`w-4 h-4 flex-shrink-0 border flex items-center justify-center ${
-                        isActive ? 'border-[#5B3DF5] bg-[#5B3DF5]' : 'border-white/15'
-                      }`}>
-                        {isActive && <span className="text-white text-[10px]">✓</span>}
-                      </div>
-                    </button>
-                  )
-                })}
+                ))
+              })()}
             </div>
 
             <p className="text-[#F5F5F3]/20 text-[10px] mt-3">
@@ -2172,13 +2175,15 @@ ${profile.display_name}`
   // ── RÉSERVER POUR UN CLIENT ───────────────────────────────────
   if (mainView === 'book-for-client') {
     // Destinations actives
-    const activeDests = configDests.map(raw => {
+    const activeDests = (configDests.map(raw => {
       try { const p = JSON.parse(raw); if (p?.slug && p.active !== false) return { slug: p.slug, name: p.name, emoji: p.emoji || '📍' } } catch {}
       return ALL_DESTINATIONS.find(d => d.slug === raw) || null
-    }).filter(Boolean) as { slug: string; name: string; emoji: string }[]
+    }).filter(Boolean) as { slug: string; name: string; emoji: string }[])
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
 
-    // Venues actives
+    // Venues actives — triées A→Z
     const activeVenues = configVenues.map(parseVenueEntry)
+      .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
     const venuesForDest = (dest: string) => dest
       ? activeVenues.filter(v => !v.destination || v.destination === dest)
       : activeVenues
@@ -2350,13 +2355,18 @@ ${profile.display_name}`
                     )}
                   </div>
                 )}
-                {/* Liste filtrée */}
+                {/* Liste filtrée — triée A→Z par nom (ou email à défaut) */}
                 {!bfcSelectedClient && bfcClientSearch.length >= 1 && (() => {
                   const q = bfcClientSearch.toLowerCase()
-                  const filtered = clients.filter(c =>
-                    (c.client_name || '').toLowerCase().includes(q) ||
-                    c.client_email.toLowerCase().includes(q)
-                  ).slice(0, 8)
+                  const filtered = clients
+                    .filter(c =>
+                      (c.client_name || '').toLowerCase().includes(q) ||
+                      c.client_email.toLowerCase().includes(q)
+                    )
+                    .sort((a, b) =>
+                      (a.client_name || a.client_email).localeCompare(b.client_name || b.client_email, 'fr')
+                    )
+                    .slice(0, 8)
                   return filtered.length > 0 ? (
                     <div className="border border-white/10 divide-y divide-white/5 mb-2 max-h-52 overflow-y-auto">
                       {filtered.map(c => (
@@ -2385,11 +2395,15 @@ ${profile.display_name}`
                     }}
                   >
                     <option value="" className="bg-[#141414]">— ou choisir dans la liste complète</option>
-                    {clients.map(c => (
-                      <option key={c.client_email} value={c.client_email} className="bg-[#141414]">
-                        {c.client_name || c.client_email} {c.vip_tag ? `· ${c.vip_tag}` : ''}
-                      </option>
-                    ))}
+                    {[...clients]
+                      .sort((a, b) =>
+                        (a.client_name || a.client_email).localeCompare(b.client_name || b.client_email, 'fr')
+                      )
+                      .map(c => (
+                        <option key={c.client_email} value={c.client_email} className="bg-[#141414]">
+                          {c.client_name || c.client_email} {c.vip_tag ? `· ${c.vip_tag}` : ''}
+                        </option>
+                      ))}
                   </select>
                 )}
                 <button type="button" onClick={() => setBfcUseManual(true)}

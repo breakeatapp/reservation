@@ -55,9 +55,10 @@ export async function getRPProfile(slug: string): Promise<RPProfile | null> {
 // ── Destinations accessibles pour un RP ───────────────────
 // Supporte les slugs prédéfinis ET les destinations personnalisées (JSON)
 // Filtre les destinations custom marquées active: false
+// Retourne TOUJOURS triées par nom A→Z (locale FR)
 export function getRPDestinations(rp: RPProfile): Destination[] {
   if (!rp.activated_destinations || rp.activated_destinations.length === 0) {
-    return destinations
+    return [...destinations].sort((a, b) => a.name.localeCompare(b.name, 'fr'))
   }
   const result: Destination[] = []
   for (const raw of rp.activated_destinations) {
@@ -82,7 +83,8 @@ export function getRPDestinations(rp: RPProfile): Destination[] {
     const found = destinations.find(d => d.slug === raw)
     if (found) result.push(found)
   }
-  return result
+  // Tri alphabétique final sur le résultat fusionné (prédéfinies + custom)
+  return result.sort((a, b) => a.name.localeCompare(b.name, 'fr'))
 }
 
 // Helper : extrait tous les slugs (plain + JSON) d'un array activated_destinations
@@ -149,10 +151,12 @@ export function getRPEstablishments(rp: RPProfile): Establishment[] {
       services: v.services && v.services.length > 0 ? v.services : undefined,
     }))
 
-    return [...globalMatches, ...customEsts]
+    // Fusion + tri alphabétique sur le nom de la venue
+    return [...globalMatches, ...customEsts].sort((a, b) => a.name.localeCompare(b.name, 'fr'))
   }
 
-  return byDest
+  // Tri alphabétique pour le cas sans venues personnalisées
+  return [...byDest].sort((a, b) => a.name.localeCompare(b.name, 'fr'))
 }
 
 // ── Map venue → créneaux personnalisés ────────────────────

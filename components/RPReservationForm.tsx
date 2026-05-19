@@ -79,6 +79,7 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
   const [selectedDest, setSelectedDest] = useState<string>(initialDest)
 
   // Groupement des venues par catégorie pour la destination sélectionnée
+  // Chaque sous-groupe (restaurant / beach club / night club) est trié A→Z
   const groupedVenues = (() => {
     if (!selectedDest) return null
     const predefined = (establishments || []).filter(e => e.destination === selectedDest)
@@ -96,10 +97,11 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
         all.push({ name: vc.name, category: vc.type || 'restaurant' })
       }
     }
+    const sortByName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, 'fr')
     return {
-      restaurant: all.filter(v => v.category === 'restaurant'),
-      beach_club: all.filter(v => v.category === 'beach_club'),
-      night_club: all.filter(v => v.category === 'night_club'),
+      restaurant: all.filter(v => v.category === 'restaurant').sort(sortByName),
+      beach_club: all.filter(v => v.category === 'beach_club').sort(sortByName),
+      night_club: all.filter(v => v.category === 'night_club').sort(sortByName),
     }
   })()
 
@@ -113,8 +115,8 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
           .filter(vc => (!vc.destination || vc.destination === 'custom') &&
             !establishments.find(e => e.name === vc.name))
           .map(vc => ({ value: vc.name, label: vc.name })),
-      ]
-    : estOptions
+      ].sort((a, b) => a.label.localeCompare(b.label, 'fr'))
+    : [...estOptions].sort((a, b) => a.label.localeCompare(b.label, 'fr'))
   const [accessStep, setAccessStep] = useState<AccessStep>('check')
   const [accessEmail, setAccessEmail] = useState('')
   const [accessEmailInput, setAccessEmailInput] = useState('')
@@ -466,9 +468,11 @@ export default function RPReservationForm({ estOptions, defaultVenue, defaultDes
                 )}
               </>
             ) : (
-              estOptions.map(opt => (
-                <option key={opt.value} value={opt.value} className="bg-[#141414]">{opt.label}</option>
-              ))
+              [...estOptions]
+                .sort((a, b) => a.label.localeCompare(b.label, 'fr'))
+                .map(opt => (
+                  <option key={opt.value} value={opt.value} className="bg-[#141414]">{opt.label}</option>
+                ))
             )}
           </select>
           {errors.establishment && <p className={errorClass}>{errors.establishment.message}</p>}
