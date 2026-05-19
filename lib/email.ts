@@ -67,6 +67,8 @@ export type TripData = {
   rpDisplayName?: string
   rpEmail?: string     // email du RP destinataire
   rpWhatsapp?: string  // WhatsApp du RP
+  vipTag?: string      // profil VIP du client (ex: "VVIP", "Regular", etc.)
+  internalNote?: string // note privée du RP sur ce client
 }
 
 // ── Génère le message WhatsApp de transfert pour UNE réservation du trip ──
@@ -224,7 +226,7 @@ export async function sendTripSummaryEmail(data: TripData) {
 
       <!-- Client -->
       <div style="background: #1e1e1e; border: 1px solid rgba(201,168,76,0.25); padding: 20px 24px; margin-bottom: 28px;">
-        <div style="color: #C9A84C; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 14px;">Client</div>
+        <div style="color: #C9A84C; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 14px;">Profil client</div>
         <table style="width: 100%; border-collapse: collapse;">
           <tr>
             <td style="padding: 4px 0; width: 50%;">
@@ -242,7 +244,33 @@ export async function sendTripSummaryEmail(data: TripData) {
               <span style="color: #f5f0e8; font-size: 16px;">${data.email}</span>
             </td>
           </tr>
+          ${data.vipTag ? `<tr>
+            <td colspan="2" style="padding: 10px 0 0;">
+              <span style="color: #9a9a9a; font-size: 10px; text-transform: uppercase; letter-spacing: 1px;">Profil VIP</span><br>
+              <span style="color: #C9A84C; font-size: 15px; font-weight: bold; letter-spacing: 1px;">✦ ${data.vipTag}</span>
+            </td>
+          </tr>` : ''}
         </table>
+        ${data.internalNote ? (() => {
+          // Parser la note (peut être JSON structuré ou texte brut)
+          let noteHtml = ''
+          try {
+            const parsed = JSON.parse(data.internalNote)
+            if (typeof parsed === 'object' && parsed !== null) {
+              const parts: string[] = []
+              if (parsed.note)        parts.push(`<strong>Note :</strong> ${parsed.note}`)
+              if (parsed.nationality) parts.push(`<strong>Nationalité :</strong> ${parsed.nationality}`)
+              if (Array.isArray(parsed.products) && parsed.products.length)
+                parts.push(`<strong>Préférences :</strong> ${parsed.products.join(', ')}`)
+              noteHtml = parts.join('<br>')
+            }
+          } catch { /* texte brut */ }
+          if (!noteHtml) noteHtml = data.internalNote
+          return `<div style="margin-top: 14px; border-top: 1px solid #2a2a2a; padding-top: 14px;">
+            <span style="color: #9a9a9a; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px;">Notes privées</span>
+            <div style="background: #141414; border-left: 3px solid #C9A84C; padding: 12px 16px; color: #c4a96b; font-size: 13px; font-style: italic; line-height: 1.6;">${noteHtml}</div>
+          </div>`
+        })() : ''}
       </div>
 
       <!-- Titre programme -->

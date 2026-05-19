@@ -200,6 +200,8 @@ export async function POST(req: NextRequest) {
       bookings: enrichedBookings,
       rpDisplayName,
       rpEmail,
+      vipTag: clientVipTag || undefined,
+      internalNote: clientInternalNote || undefined,
     })
 
     // ── Email récapitulatif au client ─────────────────────────────
