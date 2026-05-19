@@ -35,7 +35,23 @@
       "Bash(ls /c/Users/notta/.vercel/ 2>/dev/null || echo \"No .vercel dir\")",
       "Bash(mkdir -p \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\\\\api\\\\host\\\\[slug]\\\\reservations\")",
       "Bash(mkdir -p \"C:\\\\Users\\\\notta\\\\OneDrive\\\\Bureau\\\\reservation\\\\app\\\\api\\\\host\\\\confirm\\\\[id]\")",
-      "Bash(node \"C:\\\\Users\\\\notta\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\vercel\\\\dist\\\\index.js\" --prod --yes)"
+      "Bash(node \"C:\\\\Users\\\\notta\\\\AppData\\\\Roaming\\\\npm\\\\node_modules\\\\vercel\\\\dist\\\\index.js\" --prod --yes)",
+      "Bash(Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue)",
+      "Bash(npx rimraf *)",
+      "Bash(grep -i \"blue\\\\|#[0-9A-Fa-f]\\\\{3,6\\\\}\")",
+      "Bash(gh pr create --title 'Système de confirmation fiable — liens vers page interactive /host/confirm/[id]' --body ' *)",
+      "Bash(where gh *)",
+      "Bash(Select-String -Pattern \"network|map|rp\")",
+      "Bash(curl -sI https://itinera.click)",
+      "Bash(curl -sI https://www.itinera.click)",
+      "Bash(curl -s https://itinera.click)",
+      "Bash(curl -s https://itinera.click/trip-planner)",
+      "Bash(curl -sL https://itinera.click/trip-planner)",
+      "Bash(curl -s https://www.itinera.click)",
+      "Bash(curl -s https://www.itinera.click/trip-planner)",
+      "Bash(curl -s \"https://www.itinera.click/register\" -A \"Mozilla/5.0 iPhone Safari\" -o /dev/null -w \"HTTP %{http_code}\\\\n\")",
+      "Bash(curl -s \"https://www.itinera.click/register\" -A \"Mozilla/5.0 iPhone Safari\")",
+      "Bash(git tag *)"
     ]
   }
 }

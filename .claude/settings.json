@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /d \"C:\\Users\\notta\\OneDrive\\Bureau\\reservation\" && git add -A && git diff --cached --quiet || git commit -m \"auto-save\" --no-verify"
+          }
+        ]
+      }
+    ]
+  }
+}
