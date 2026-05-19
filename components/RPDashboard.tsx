@@ -162,23 +162,23 @@ function generateDays(start: string, end: string): DayPlan[] {
 
 // Toutes les destinations disponibles dans la plateforme
 const ALL_DESTINATIONS = [
-  { slug: 'saint-tropez', name: 'Saint-Tropez', emoji: '⛵' },
-  { slug: 'dubai', name: 'Dubai', emoji: '🏙️' },
-  { slug: 'miami', name: 'Miami', emoji: '🌴' },
-  { slug: 'cannes', name: 'Cannes', emoji: '🎬' },
-  { slug: 'monaco', name: 'Monaco', emoji: '🎰' },
-  { slug: 'courchevel', name: 'Courchevel', emoji: '⛷️' },
-  { slug: 'saint-barth', name: 'Saint-Barthélemy', emoji: '🌊' },
-  { slug: 'ibiza', name: 'Ibiza', emoji: '🎶' },
-  { slug: 'mykonos', name: 'Mykonos', emoji: '🏛️' },
-  { slug: 'maldives', name: 'Maldives', emoji: '🌺' },
-  { slug: 'aspen', name: 'Aspen', emoji: '🏔️' },
-  { slug: 'tulum', name: 'Tulum', emoji: '🌿' },
-  { slug: 'cavalaire', name: 'Cavalaire-sur-Mer', emoji: '⚓' },
-  { slug: 'milan', name: 'Milan', emoji: '👗' },
-  { slug: 'rome', name: 'Rome', emoji: '🏟️' },
   { slug: 'abu-dhabi', name: 'Abu Dhabi', emoji: '🕌' },
+  { slug: 'aspen', name: 'Aspen', emoji: '🏔️' },
+  { slug: 'cannes', name: 'Cannes', emoji: '🎬' },
+  { slug: 'cavalaire', name: 'Cavalaire-sur-Mer', emoji: '⚓' },
+  { slug: 'courchevel', name: 'Courchevel', emoji: '⛷️' },
+  { slug: 'dubai', name: 'Dubai', emoji: '🏙️' },
+  { slug: 'ibiza', name: 'Ibiza', emoji: '🎶' },
   { slug: 'jeddah', name: 'Jeddah', emoji: '🌙' },
+  { slug: 'maldives', name: 'Maldives', emoji: '🌺' },
+  { slug: 'miami', name: 'Miami', emoji: '🌴' },
+  { slug: 'milan', name: 'Milan', emoji: '👗' },
+  { slug: 'monaco', name: 'Monaco', emoji: '🎰' },
+  { slug: 'mykonos', name: 'Mykonos', emoji: '🏛️' },
+  { slug: 'rome', name: 'Rome', emoji: '🏟️' },
+  { slug: 'saint-barth', name: 'Saint-Barthélemy', emoji: '🌊' },
+  { slug: 'saint-tropez', name: 'Saint-Tropez', emoji: '⛵' },
+  { slug: 'tulum', name: 'Tulum', emoji: '🌿' },
 ]
 
 const RP_STORAGE_KEY = (slug: string) => `itinera_rp_pw_${slug}`
@@ -1036,8 +1036,25 @@ export default function RPDashboard({ profile }: Props) {
 
   const addCustomVenue = () => {
     const name = newVenueName.trim()
-    if (!name) return
     setAddVenueError('')
+
+    // ── Validation : nom obligatoire ─────────────────────────────
+    if (!name) {
+      setAddVenueError('Le nom du restaurant est obligatoire.')
+      return
+    }
+    // ── Validation : ville obligatoire ───────────────────────────
+    if (!newVenueDest) {
+      setAddVenueError('Veuillez sélectionner une ville.')
+      return
+    }
+    // ── Validation : au moins un créneau obligatoire ─────────────
+    if (newVenueServices.length === 0) {
+      setAddVenueError('Veuillez sélectionner au moins un créneau de service.')
+      setShowServicePicker(true)
+      return
+    }
+    // ── Doublon ──────────────────────────────────────────────────
     const existing = configVenues.map(parseVenueEntry)
     if (existing.some(v => v.name.toLowerCase() === name.toLowerCase())) {
       setAddVenueError(`"${name}" est déjà dans votre liste.`)
@@ -1045,8 +1062,8 @@ export default function RPDashboard({ profile }: Props) {
     }
     const serialized = serializeVenueEntry({
       name,
-      destination: newVenueDest || undefined,
-      services: newVenueServices.length > 0 ? newVenueServices : undefined,
+      destination: newVenueDest,
+      services: newVenueServices,
       type: newVenueType,
     })
     setConfigVenues(prev => [...prev, serialized])
@@ -1333,37 +1350,43 @@ ${profile.display_name}`
                 )
               })}
 
-              {/* Villes personnalisées — même comportement que les prédéfinies */}
-              {configDests.map(raw => {
-                let city: { slug: string; name: string; country?: string; emoji?: string; active?: boolean } | null = null
-                try { const p = JSON.parse(raw); if (p?.slug && p?.name) city = p } catch {}
-                if (!city) return null
-                const isActive = city.active !== false
-                const citySlug = city.slug
-                return (
-                  <button
-                    key={citySlug}
-                    type="button"
-                    onClick={() => toggleCustomCity(citySlug)}
-                    className={`flex items-center gap-3 p-3 border text-left transition-all ${
-                      isActive
-                        ? 'border-[#5B3DF5]/50 bg-[#5B3DF5]/8 text-[#F5F5F3]'
-                        : 'border-white/5 text-[#F5F5F3]/30 hover:border-white/15'
-                    }`}
-                  >
-                    <span className="text-lg">{city.emoji || '📍'}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{city.name}</p>
-                      {city.country && <p className="text-[9px] text-[#F5F5F3]/30 truncate">{city.country}</p>}
-                    </div>
-                    <div className={`w-4 h-4 flex-shrink-0 border flex items-center justify-center ${
-                      isActive ? 'border-[#5B3DF5] bg-[#5B3DF5]' : 'border-white/15'
-                    }`}>
-                      {isActive && <span className="text-white text-[10px]">✓</span>}
-                    </div>
-                  </button>
-                )
-              })}
+              {/* Villes personnalisées — triées A→Z, même comportement que les prédéfinies */}
+              {configDests
+                .map(raw => {
+                  try {
+                    const p = JSON.parse(raw)
+                    if (p?.slug && p?.name) return p as { slug: string; name: string; country?: string; emoji?: string; active?: boolean }
+                  } catch {}
+                  return null
+                })
+                .filter((c): c is { slug: string; name: string; country?: string; emoji?: string; active?: boolean } => c !== null)
+                .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+                .map(city => {
+                  const isActive = city.active !== false
+                  return (
+                    <button
+                      key={city.slug}
+                      type="button"
+                      onClick={() => toggleCustomCity(city.slug)}
+                      className={`flex items-center gap-3 p-3 border text-left transition-all ${
+                        isActive
+                          ? 'border-[#5B3DF5]/50 bg-[#5B3DF5]/8 text-[#F5F5F3]'
+                          : 'border-white/5 text-[#F5F5F3]/30 hover:border-white/15'
+                      }`}
+                    >
+                      <span className="text-lg">{city.emoji || '📍'}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate">{city.name}</p>
+                        {city.country && <p className="text-[9px] text-[#F5F5F3]/30 truncate">{city.country}</p>}
+                      </div>
+                      <div className={`w-4 h-4 flex-shrink-0 border flex items-center justify-center ${
+                        isActive ? 'border-[#5B3DF5] bg-[#5B3DF5]' : 'border-white/15'
+                      }`}>
+                        {isActive && <span className="text-white text-[10px]">✓</span>}
+                      </div>
+                    </button>
+                  )
+                })}
             </div>
 
             <p className="text-[#F5F5F3]/20 text-[10px] mt-3">
@@ -1504,23 +1527,31 @@ ${profile.display_name}`
                 <select
                   value={newVenueDest}
                   onChange={e => setNewVenueDest(e.target.value)}
-                  className="bg-[#141414] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 transition-colors sm:w-44 flex-shrink-0"
+                  required
+                  className={`bg-[#141414] border text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 transition-colors sm:w-44 flex-shrink-0 ${
+                    !newVenueDest && addVenueError ? 'border-amber-400/40' : 'border-white/10'
+                  }`}
                 >
-                  <option value="" className="bg-[#141414]">Ville (optionnel)…</option>
-                  {/* Destinations prédéfinies */}
-                  {ALL_DESTINATIONS.map(dest => (
-                    <option key={dest.slug} value={dest.slug} className="bg-[#141414]">{dest.name}</option>
-                  ))}
-                  {/* Villes personnalisées ajoutées */}
-                  {configDests.map(raw => {
-                    try {
-                      const p = JSON.parse(raw)
-                      if (p?.slug && p?.name) {
-                        return <option key={p.slug} value={p.slug} className="bg-[#141414]">{p.name} (custom)</option>
-                      }
-                    } catch {}
-                    return null
-                  })}
+                  <option value="" className="bg-[#141414]">Ville *</option>
+                  {/* Liste combinée prédéfinies + custom, triée A→Z */}
+                  {[
+                    ...ALL_DESTINATIONS.map(d => ({ slug: d.slug, name: d.name, custom: false })),
+                    ...configDests
+                      .map(raw => {
+                        try {
+                          const p = JSON.parse(raw)
+                          if (p?.slug && p?.name) return { slug: p.slug, name: p.name, custom: true }
+                        } catch {}
+                        return null
+                      })
+                      .filter((d): d is { slug: string; name: string; custom: boolean } => d !== null),
+                  ]
+                    .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+                    .map(d => (
+                      <option key={d.slug} value={d.slug} className="bg-[#141414]">
+                        {d.name}{d.custom ? ' (custom)' : ''}
+                      </option>
+                    ))}
                 </select>
                 <input
                   type="text"
@@ -1557,7 +1588,7 @@ ${profile.display_name}`
                 </div>
               </div>
 
-              {/* Ligne 2 : créneaux */}
+              {/* Ligne 2 : créneaux (obligatoire) */}
               <div>
                 <button
                   type="button"
@@ -1565,18 +1596,22 @@ ${profile.display_name}`
                   className="text-[10px] tracking-[0.2em] uppercase text-[#5B3DF5]/60 hover:text-[#5B3DF5] transition-colors flex items-center gap-2"
                 >
                   <span>{showServicePicker ? '▾' : '▸'}</span>
-                  Configurer les créneaux
-                  {newVenueServices.length > 0 && (
+                  Créneaux de service *
+                  {newVenueServices.length > 0 ? (
                     <span className="bg-[#5B3DF5]/20 text-[#5B3DF5]/80 text-[9px] px-2 py-0.5 rounded-full">
                       {newVenueServices.length} sélectionné{newVenueServices.length > 1 ? 's' : ''}
+                    </span>
+                  ) : (
+                    <span className="bg-amber-400/15 text-amber-400/80 text-[9px] px-2 py-0.5 rounded-full">
+                      requis
                     </span>
                   )}
                 </button>
 
                 {showServicePicker && (
                   <div className="mt-3 grid grid-cols-1 gap-1.5">
-                    <p className="text-[9px] tracking-[0.2em] uppercase text-[#F5F5F3]/20 mb-1">
-                      Laisser vide = tous les créneaux proposés
+                    <p className="text-[9px] tracking-[0.2em] uppercase text-amber-400/60 mb-1">
+                      Sélectionnez au moins un créneau (obligatoire)
                     </p>
                     {SERVICES_BY_TYPE[newVenueType].map(s => (
                       <label key={s} className="flex items-center gap-3 cursor-pointer group">
@@ -1606,12 +1641,18 @@ ${profile.display_name}`
                 )}
               </div>
 
-              {/* Bouton ajouter */}
+              {/* Bouton ajouter — nom + ville + au moins 1 créneau requis */}
               <button
                 type="button"
                 onClick={addCustomVenue}
-                disabled={!newVenueName.trim()}
-                className="w-full py-2.5 border border-[#5B3DF5]/40 text-[#5B3DF5]/70 text-[11px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/8 transition-colors disabled:opacity-30"
+                disabled={!newVenueName.trim() || !newVenueDest || newVenueServices.length === 0}
+                className="w-full py-2.5 border border-[#5B3DF5]/40 text-[#5B3DF5]/70 text-[11px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title={
+                  !newVenueName.trim() ? 'Nom du restaurant requis'
+                  : !newVenueDest ? 'Ville requise'
+                  : newVenueServices.length === 0 ? 'Au moins un créneau requis'
+                  : 'Ajouter'
+                }
               >
                 + Ajouter à ma liste
               </button>
