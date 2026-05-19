@@ -8,18 +8,23 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const { slug } = params
+    // Normaliser le slug (minuscules, sans espaces)
+    const slug = params.slug?.toLowerCase().trim()
+    if (!slug) {
+      return NextResponse.json({ error: 'Slug manquant.' }, { status: 400 })
+    }
 
-    // Verify venue exists and is active
-    const { data: venue, error: venueError } = await supabaseAdmin
+    // Vérifier l'existence du venue (sans bloquer sur active=true)
+    const { data: venue } = await supabaseAdmin
       .from('venues_profiles')
       .select('slug')
       .eq('slug', slug)
-      .eq('active', true)
-      .single()
+      .maybeSingle()
 
-    if (venueError || !venue) {
-      return NextResponse.json({ error: 'Venue introuvable.' }, { status: 404 })
+    // Si le venue n'est pas trouvé du tout → log mais ne pas bloquer
+    if (!venue) {
+      console.warn('[connections/get] venue not found for slug:', slug)
+      // Tenter quand même la requête connections (slug peut venir d'une ancienne session)
     }
 
     const { data: connections, error } = await supabaseAdmin
@@ -29,9 +34,11 @@ export async function GET(
       .order('created_at', { ascending: false })
 
     if (error) {
+      console.error('[connections/get] query error:', error.message, '| slug:', slug)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    console.log('[connections/get] slug:', slug, '| found:', connections?.length ?? 0, 'connections')
     return NextResponse.json(connections ?? [])
   } catch (err) {
     console.error('[connections/get] error:', err)

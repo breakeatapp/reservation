@@ -195,12 +195,18 @@ export default function HostDashboardPage() {
     }
   }, [slug])
 
+  // Charger les connexions dès le montage (pas seulement au switch d'onglet)
+  useEffect(() => {
+    const storedSlug = localStorage.getItem('itinera_host_slug')
+    if (storedSlug === slug) loadConnections()
+  }, [slug, loadConnections])
+
+  // Charger le code d'invitation quand on arrive sur l'onglet
   useEffect(() => {
     if (mainTab === 'partners') {
       loadInviteCode()
-      loadConnections()
     }
-  }, [mainTab, loadInviteCode, loadConnections])
+  }, [mainTab, loadInviteCode])
 
   const filtered = filter === 'all'
     ? reservations
@@ -616,7 +622,17 @@ export default function HostDashboardPage() {
             <div className="bg-[#181C23] border border-white/8 p-5">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-[9px] tracking-[0.3em] uppercase text-[#F5F7FA]/30">Concierges connectés</p>
-                <span className="text-[10px] text-[#F5F7FA]/20">{connections.length} partenaire{connections.length !== 1 ? 's' : ''}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[#F5F7FA]/20">{connections.length} partenaire{connections.length !== 1 ? 's' : ''}</span>
+                  <button
+                    onClick={() => { setConnections([]); setConnectionsError(''); loadConnections() }}
+                    disabled={connectionsLoading}
+                    className="text-[9px] tracking-[0.15em] uppercase text-[#6E5BFF]/50 hover:text-[#6E5BFF] transition-colors disabled:opacity-30 border border-[#6E5BFF]/20 hover:border-[#6E5BFF]/40 px-2 py-1"
+                    title="Rafraîchir la liste des partenaires"
+                  >
+                    ↻ Rafraîchir
+                  </button>
+                </div>
               </div>
 
               {connectionsLoading ? (
