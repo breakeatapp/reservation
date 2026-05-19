@@ -230,6 +230,16 @@ export default function ClientDashboard({ profile }: Props) {
     }
   }
 
+  // ⚠ Fallback de sécurité : le menu intermédiaire ('home') a été supprimé.
+  // Si on retombe sur screen='home' alors que l'utilisateur a déjà ses données
+  // (autoLoginDone + email), on bascule auto vers la liste des réservations
+  // pour ne plus jamais voir le loader éternel "Chargement de vos réservations…".
+  useEffect(() => {
+    if (screen === 'home' && autoLoginDone && email) {
+      setScreen('reservations')
+    }
+  }, [screen, autoLoginDone, email])
+
   // ── Auto-login depuis localStorage ───────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem('itinera_guest_email')
@@ -617,10 +627,10 @@ export default function ClientDashboard({ profile }: Props) {
             <p className="font-playfair italic text-lg text-white/35 truncate capitalize">{clientFirstName}</p>
           </div>
           <button
-            onClick={() => setScreen('home')}
+            onClick={() => setScreen('reservations')}
             className="flex-shrink-0 text-[#F5F5F3]/25 hover:text-[#F5F5F3]/60 transition-colors text-[10px] tracking-[0.2em] uppercase border border-white/8 hover:border-white/20 px-3 py-1.5"
           >
-            ← Accueil
+            ← Mes réservations
           </button>
         </div>
 
@@ -742,9 +752,9 @@ export default function ClientDashboard({ profile }: Props) {
 
       <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-5 py-3 flex items-center gap-2">
         <button
-          onClick={() => setScreen('home')}
+          onClick={() => router.push(`/${profile.slug}`)}
           className="flex-shrink-0 text-[#F5F5F3]/25 hover:text-[#F5F5F3]/60 transition-colors text-lg leading-none pr-1"
-          aria-label="Retour"
+          aria-label="Retour à l'accueil"
         >
           ←
         </button>
