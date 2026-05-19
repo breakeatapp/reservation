@@ -32,3 +32,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+
+# logs codex / claude
+*.log
+*.err.log
+
+# claude local settings
+.claude/settings.local.json
