@@ -78,6 +78,8 @@ function buildTripBookingWhatsappMessage(
   lastName: string,
   phone: string,
   email: string,
+  vipTag?: string,
+  internalNote?: string,
 ): string {
   const lines: string[] = []
 
@@ -100,6 +102,24 @@ function buildTripBookingWhatsappMessage(
 
   // Client
   lines.push(``, `👤 *${firstName} ${lastName}*`, `📞 ${phone}`, `✉️ ${email}`)
+  if (vipTag) lines.push(`⭐ *${vipTag}*`)
+
+  // Note privée (texte brut ou JSON structuré)
+  if (internalNote) {
+    try {
+      const parsed = JSON.parse(internalNote)
+      if (typeof parsed === 'object' && parsed !== null) {
+        const parts: string[] = []
+        if (parsed.note)        parts.push(parsed.note)
+        if (parsed.nationality) parts.push(`Nationalité : ${parsed.nationality}`)
+        if (Array.isArray(parsed.products) && parsed.products.length)
+          parts.push(`Préférences : ${parsed.products.join(', ')}`)
+        if (parts.length) lines.push(`📝 ${parts.join(' · ')}`)
+      }
+    } catch {
+      lines.push(`📝 ${internalNote}`)
+    }
+  }
 
   // Contact restaurant
   if (b.establishmentPhone) {
@@ -120,7 +140,7 @@ export async function sendTripSummaryEmail(data: TripData) {
 
   const bookingRows = data.bookings.map((b, i) => {
     // Message WhatsApp spécifique à cette réservation
-    const waMsg = buildTripBookingWhatsappMessage(b, data.firstName, data.lastName, data.phone, data.email)
+    const waMsg = buildTripBookingWhatsappMessage(b, data.firstName, data.lastName, data.phone, data.email, data.vipTag, data.internalNote)
 
     return `
     <!-- ══ Réservation ${i + 1} ══ -->
