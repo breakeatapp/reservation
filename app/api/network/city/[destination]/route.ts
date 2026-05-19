@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
-const TRUST_THRESHOLD = 50 // réservations confirmées pour la pastille Trust
+const TRUST_THRESHOLD = 20 // fallback : réservations confirmées si is_trusted non défini en base
 
 function parseDestSlug(raw: string): string {
   try {
@@ -22,7 +22,7 @@ export async function GET(
     // RPs actifs dans cette destination
     const { data: allRps } = await supabaseAdmin
       .from('rp_profiles')
-      .select('slug, display_name, tagline, activated_destinations, is_ambassador')
+      .select('slug, display_name, tagline, activated_destinations, is_ambassador, is_trusted')
       .eq('active', true)
 
     const rps = (allRps ?? []).filter(rp =>
@@ -70,7 +70,10 @@ export async function GET(
                             .slice(0, 5),
       connection_status:  rp.slug === rpSlug ? 'self' : (connMap[rp.slug] ?? 'none'),
       is_ambassador:      !!rp.is_ambassador,
-      is_trusted:         (resaCount[rp.slug] ?? 0) >= TRUST_THRESHOLD,
+      // is_trusted : champ manuel en base (priorité) OU seuil réservations confirmées
+      is_trusted:         rp.is_trusted != null
+                            ? !!rp.is_trusted
+                            : (resaCount[rp.slug] ?? 0) >= TRUST_THRESHOLD,
       reservation_count:  resaCount[rp.slug] ?? 0,
     }))
 

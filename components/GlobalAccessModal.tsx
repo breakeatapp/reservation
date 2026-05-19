@@ -8,13 +8,13 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 const CITY_MAP: Record<string, { x: number; y: number; name: string }> = {
   'london':        { x: 49.97, y: 21.39, name: 'London' },
   'paris':         { x: 50.65, y: 22.86, name: 'Paris' },
-  'courchevel':    { x: 51.84, y: 24.77, name: 'Courchevel' },
+  'courchevel':    { x: 51.30, y: 24.77, name: 'Courchevel' },
   'milan':         { x: 52.55, y: 24.75, name: 'Milan' },
   'rome':          { x: 53.47, y: 26.72, name: 'Rome' },
-  'cavalaire':     { x: 51.81, y: 25.96, name: 'Cavalaire' },
+  'cavalaire':     { x: 51.50, y: 26.10, name: 'Cavalaire' },
   'cannes':        { x: 51.95, y: 25.80, name: 'Cannes' },
   'monaco':        { x: 52.06, y: 25.71, name: 'Monaco' },
-  'saint-tropez':  { x: 51.84, y: 25.96, name: 'Saint-Tropez' },
+  'saint-tropez':  { x: 51.84, y: 26.05, name: 'Saint-Tropez' },
   'ibiza':         { x: 50.40, y: 28.38, name: 'Ibiza' },
   'mykonos':       { x: 56.77, y: 29.19, name: 'Mykonos' },
   'jeddah':        { x: 60.88, y: 37.90, name: 'Jeddah' },
@@ -222,20 +222,21 @@ export default function GlobalAccessModal({ rpSlug, rpPassword, onClose }: Props
         {/* Fond sombre */}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #04090f 0%, #060d18 50%, #04090f 100%)' }} />
 
-        {/* Continents — blanc très atténué sur fond sombre = outlines subtils */}
+        {/* Continents — carte monde équirectangulaire */}
         <div
           className="absolute inset-0"
           style={{
             backgroundImage: 'url(https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/World_map_blank_without_borders.svg/2560px-World_map_blank_without_borders.svg.png)',
             backgroundSize: '100% 100%',
             backgroundPosition: 'center',
-            opacity: 0.06,
+            opacity: 0.13,
+            filter: 'brightness(1.4) contrast(0.8)',
           }}
         />
 
         {/* Overlay subtil pour profondeur */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#04090f]/70 via-transparent to-[#04090f]/80 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#04090f]/50 via-transparent to-[#04090f]/50 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#04090f]/50 via-transparent to-[#04090f]/60 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#04090f]/35 via-transparent to-[#04090f]/35 pointer-events-none" />
 
         {/* Empty state */}
         {mapCities.length === 0 && (
