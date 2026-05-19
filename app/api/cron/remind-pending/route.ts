@@ -8,7 +8,7 @@ import {
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'
 
-// Vercel appelle cette route toutes les 6h via vercel.json
+// Vercel appelle cette route quotidiennement via vercel.json (8h UTC)
 // Sécurisé par Authorization: Bearer CRON_SECRET
 export async function GET(req: NextRequest) {
   // Vérification du secret Vercel cron
@@ -67,6 +67,8 @@ export async function GET(req: NextRequest) {
   // Fetch les profils RP pour avoir leurs emails
   const rpSlugs = Object.keys(byRP)
   let rpEmailsSent = 0
+  // Set des emails déjà notifiés (pour éviter les doublons côté venue)
+  const notifiedEmails = new Set<string>()
 
   if (rpSlugs.length > 0) {
     const { data: rpProfiles } = await supabaseAdmin
@@ -81,6 +83,7 @@ export async function GET(req: NextRequest) {
         const resas = byRP[rp.slug] ?? []
         if (resas.length === 0) return
         await sendPendingReminderToRP(rp.email, rp.display_name, resas)
+        notifiedEmails.add(rp.email.toLowerCase().trim())
         rpEmailsSent++
         console.log(`[cron] rappel RP "${rp.slug}" — ${resas.length} résa(s)`)
       })
@@ -101,6 +104,7 @@ export async function GET(req: NextRequest) {
   }
 
   let venueEmailsSent = 0
+  let venueDuplicatesSkipped = 0
   const venueSlugs = Object.keys(byVenueSlug)
 
   if (venueSlugs.length > 0) {
@@ -115,7 +119,18 @@ export async function GET(req: NextRequest) {
         if (!venue.email) return
         const resas = byVenueSlug[venue.slug] ?? []
         if (resas.length === 0) return
+
+        // ✋ Si l'email du venue est le même que celui d'un RP déjà notifié,
+        // on saute pour éviter d'envoyer 2x le même rappel à la même adresse.
+        const normalizedEmail = venue.email.toLowerCase().trim()
+        if (notifiedEmails.has(normalizedEmail)) {
+          venueDuplicatesSkipped++
+          console.log(`[cron] skip venue "${venue.slug}" — email déjà notifié comme RP`)
+          return
+        }
+
         await sendPendingReminderToVenue(venue.email, venue.venue_name, resas)
+        notifiedEmails.add(normalizedEmail)
         venueEmailsSent++
         console.log(`[cron] rappel venue "${venue.slug}" — ${resas.length} résa(s)`)
       })
@@ -130,5 +145,6 @@ export async function GET(req: NextRequest) {
     total_pending: pending.length,
     rp_emails_sent: rpEmailsSent,
     venue_emails_sent: venueEmailsSent,
+    venue_duplicates_skipped: venueDuplicatesSkipped,
   })
 }

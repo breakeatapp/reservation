@@ -1,4 +1,5 @@
 {
+  "alias": ["itinera.click", "www.itinera.click"],
   "crons": [
     {
       "path": "/api/cron/remind-pending",

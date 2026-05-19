@@ -30,7 +30,7 @@ export default function TripPlannerPage() {
             <span className="italic text-gold"> de voyage</span>
           </h1>
           <p className="text-cream/40 leading-relaxed max-w-xl mx-auto">
-            Composez votre itinéraire sur-mesure : sélectionnez votre destination, vos dates, et ajoutez toutes vos réservations jour par jour.
+            Composez votre itinéraire sur-mesure : ajoutez plusieurs destinations, fixez vos dates, et planifiez toutes vos réservations jour par jour.
           </p>
         </div>
         <TripPlanner destinations={destOptions} establishments={estData} />

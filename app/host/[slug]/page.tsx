@@ -249,14 +249,14 @@ export default function HostDashboardPage() {
         <div className="flex gap-1">
           {([
             { key: 'reservations' as MainTab, label: 'Réservations' },
-            { key: 'partners' as MainTab, label: '🤝 Partenaires' },
+            { key: 'partners' as MainTab, label: 'Partenaires' },
           ]).map(tab => (
             <button
               key={tab.key}
               onClick={() => setMainTab(tab.key)}
               className={`text-[9px] tracking-[0.2em] uppercase px-3 py-1.5 border transition-all ${
                 mainTab === tab.key
-                  ? 'border-[#6E5BFF]/50 text-[#6E5BFF]/80 bg-[#6E5BFF]/8'
+                  ? 'border-[#6E5BFF] text-[#6E5BFF] bg-[#6E5BFF]/8'
                   : 'border-white/8 text-[#F5F7FA]/25 hover:border-white/15 hover:text-[#F5F7FA]/40'
               }`}
             >
@@ -273,12 +273,12 @@ export default function HostDashboardPage() {
 
         {/* ── Venue identity ── */}
         <div className="mb-8">
-          <p className="text-[9px] tracking-[0.4em] uppercase text-[#6E5BFF]/50 mb-2">Venue Dashboard</p>
+          <p className="text-[9px] tracking-[0.4em] uppercase text-[#6E5BFF] mb-2">Venue Dashboard</p>
           <h1 className="font-playfair text-4xl text-[#F5F7FA] tracking-wide leading-tight capitalize">
             {venueName || '—'}
           </h1>
           {destDisplay && (
-            <p className="text-[#6E5BFF]/70 text-sm tracking-[0.15em] uppercase mt-1.5">
+            <p className="text-[#6E5BFF] text-sm tracking-[0.15em] uppercase mt-1.5">
               {destDisplay}
             </p>
           )}
@@ -305,7 +305,7 @@ export default function HostDashboardPage() {
                   }`}
                 >
                   <p className={`text-2xl font-light mb-1 ${stat.numColor}`}>{stat.value}</p>
-                  <p className={`text-[8px] tracking-[0.2em] uppercase transition-colors ${isActive ? 'text-[#6E5BFF]/70' : 'text-[#F5F7FA]/25'}`}>
+                  <p className={`text-[8px] tracking-[0.2em] uppercase transition-colors ${isActive ? 'text-[#6E5BFF]' : 'text-[#F5F7FA]/25'}`}>
                     {stat.label}
                   </p>
                 </div>
@@ -322,7 +322,7 @@ export default function HostDashboardPage() {
         ) : error ? (
           <div className="py-10 text-center">
             <p className="text-red-400/60 text-sm mb-4">{error}</p>
-            <button onClick={fetchReservations} className="text-[10px] text-[#6E5BFF]/60 hover:text-[#6E5BFF] uppercase tracking-widest transition-colors">
+            <button onClick={fetchReservations} className="text-[10px] text-[#6E5BFF] hover:text-[#6E5BFF] uppercase tracking-widest transition-colors">
               Réessayer
             </button>
           </div>
@@ -358,7 +358,7 @@ export default function HostDashboardPage() {
                         <div className="flex items-center gap-2 mb-2">
                           <span className="font-playfair text-[#F5F7FA] text-base">{r.establishment}</span>
                           {r.destination && (
-                            <span className="text-[9px] tracking-[0.2em] uppercase text-[#6E5BFF]/60 border border-[#6E5BFF]/20 px-2 py-0.5">
+                            <span className="text-[9px] tracking-[0.2em] uppercase text-[#6E5BFF] border border-[#6E5BFF]/30 px-2 py-0.5">
                               {r.destination.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                             </span>
                           )}
@@ -504,7 +504,7 @@ export default function HostDashboardPage() {
                         {r.rp_name && (
                           <div className="flex items-center gap-2 pt-1">
                             <span className="text-[8px] tracking-[0.3em] uppercase text-[#F5F7FA]/20">Via concierge</span>
-                            <span className="text-[10px] tracking-[0.15em] text-[#6E5BFF]/60 uppercase">{r.rp_name}</span>
+                            <span className="text-[10px] tracking-[0.15em] text-[#6E5BFF] uppercase">{r.rp_name}</span>
                           </div>
                         )}
 
@@ -561,7 +561,7 @@ export default function HostDashboardPage() {
 
             {/* Explainer */}
             <div className="bg-[#181C23] border border-[#6E5BFF]/20 p-5">
-              <p className="text-[9px] tracking-[0.3em] uppercase text-[#6E5BFF]/60 mb-2">Comment ça marche ?</p>
+              <p className="text-[9px] tracking-[0.3em] uppercase text-[#6E5BFF] mb-2">Comment ça marche ?</p>
               <p className="text-[#F5F7FA]/40 text-xs leading-relaxed">
                 Partagez votre code d'invitation aux concierges de confiance. Une fois connectés, leurs réservations apparaîtront automatiquement dans votre dashboard et vous recevrez les notifications par email.
               </p>
@@ -583,7 +583,7 @@ export default function HostDashboardPage() {
                   <p className="text-red-400/70 text-xs mb-2">{inviteCodeError}</p>
                   <button
                     onClick={() => { setInviteCode(null); loadInviteCode() }}
-                    className="text-[9px] tracking-[0.2em] uppercase text-[#6E5BFF]/60 hover:text-[#6E5BFF] transition-colors"
+                    className="text-[9px] tracking-[0.2em] uppercase text-[#6E5BFF] hover:text-[#6E5BFF] transition-colors"
                   >
                     Réessayer
                   </button>
@@ -597,7 +597,7 @@ export default function HostDashboardPage() {
                       setCodeCopied(true)
                       setTimeout(() => setCodeCopied(false), 2000)
                     }}
-                    className="text-[9px] tracking-[0.2em] uppercase text-[#6E5BFF]/60 hover:text-[#6E5BFF] transition-colors flex-shrink-0 border border-[#6E5BFF]/20 hover:border-[#6E5BFF]/50 px-3 py-1.5"
+                    className="text-[9px] tracking-[0.2em] uppercase text-[#6E5BFF] hover:text-[#6E5BFF] transition-colors flex-shrink-0 border border-[#6E5BFF]/20 hover:border-[#6E5BFF]/50 px-3 py-1.5"
                   >
                     {codeCopied ? '✓ Copié !' : 'Copier'}
                   </button>
@@ -605,7 +605,7 @@ export default function HostDashboardPage() {
               ) : (
                 <button
                   onClick={loadInviteCode}
-                  className="w-full py-3 text-[10px] tracking-[0.25em] uppercase border border-[#6E5BFF]/25 text-[#6E5BFF]/60 hover:bg-[#6E5BFF]/8 transition-colors"
+                  className="w-full py-3 text-[10px] tracking-[0.25em] uppercase border border-[#6E5BFF]/40 text-[#6E5BFF] hover:bg-[#6E5BFF]/8 transition-colors"
                 >
                   Générer un code
                 </button>

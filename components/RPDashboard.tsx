@@ -914,7 +914,6 @@ export default function RPDashboard({ profile }: Props) {
 
   // ── LOAD CONNECTED VENUES ─────────────────────────────────────
   const loadConnectedVenues = useCallback(async () => {
-    if (connectedVenuesLoaded) return
     try {
       const res = await fetch(`/api/rp/connect-venue?rpSlug=${profile.slug}`)
       if (res.ok) {
@@ -923,7 +922,12 @@ export default function RPDashboard({ profile }: Props) {
       }
     } catch { /* silently fail */ }
     finally { setConnectedVenuesLoaded(true) }
-  }, [profile.slug, connectedVenuesLoaded])
+  }, [profile.slug])
+
+  // Charger les venues connectés quand on ouvre la config (jamais pendant le rendu !)
+  useEffect(() => {
+    if (authenticated && mainView === 'config') loadConnectedVenues()
+  }, [authenticated, mainView, loadConnectedVenues])
 
   // ── CONNECT TO VENUE ──────────────────────────────────────────
   const connectToVenue = async () => {
@@ -1072,9 +1076,6 @@ export default function RPDashboard({ profile }: Props) {
 
   // ── VUE CONFIGURATION ─────────────────────────────────────────
   if (mainView === 'config') {
-    // Load connected venues on first render of config view
-    if (!connectedVenuesLoaded) loadConnectedVenues()
-
     return (
       <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
         <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4 flex items-center justify-between">
