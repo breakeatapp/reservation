@@ -406,6 +406,26 @@ export default function RPDashboard({ profile }: Props) {
     if (authenticated && (mainView === 'clients' || mainView === 'book-for-client')) fetchClients()
   }, [authenticated, mainView, fetchClients])
 
+  // ── LOAD CONNECTED VENUES ─────────────────────────────────────
+  // ⚠ CRITIQUE : ce useCallback + useEffect DOIVENT rester ici, AVANT tous
+  // les early returns (lignes ~529, 564, 1078, 2129). Sinon, React appelle
+  // un nombre différent de hooks selon le render → Rules of Hooks violée
+  // → crash production "Application error: a client-side exception".
+  const loadConnectedVenues = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/rp/connect-venue?rpSlug=${profile.slug}`)
+      if (res.ok) {
+        const data = await res.json()
+        setConnectedVenues(Array.isArray(data) ? data : [])
+      }
+    } catch { /* silently fail */ }
+    finally { setConnectedVenuesLoaded(true) }
+  }, [profile.slug])
+
+  useEffect(() => {
+    if (authenticated && mainView === 'config') loadConnectedVenues()
+  }, [authenticated, mainView, loadConnectedVenues])
+
   const handleResaUpdate = async () => {
     if (!selected || !resaEdit.venue || !resaEdit.date || !resaEdit.time) return
     setResaEditSaving(true)
@@ -911,23 +931,6 @@ export default function RPDashboard({ profile }: Props) {
       setAddClientLoading(false)
     }
   }
-
-  // ── LOAD CONNECTED VENUES ─────────────────────────────────────
-  const loadConnectedVenues = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/rp/connect-venue?rpSlug=${profile.slug}`)
-      if (res.ok) {
-        const data = await res.json()
-        setConnectedVenues(Array.isArray(data) ? data : [])
-      }
-    } catch { /* silently fail */ }
-    finally { setConnectedVenuesLoaded(true) }
-  }, [profile.slug])
-
-  // Charger les venues connectés quand on ouvre la config (jamais pendant le rendu !)
-  useEffect(() => {
-    if (authenticated && mainView === 'config') loadConnectedVenues()
-  }, [authenticated, mainView, loadConnectedVenues])
 
   // ── CONNECT TO VENUE ──────────────────────────────────────────
   const connectToVenue = async () => {
