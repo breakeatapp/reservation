@@ -4,23 +4,23 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 const DESTINATIONS = [
-  { slug: 'saint-tropez', name: 'Saint-Tropez' },
-  { slug: 'dubai', name: 'Dubai' },
-  { slug: 'miami', name: 'Miami' },
-  { slug: 'cannes', name: 'Cannes' },
-  { slug: 'monaco', name: 'Monaco' },
-  { slug: 'courchevel', name: 'Courchevel' },
-  { slug: 'saint-barth', name: 'Saint-Barthélemy' },
-  { slug: 'ibiza', name: 'Ibiza' },
-  { slug: 'mykonos', name: 'Mykonos' },
-  { slug: 'maldives', name: 'Maldives' },
-  { slug: 'aspen', name: 'Aspen' },
-  { slug: 'tulum', name: 'Tulum' },
-  { slug: 'cavalaire', name: 'Cavalaire-sur-Mer' },
-  { slug: 'milan', name: 'Milan' },
-  { slug: 'rome', name: 'Rome' },
   { slug: 'abu-dhabi', name: 'Abu Dhabi' },
+  { slug: 'aspen', name: 'Aspen' },
+  { slug: 'cannes', name: 'Cannes' },
+  { slug: 'cavalaire', name: 'Cavalaire-sur-Mer' },
+  { slug: 'courchevel', name: 'Courchevel' },
+  { slug: 'dubai', name: 'Dubai' },
+  { slug: 'ibiza', name: 'Ibiza' },
   { slug: 'jeddah', name: 'Jeddah' },
+  { slug: 'maldives', name: 'Maldives' },
+  { slug: 'miami', name: 'Miami' },
+  { slug: 'milan', name: 'Milan' },
+  { slug: 'monaco', name: 'Monaco' },
+  { slug: 'mykonos', name: 'Mykonos' },
+  { slug: 'rome', name: 'Rome' },
+  { slug: 'saint-barth', name: 'Saint-Barthélemy' },
+  { slug: 'saint-tropez', name: 'Saint-Tropez' },
+  { slug: 'tulum', name: 'Tulum' },
 ]
 
 type View = 'login' | 'forgot'

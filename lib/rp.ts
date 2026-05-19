@@ -54,6 +54,7 @@ export async function getRPProfile(slug: string): Promise<RPProfile | null> {
 
 // ── Destinations accessibles pour un RP ───────────────────
 // Supporte les slugs prédéfinis ET les destinations personnalisées (JSON)
+// Filtre les destinations custom marquées active: false
 export function getRPDestinations(rp: RPProfile): Destination[] {
   if (!rp.activated_destinations || rp.activated_destinations.length === 0) {
     return destinations
@@ -64,6 +65,8 @@ export function getRPDestinations(rp: RPProfile): Destination[] {
     try {
       const parsed = JSON.parse(raw)
       if (parsed?.slug && parsed?.name) {
+        // Skip si désactivée (active: false explicitement)
+        if (parsed.active === false) continue
         result.push({
           slug: parsed.slug,
           name: parsed.name,
@@ -82,6 +85,21 @@ export function getRPDestinations(rp: RPProfile): Destination[] {
   return result
 }
 
+// Helper : extrait tous les slugs (plain + JSON) d'un array activated_destinations
+// — utilisé pour matcher correctement les establishments.destination contre le storage mixte
+function extractDestSlugs(activated: string[]): Set<string> {
+  const set = new Set<string>()
+  for (const raw of activated) {
+    try {
+      const p = JSON.parse(raw)
+      if (p?.slug && p.active !== false) set.add(p.slug)
+    } catch {
+      set.add(raw) // slug prédéfini en clair
+    }
+  }
+  return set
+}
+
 // ── Établissements accessibles pour un RP ─────────────────
 // Si activated_venues est vide → tous les venues de ses destinations
 // Si activated_venues est renseigné → ceux-là + venues personnalisées (non dans data.ts)
@@ -89,9 +107,12 @@ export function getRPEstablishments(rp: RPProfile): Establishment[] {
   const rpDests = rp.activated_destinations ?? []
   const rpVenues = rp.activated_venues ?? []
 
-  // Filtrer d'abord par destinations activées
+  // Construire le Set des slugs activés (plain + JSON parsé, sans les inactifs)
+  const activeDestSlugs = extractDestSlugs(rpDests)
+
+  // Filtrer les establishments par destinations activées (Set match correct pour custom + prédéfinis)
   const byDest = rpDests.length > 0
-    ? establishments.filter(e => rpDests.includes(e.destination))
+    ? establishments.filter(e => activeDestSlugs.has(e.destination))
     : establishments
 
   if (rpVenues.length > 0) {
@@ -112,7 +133,8 @@ export function getRPEstablishments(rp: RPProfile): Establishment[] {
 
     // Venues personnalisées : noms non présents dans data.ts
     const customConfigs = venueConfigs.filter(v => !globalNames.has(v.name))
-    const primaryDest = rpDests[0] || 'custom'
+    // primaryDest : premier slug activé (priorité aux customs si présents, puis prédéfinis)
+    const primaryDest = Array.from(activeDestSlugs)[0] || 'custom'
     const customEsts: Establishment[] = customConfigs.map(v => ({
       slug: v.name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-'),
       destination: v.destination || primaryDest,

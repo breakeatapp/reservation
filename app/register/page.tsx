@@ -174,7 +174,15 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center px-6 py-16">
+    <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center px-6 py-16 relative">
+
+      {/* Bouton retour vers l'accueil — en haut à gauche */}
+      <Link
+        href="/"
+        className="absolute top-6 left-6 inline-flex items-center gap-2 text-[#F5F5F3]/30 hover:text-[#F5F5F3]/70 transition-colors text-[10px] tracking-[0.2em] uppercase z-10"
+      >
+        ← Retour à l'accueil
+      </Link>
 
       {/* Logo */}
       <div className="text-center mb-12">

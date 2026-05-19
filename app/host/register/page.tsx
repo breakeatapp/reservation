@@ -4,23 +4,23 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 const DESTINATIONS = [
-  { slug: 'saint-tropez', name: 'Saint-Tropez', country: 'France' },
-  { slug: 'dubai', name: 'Dubai', country: 'Émirats Arabes Unis' },
-  { slug: 'miami', name: 'Miami', country: 'États-Unis' },
-  { slug: 'cannes', name: 'Cannes', country: 'France' },
-  { slug: 'monaco', name: 'Monaco', country: 'Monaco' },
-  { slug: 'courchevel', name: 'Courchevel', country: 'France' },
-  { slug: 'saint-barth', name: 'Saint-Barthélemy', country: 'France' },
-  { slug: 'ibiza', name: 'Ibiza', country: 'Espagne' },
-  { slug: 'mykonos', name: 'Mykonos', country: 'Grèce' },
-  { slug: 'maldives', name: 'Maldives', country: 'Maldives' },
-  { slug: 'aspen', name: 'Aspen', country: 'États-Unis' },
-  { slug: 'tulum', name: 'Tulum', country: 'Mexique' },
-  { slug: 'cavalaire', name: 'Cavalaire-sur-Mer', country: 'France' },
-  { slug: 'milan', name: 'Milan', country: 'Italie' },
-  { slug: 'rome', name: 'Rome', country: 'Italie' },
   { slug: 'abu-dhabi', name: 'Abu Dhabi', country: 'Émirats Arabes Unis' },
+  { slug: 'aspen', name: 'Aspen', country: 'États-Unis' },
+  { slug: 'cannes', name: 'Cannes', country: 'France' },
+  { slug: 'cavalaire', name: 'Cavalaire-sur-Mer', country: 'France' },
+  { slug: 'courchevel', name: 'Courchevel', country: 'France' },
+  { slug: 'dubai', name: 'Dubai', country: 'Émirats Arabes Unis' },
+  { slug: 'ibiza', name: 'Ibiza', country: 'Espagne' },
   { slug: 'jeddah', name: 'Jeddah', country: 'Arabie Saoudite' },
+  { slug: 'maldives', name: 'Maldives', country: 'Maldives' },
+  { slug: 'miami', name: 'Miami', country: 'États-Unis' },
+  { slug: 'milan', name: 'Milan', country: 'Italie' },
+  { slug: 'monaco', name: 'Monaco', country: 'Monaco' },
+  { slug: 'mykonos', name: 'Mykonos', country: 'Grèce' },
+  { slug: 'rome', name: 'Rome', country: 'Italie' },
+  { slug: 'saint-barth', name: 'Saint-Barthélemy', country: 'France' },
+  { slug: 'saint-tropez', name: 'Saint-Tropez', country: 'France' },
+  { slug: 'tulum', name: 'Tulum', country: 'Mexique' },
 ]
 
 const CATEGORIES = [

@@ -279,13 +279,13 @@ export default function LandingPage() {
             /* ── Choix initial GUEST / RP / VENUE ── */
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-2xl mx-auto">
 
-              {/* MEMBERSHIP */}
+              {/* MEMBERS */}
               <button
                 onClick={() => setUserType('guest')}
                 className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-6 sm:p-10 transition-all duration-300 flex flex-col items-center justify-center gap-4 sm:gap-5 text-center backdrop-blur-sm"
               >
                 <span className="font-playfair text-xl sm:text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
-                  MEMBERSHIP
+                  MEMBERS
                 </span>
                 <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
                 <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
