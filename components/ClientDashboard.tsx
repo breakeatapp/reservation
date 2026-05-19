@@ -101,11 +101,15 @@ export default function ClientDashboard({ profile }: Props) {
 
   // Identité client
   const [email, setEmail] = useState('')
-  // Initialisation synchrone depuis localStorage pour éviter le flash "Compléter votre profil"
-  const [clientFirstName, setClientFirstName] = useState<string>(() => {
-    if (typeof window === 'undefined') return ''
-    return localStorage.getItem('itinera_guest_name') || ''
-  })
+  // ⚠ Hydration-safe : initialiser à '' côté serveur ET client, puis hydrater
+  // via useEffect. Lire localStorage dans le useState initializer crée un
+  // mismatch (server: '', client: 'Rémi') qui crash React en production.
+  const [clientFirstName, setClientFirstName] = useState<string>('')
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const saved = localStorage.getItem('itinera_guest_name')
+    if (saved) setClientFirstName(saved)
+  }, [])
   const [rpList, setRpList] = useState<RPSummary[]>([])
   const [identifyLoading, setIdentifyLoading] = useState(false)
   const [notRegistered, setNotRegistered] = useState(false)

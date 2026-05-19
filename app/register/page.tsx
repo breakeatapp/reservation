@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-const SITE_URL = typeof window !== 'undefined'
-  ? window.location.origin
-  : (process.env.NEXT_PUBLIC_SITE_URL || 'https://reservation-4gk2.vercel.app')
+// ⚠ Ne PAS calculer SITE_URL au niveau module : `typeof window` diverge entre
+// le rendu serveur (undefined) et le client (défini) → mismatch d'hydratation
+// qui crash React en production avec "Application error: a client-side exception".
+// On utilise une valeur stable pour le SSR puis on hydrate via useEffect.
+const SITE_URL_FALLBACK = process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'
 
 function slugify(str: string) {
   return str
@@ -30,6 +32,12 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // SITE_URL stable côté SSR, vrai origin côté client (après hydratation)
+  const [siteUrl, setSiteUrl] = useState(SITE_URL_FALLBACK)
+  useEffect(() => {
+    if (typeof window !== 'undefined') setSiteUrl(window.location.origin)
+  }, [])
 
   // ── Déjà inscrit ──
   const [showLogin, setShowLogin] = useState(false)
@@ -123,7 +131,7 @@ export default function RegisterPage() {
     }
   }
 
-  const inviteLink = slug ? `${SITE_URL}/${slug}` : `${SITE_URL}/votre-nom`
+  const inviteLink = slug ? `${siteUrl}/${slug}` : `${siteUrl}/votre-nom`
 
   const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -319,7 +327,7 @@ export default function RegisterPage() {
             Identifiant unique — lien client
           </p>
           <div className="flex items-center gap-1 mb-2">
-            <span className="text-[#F5F5F3]/20 text-xs truncate">{SITE_URL}/</span>
+            <span className="text-[#F5F5F3]/20 text-xs truncate">{siteUrl}/</span>
             <input
               type="text"
               value={slug}
