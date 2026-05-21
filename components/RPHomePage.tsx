@@ -90,7 +90,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-4">
             <Link
-              href={`/${slug}/mon-espace`}
+              href={`/${slug}/mon-espace?view=profile`}
               className="flex items-center gap-2 text-[11px] tracking-[0.2em] uppercase border px-5 py-2.5 transition-all hover:bg-white/5"
               style={connectedName
                 ? { borderColor: accent + '60', color: accent + 'dd' }
@@ -116,7 +116,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
           {/* Mobile : bouton "Mon compte" toujours visible + hamburger */}
           <div className="md:hidden flex items-center gap-2">
             <Link
-              href={`/${slug}/mon-espace`}
+              href={`/${slug}/mon-espace?view=profile`}
               className="flex items-center gap-1.5 text-[9px] tracking-[0.2em] uppercase border px-3 py-2 transition-colors"
               style={connectedName
                 ? { borderColor: accent + '40', color: accent + 'cc' }
@@ -150,7 +150,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
         {/* Menu mobile déroulant */}
         {menuOpen && (
           <div className="md:hidden bg-[#111] border-t border-white/5 px-6 py-5 space-y-3">
-            <Link href={`/${slug}/mon-espace`} className="flex items-center gap-3 text-[12px] tracking-[0.2em] uppercase text-[#F5F5F3]/70 py-2" onClick={() => setMenuOpen(false)}>
+            <Link href={`/${slug}/mon-espace?view=profile`} className="flex items-center gap-3 text-[12px] tracking-[0.2em] uppercase text-[#F5F5F3]/70 py-2" onClick={() => setMenuOpen(false)}>
               <span>👤</span> Mon Compte
             </Link>
           </div>
@@ -346,7 +346,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
             <Link href={`/${slug}/book`} className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/45 hover:text-[#F5F5F3]/70 transition-colors">
               Réserver
             </Link>
-            <Link href={`/${slug}/mon-espace`} className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/45 hover:text-[#F5F5F3]/70 transition-colors">
+            <Link href={`/${slug}/mon-espace?view=profile`} className="text-[10px] tracking-[0.2em] uppercase text-[#F5F5F3]/45 hover:text-[#F5F5F3]/70 transition-colors">
               Mon Compte
             </Link>
             {/* Lien discret dashboard RP — non visible par les clients */}
@@ -374,7 +374,7 @@ export default function RPHomePage({ profile, destinations, establishments }: Pr
             <span className="text-[9px] tracking-wider uppercase">Réserver</span>
           </Link>
 
-          <Link href={`/${slug}/mon-espace`} className="flex flex-col items-center justify-center gap-1 text-[#F5F5F3]/50 hover:text-[#F5F5F3]/80 transition-colors active:bg-white/3">
+          <Link href={`/${slug}/mon-espace?view=profile`} className="flex flex-col items-center justify-center gap-1 text-[#F5F5F3]/50 hover:text-[#F5F5F3]/80 transition-colors active:bg-white/3">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>

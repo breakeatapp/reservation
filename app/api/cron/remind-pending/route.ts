@@ -8,7 +8,7 @@ import {
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://itinera.click'
 
-// Vercel appelle cette route quotidiennement via vercel.json (8h UTC)
+// Vercel appelle cette route toutes les 6h via vercel.json (0h, 6h, 12h, 18h UTC)
 // Sécurisé par Authorization: Bearer CRON_SECRET
 export async function GET(req: NextRequest) {
   // Vérification du secret Vercel cron

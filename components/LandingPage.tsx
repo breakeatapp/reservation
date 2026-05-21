@@ -349,8 +349,8 @@ export default function LandingPage() {
           <span className="text-[9px] tracking-[0.45em] uppercase text-[#6E5BFF]/50">The Ecosystem</span>
         </div>
 
-        {/* Three roles */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/5">
+        {/* Four roles */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-white/5">
 
           {/* GUEST */}
           <div className="bg-[#0F1115] p-8 sm:p-10 group hover:bg-[#181C23] transition-colors duration-300">
@@ -444,6 +444,44 @@ export default function LandingPage() {
             </ul>
             <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F7FA]/20 mt-6 border-t border-white/5 pt-5">
               Trusted partners only
+            </p>
+          </div>
+
+          {/* GLOBAL ACCESS */}
+          <div
+            className="p-8 sm:p-10 group transition-colors duration-300 border-t border-white/5 md:border-t-0"
+            style={{ background: '#0F1115' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#100f08')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#0F1115')}
+          >
+            <p className="text-[8px] tracking-[0.5em] uppercase mb-5" style={{ color: 'rgba(201,168,76,0.4)' }}>04</p>
+            <h3 className="font-playfair text-2xl text-[#F5F7FA] tracking-wide mb-1">Itinera</h3>
+            <h3 className="font-playfair text-2xl tracking-wide mb-5" style={{ color: '#C9A84C' }}>Global Access</h3>
+            <span
+              className="w-6 h-px block mb-5 transition-colors"
+              style={{ background: 'rgba(201,168,76,0.3)' }}
+            />
+            <p className="text-[#F5F7FA]/45 text-sm leading-relaxed mb-5">
+              An exclusive network layer built for established hospitality operators.
+              Discover, connect and partner with elite concierges active across
+              the world's most sought-after destinations.
+            </p>
+            <ul className="space-y-2.5 mb-5">
+              {[
+                'Interactive world map of active RP operators by city',
+                'Ambassador & Trusted badges to identify top-tier partners',
+                'Send and receive partnership requests in one click',
+                'Partner filter: view only your connected operators',
+                'City search with instant RP directory',
+              ].map(f => (
+                <li key={f} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 flex-shrink-0" style={{ color: 'rgba(201,168,76,0.5)' }}>–</span>
+                  <span className="text-[#F5F7FA]/30 text-[12px] leading-relaxed">{f}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-[10px] tracking-[0.2em] uppercase mt-6 border-t pt-5" style={{ color: 'rgba(201,168,76,0.25)', borderColor: 'rgba(201,168,76,0.1)' }}>
+              RP operators only
             </p>
           </div>
 

@@ -120,8 +120,9 @@ export default function RegisterPage() {
         return
       }
 
-      // Sauvegarder le slug pour auto-reconnexion
+      // Sauvegarder le slug + mot de passe pour auto-reconnexion
       localStorage.setItem('itinera_rp_slug', slug)
+      localStorage.setItem(`itinera_rp_pw_${slug}`, password)
       // Redirection directe vers le dashboard
       router.push(`/${slug}/dashboard`)
     } catch {
@@ -163,8 +164,9 @@ export default function RegisterPage() {
       })
       const data = await res.json()
       if (!res.ok) { setLoginError(data.error || 'Erreur.'); return }
-      // Sauvegarder le slug pour auto-reconnexion
+      // Sauvegarder le slug + mot de passe pour auto-reconnexion
       localStorage.setItem('itinera_rp_slug', data.slug)
+      localStorage.setItem(`itinera_rp_pw_${data.slug}`, loginPassword)
       router.push(`/${data.slug}/dashboard`)
     } catch {
       setLoginError('Erreur réseau.')

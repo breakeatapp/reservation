@@ -120,6 +120,9 @@ export default function ClientDashboard({ profile }: Props) {
   const [showAddRP, setShowAddRP] = useState(false)
   const [addRPInput, setAddRPInput] = useState('')
   const [showRPPicker, setShowRPPicker] = useState(false)
+  const [addRPLoading, setAddRPLoading] = useState(false)
+  const [addRPError, setAddRPError] = useState('')
+  const [addRPSuccess, setAddRPSuccess] = useState('')
 
   // Navigation
   const [screen, setScreen] = useState<Screen>('home')
@@ -236,9 +239,20 @@ export default function ClientDashboard({ profile }: Props) {
   // pour ne plus jamais voir le loader éternel "Chargement de vos réservations…".
   useEffect(() => {
     if (screen === 'home' && autoLoginDone && email) {
-      setScreen('reservations')
+      const goToProfile = new URLSearchParams(window.location.search).get('view') === 'profile'
+      if (goToProfile) {
+        setProfileFirstName(clientFirstName)
+        setProfileLastName(localStorage.getItem('itinera_guest_lastname') || '')
+        setProfilePhone(localStorage.getItem('itinera_guest_phone') || '')
+        setProfileEmail(email)
+        setProfileSaved(false)
+        setDeleteConfirm(false)
+        setScreen('profile')
+      } else {
+        setScreen('reservations')
+      }
     }
-  }, [screen, autoLoginDone, email])
+  }, [screen, autoLoginDone, email, clientFirstName])
 
   // ── Auto-login depuis localStorage ───────────────────────────
   useEffect(() => {
@@ -283,7 +297,7 @@ export default function ClientDashboard({ profile }: Props) {
         }
         setRpList(rps)
 
-        // ── Auto-redirect direct vers les réservations (menu intermédiaire supprimé) ──
+        // ── Auto-redirect : profil si ?view=profile, sinon réservations ──
         const currentRP = rps.find(r => r.slug === profile.slug) ?? {
           slug: profile.slug,
           displayName: profile.display_name,
@@ -292,7 +306,19 @@ export default function ClientDashboard({ profile }: Props) {
           totalCount: 0, pendingCount: 0, confirmedCount: 0,
         }
         setViewingRp(currentRP)
-        setScreen('reservations')
+
+        const goToProfile = new URLSearchParams(window.location.search).get('view') === 'profile'
+        if (goToProfile) {
+          setProfileFirstName(firstName)
+          setProfileLastName(localStorage.getItem('itinera_guest_lastname') || '')
+          setProfilePhone(localStorage.getItem('itinera_guest_phone') || '')
+          setProfileEmail(saved)
+          setProfileSaved(false)
+          setDeleteConfirm(false)
+          setScreen('profile')
+        } else {
+          setScreen('reservations')
+        }
         setResaLoading(true)
         try {
           const resaRes = await fetch(`/api/client/reservations?email=${encodeURIComponent(saved)}&rpSlug=${profile.slug}`)
@@ -407,6 +433,72 @@ export default function ClientDashboard({ profile }: Props) {
       setTimeout(() => { setSaveSuccess(null); setSuccessMsg('') }, 4000)
     } catch { setError('Erreur réseau.') }
     finally { setSaveLoading(false) }
+  }
+
+  // ── Ajouter un nouveau concierge ─────────────────────────────
+  const handleAddRP = async () => {
+    if (!addRPInput.trim() || !email) return
+    setAddRPLoading(true)
+    setAddRPError('')
+    setAddRPSuccess('')
+
+    // Parser le slug depuis un lien (ex: "itinera.click/pierre-martin" → "pierre-martin")
+    let rpSlug = addRPInput.trim()
+    rpSlug = rpSlug.replace(/^https?:\/\//i, '')
+    rpSlug = rpSlug.replace(/^(?:www\.)?itinera\.click\//i, '')
+    rpSlug = rpSlug.split('/')[0].split('?')[0].trim().toLowerCase()
+
+    if (!rpSlug) {
+      setAddRPError('Veuillez entrer un lien ou identifiant valide.')
+      setAddRPLoading(false)
+      return
+    }
+    if (rpSlug === profile.slug) {
+      setAddRPError('Vous êtes déjà lié à ce concierge.')
+      setAddRPLoading(false)
+      return
+    }
+    if (rpList.some(r => r.slug === rpSlug)) {
+      setAddRPError('Ce concierge est déjà dans votre espace.')
+      setAddRPLoading(false)
+      return
+    }
+
+    try {
+      const res = await fetch('/api/client/self-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, firstName: clientFirstName, rpSlug }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setAddRPError(data.error === 'RP introuvable' ? 'Concierge introuvable. Vérifiez le lien.' : data.error || 'Erreur.')
+        return
+      }
+      setAddRPSuccess(`✦ ${data.rpDisplayName} a été ajouté à votre espace.`)
+      setAddRPInput('')
+
+      // Rafraîchir la liste des RPs
+      const rpsRes = await fetch(`/api/client/rps?email=${encodeURIComponent(email)}`)
+      const rpsData = await rpsRes.json()
+      const rps: RPSummary[] = rpsData.rps ?? []
+      if (!rps.some(r => r.slug === profile.slug)) {
+        rps.unshift({
+          slug: profile.slug,
+          displayName: profile.display_name,
+          accentColor: accent,
+          logoText: profile.logo_text ?? profile.slug.toUpperCase().slice(0, 4),
+          totalCount: 0, pendingCount: 0, confirmedCount: 0,
+        })
+      }
+      setRpList(rps)
+
+      setTimeout(() => { setShowAddRP(false); setAddRPSuccess('') }, 3000)
+    } catch {
+      setAddRPError('Erreur réseau. Veuillez réessayer.')
+    } finally {
+      setAddRPLoading(false)
+    }
   }
 
   const handleCancel = async (r: ClientReservation) => {
@@ -620,18 +712,17 @@ export default function ClientDashboard({ profile }: Props) {
   if (screen === 'profile') {
     return (
       <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
-        <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-5 py-3 flex items-center gap-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <span className="font-playfair italic text-white/70 text-xl leading-none">{profile.display_name}</span>
-            <span className="text-white/15 text-base">·</span>
-            <p className="font-playfair italic text-lg text-white/35 truncate capitalize">{clientFirstName}</p>
-          </div>
+        <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-5 py-3 flex items-center gap-3">
           <button
             onClick={() => setScreen('reservations')}
-            className="flex-shrink-0 text-[#F5F5F3]/25 hover:text-[#F5F5F3]/60 transition-colors text-[10px] tracking-[0.2em] uppercase border border-white/8 hover:border-white/20 px-3 py-1.5"
+            className="flex-shrink-0 text-[#F5F5F3]/30 hover:text-[#F5F5F3]/70 transition-colors text-lg leading-none"
+            aria-label="Retour aux réservations"
           >
-            ← Mes réservations
+            ←
           </button>
+          <p className="text-[9px] tracking-[0.45em] uppercase text-[#F5F5F3]/35 flex-1 text-center">Mon compte</p>
+          {/* Spacer pour centrer le titre */}
+          <div className="w-5 flex-shrink-0" />
         </div>
 
         <div className="max-w-md mx-auto px-5 py-10 space-y-4">
@@ -700,6 +791,94 @@ export default function ClientDashboard({ profile }: Props) {
           >
             Enregistrer
           </button>
+
+          {/* ── Mes concierges + Ajouter ── */}
+          <div className="pt-6 border-t border-white/8 mt-6 space-y-3">
+            <p className="text-[9px] tracking-[0.4em] uppercase text-[#F5F5F3]/25">Mes concierges</p>
+
+            {/* Liste des RPs liés */}
+            {rpList.length > 0 && (
+              <div className="space-y-2">
+                {rpList.map(rp => (
+                  <button
+                    key={rp.slug}
+                    onClick={() => selectRP(rp)}
+                    className="w-full flex items-center gap-3 px-4 py-3 border border-white/5 hover:border-white/15 hover:bg-white/2 transition-all text-left"
+                  >
+                    <div
+                      className="w-8 h-8 flex items-center justify-center flex-shrink-0 text-[9px] font-bold tracking-wider"
+                      style={{ background: rp.accentColor + '22', color: rp.accentColor }}
+                    >
+                      {rp.logoText}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[#F5F5F3]/70 text-sm font-playfair italic truncate">{rp.displayName}</p>
+                      <p className="text-[#F5F5F3]/20 text-[9px]">
+                        {rp.totalCount > 0
+                          ? `${rp.totalCount} réservation${rp.totalCount > 1 ? 's' : ''}${rp.pendingCount > 0 ? ` · ${rp.pendingCount} en attente` : ''}`
+                          : 'Aucune réservation'}
+                      </p>
+                    </div>
+                    {rp.pendingCount > 0 && (
+                      <span
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                        style={{ background: rp.accentColor + '33', color: rp.accentColor }}
+                      >
+                        {rp.pendingCount}
+                      </span>
+                    )}
+                    <span className="text-[#F5F5F3]/15 text-sm flex-shrink-0">→</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Ajouter un concierge */}
+            {!showAddRP ? (
+              <button
+                onClick={() => setShowAddRP(true)}
+                className="w-full py-3.5 border border-white/8 hover:border-white/20 text-[#F5F5F3]/25 hover:text-[#F5F5F3]/50 text-[10px] tracking-[0.35em] uppercase transition-all flex items-center justify-center gap-2"
+              >
+                <span className="text-base leading-none">+</span>
+                Ajouter un concierge
+              </button>
+            ) : (
+              <div className="border border-white/10 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] tracking-[0.4em] uppercase text-[#F5F5F3]/35">Ajouter un concierge</p>
+                  <button
+                    onClick={() => { setShowAddRP(false); setAddRPInput(''); setAddRPError(''); setAddRPSuccess('') }}
+                    className="text-[#F5F5F3]/20 hover:text-[#F5F5F3]/50 transition-colors text-xl leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+                <p className="text-[#F5F5F3]/20 text-[11px] leading-relaxed">
+                  Collez le lien (ex : <span className="font-mono">itinera.click/pierre-martin</span>) ou l'identifiant du concierge.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    value={addRPInput}
+                    onChange={e => { setAddRPInput(e.target.value); setAddRPError(''); setAddRPSuccess('') }}
+                    onKeyDown={e => { if (e.key === 'Enter') handleAddRP() }}
+                    placeholder="itinera.click/votre-concierge"
+                    autoFocus
+                    className="flex-1 bg-white/3 border border-white/10 px-3 py-2.5 text-sm text-[#F5F5F3] placeholder-white/15 focus:outline-none focus:border-white/25 transition-colors"
+                  />
+                  <button
+                    onClick={handleAddRP}
+                    disabled={addRPLoading || !addRPInput.trim()}
+                    className="px-4 py-2.5 text-white text-[10px] tracking-[0.2em] uppercase transition-all disabled:opacity-30 hover:opacity-90 flex-shrink-0"
+                    style={{ background: accent }}
+                  >
+                    {addRPLoading ? '…' : 'Ajouter'}
+                  </button>
+                </div>
+                {addRPError && <p className="text-red-400/70 text-xs">⚠ {addRPError}</p>}
+                {addRPSuccess && <p className="text-green-400/70 text-xs">✓ {addRPSuccess}</p>}
+              </div>
+            )}
+          </div>
 
           {/* Déconnexion + Suppression */}
           <div className="pt-6 border-t border-white/8 mt-6 space-y-2">
@@ -1056,6 +1235,7 @@ export default function ClientDashboard({ profile }: Props) {
 
           </>
         )}
+
       </div>
     </div>
   )

@@ -160,25 +160,34 @@ function generateDays(start: string, end: string): DayPlan[] {
   return days
 }
 
-// Toutes les destinations disponibles dans la plateforme
+// Toutes les destinations disponibles dans la plateforme (triées A→Z)
 const ALL_DESTINATIONS = [
-  { slug: 'abu-dhabi', name: 'Abu Dhabi', emoji: '🕌' },
-  { slug: 'aspen', name: 'Aspen', emoji: '🏔️' },
-  { slug: 'cannes', name: 'Cannes', emoji: '🎬' },
-  { slug: 'cavalaire', name: 'Cavalaire-sur-Mer', emoji: '⚓' },
-  { slug: 'courchevel', name: 'Courchevel', emoji: '⛷️' },
-  { slug: 'dubai', name: 'Dubai', emoji: '🏙️' },
-  { slug: 'ibiza', name: 'Ibiza', emoji: '🎶' },
-  { slug: 'jeddah', name: 'Jeddah', emoji: '🌙' },
-  { slug: 'maldives', name: 'Maldives', emoji: '🌺' },
-  { slug: 'miami', name: 'Miami', emoji: '🌴' },
-  { slug: 'milan', name: 'Milan', emoji: '👗' },
-  { slug: 'monaco', name: 'Monaco', emoji: '🎰' },
-  { slug: 'mykonos', name: 'Mykonos', emoji: '🏛️' },
-  { slug: 'rome', name: 'Rome', emoji: '🏟️' },
-  { slug: 'saint-barth', name: 'Saint-Barthélemy', emoji: '🌊' },
-  { slug: 'saint-tropez', name: 'Saint-Tropez', emoji: '⛵' },
-  { slug: 'tulum', name: 'Tulum', emoji: '🌿' },
+  { slug: 'abu-dhabi',             name: 'Abu Dhabi',         emoji: '🕌' },
+  { slug: 'aspen',                 name: 'Aspen',             emoji: '🏔️' },
+  { slug: 'bali',                  name: 'Bali',              emoji: '🌴' },
+  { slug: 'barcelona',             name: 'Barcelona',         emoji: '🏛️' },
+  { slug: 'cannes',                name: 'Cannes',            emoji: '🎬' },
+  { slug: 'cavalaire',             name: 'Cavalaire-sur-Mer', emoji: '⚓' },
+  { slug: 'courchevel',            name: 'Courchevel',        emoji: '⛷️' },
+  { slug: 'dubai',                 name: 'Dubai',             emoji: '🏙️' },
+  { slug: 'ibiza',                 name: 'Ibiza',             emoji: '🎶' },
+  { slug: 'jeddah',                name: 'Jeddah',            emoji: '🌙' },
+  { slug: 'london',                name: 'London',            emoji: '🇬🇧' },
+  { slug: 'los-angeles',           name: 'Los Angeles',       emoji: '🌅' },
+  { slug: 'maldives',              name: 'Maldives',          emoji: '🌺' },
+  { slug: 'marrakech',             name: 'Marrakech',         emoji: '🕌' },
+  { slug: 'miami',                 name: 'Miami',             emoji: '🌊' },
+  { slug: 'milan',                 name: 'Milan',             emoji: '👗' },
+  { slug: 'monaco',                name: 'Monaco',            emoji: '🎰' },
+  { slug: 'mykonos',               name: 'Mykonos',           emoji: '⛵' },
+  { slug: 'new-york',              name: 'New York',          emoji: '🗽' },
+  { slug: 'paris',                 name: 'Paris',             emoji: '🗼' },
+  { slug: 'phuket',                name: 'Phuket',            emoji: '🐘' },
+  { slug: 'rome',                  name: 'Rome',              emoji: '🏟️' },
+  { slug: 'saint-barth',           name: 'Saint-Barthélemy',  emoji: '🌊' },
+  { slug: 'saint-jean-cap-ferrat', name: 'Cap Ferrat',        emoji: '🏖️' },
+  { slug: 'saint-tropez',          name: 'Saint-Tropez',      emoji: '⛵' },
+  { slug: 'tulum',                 name: 'Tulum',             emoji: '🌿' },
 ]
 
 const RP_STORAGE_KEY = (slug: string) => `itinera_rp_pw_${slug}`
@@ -189,6 +198,7 @@ export default function RPDashboard({ profile }: Props) {
   const [authenticated, setAuthenticated] = useState(false)
   const [authError, setAuthError] = useState(false)
   const [showNetwork, setShowNetwork] = useState(false)
+  const [pendingCount, setPendingCount] = useState(0)
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState<'all' | ReservationStatus>('all')
@@ -241,7 +251,6 @@ export default function RPDashboard({ profile }: Props) {
   const [configDests, setConfigDests] = useState<string[]>(profile.activated_destinations ?? [])
   const [configVenues, setConfigVenues] = useState<string[]>(profile.activated_venues ?? [])
   const configAccent = '#5B3DF5'
-  const [configLogoText, setConfigLogoText] = useState(profile.logo_text || '')
   const [configWhatsapp, setConfigWhatsapp] = useState(profile.whatsapp || '')
   const [configNotifPref, setConfigNotifPref] = useState<'email' | 'whatsapp' | 'both'>(profile.notification_pref || 'email')
   const [configSaving, setConfigSaving] = useState(false)
@@ -358,9 +367,15 @@ export default function RPDashboard({ profile }: Props) {
     }
   }, [password, profile.slug])
 
-  // ── Auto-login depuis localStorage ───────────────────────────
+  // ── Auto-login depuis localStorage ou cookie ─────────────────
   useEffect(() => {
-    const saved = localStorage.getItem(RP_STORAGE_KEY(profile.slug))
+    let saved = localStorage.getItem(RP_STORAGE_KEY(profile.slug))
+    if (!saved) {
+      // Fallback cookie (iOS Safari vide le localStorage en navigation privée)
+      const cookieKey = RP_STORAGE_KEY(profile.slug)
+      const match = document.cookie.split(';').find(c => c.trim().startsWith(`${cookieKey}=`))
+      if (match) saved = decodeURIComponent(match.split('=').slice(1).join('='))
+    }
     if (saved && saved === profile.dashboard_password) {
       setPassword(saved)
       setAuthenticated(true)
@@ -371,6 +386,10 @@ export default function RPDashboard({ profile }: Props) {
     e.preventDefault()
     if (password === profile.dashboard_password) {
       localStorage.setItem(RP_STORAGE_KEY(profile.slug), password)
+      // Cookie 1 an — survit à l'ITP d'iOS Safari
+      const expires = new Date()
+      expires.setFullYear(expires.getFullYear() + 1)
+      document.cookie = `${RP_STORAGE_KEY(profile.slug)}=${encodeURIComponent(password)}; expires=${expires.toUTCString()}; path=/; SameSite=Strict`
       setAuthenticated(true)
       setAuthError(false)
     } else {
@@ -381,6 +400,8 @@ export default function RPDashboard({ profile }: Props) {
   const handleLogout = () => {
     localStorage.removeItem(RP_STORAGE_KEY(profile.slug))
     localStorage.removeItem('itinera_rp_slug')
+    // Supprime aussi le cookie
+    document.cookie = `${RP_STORAGE_KEY(profile.slug)}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Strict`
     setAuthenticated(false)
     setPassword('')
     router.replace('/register')
@@ -389,6 +410,23 @@ export default function RPDashboard({ profile }: Props) {
   useEffect(() => {
     if (authenticated) fetchReservations()
   }, [authenticated, fetchReservations])
+
+  // Comptage des invitations RP en attente (badge sur Global Access)
+  const fetchPendingCount = useCallback(async () => {
+    if (!authenticated) return
+    try {
+      const r = await fetch(
+        `/api/network/pending?rp_slug=${encodeURIComponent(profile.slug)}`,
+        { headers: { 'x-rp-password': password } }
+      )
+      if (r.ok) {
+        const d = await r.json()
+        setPendingCount(Array.isArray(d) ? d.length : 0)
+      }
+    } catch { /* ignore */ }
+  }, [authenticated, profile.slug, password])
+
+  useEffect(() => { fetchPendingCount() }, [fetchPendingCount])
 
   // Charger la fiche client quand une réservation est sélectionnée
   useEffect(() => {
@@ -556,16 +594,28 @@ export default function RPDashboard({ profile }: Props) {
             <p className="text-[#F5F5F3]/20 text-xs mt-2 tracking-wider">Dashboard de gestion</p>
           </div>
           <form onSubmit={handleLogin} className="bg-[#141414] border border-white/5 p-8">
+            {/* Champ username caché — iOS Safari en a besoin pour mémoriser le mot de passe */}
+            <input
+              type="text"
+              name="username"
+              autoComplete="username"
+              value={profile.slug}
+              readOnly
+              style={{ display: 'none' }}
+              aria-hidden="true"
+            />
             <label className="block text-[9px] tracking-[0.3em] text-[#F5F5F3]/30 uppercase mb-2">
               Mot de passe
             </label>
             <input
               type="password"
+              name="password"
+              id="rp-dashboard-password"
+              autoComplete="current-password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-4 py-3.5 text-sm focus:border-white/30 outline-none transition-colors mb-4"
               placeholder="••••••••"
-              autoFocus
             />
             {authError && <p className="text-red-400/60 text-xs mb-4">Mot de passe incorrect.</p>}
             <button
@@ -981,7 +1031,6 @@ export default function RPDashboard({ profile }: Props) {
         body: JSON.stringify({
           activated_destinations: configDests,
           activated_venues: configVenues,
-          logo_text: configLogoText,
           whatsapp: configWhatsapp.trim() || null,
           notification_pref: configNotifPref,
         }),
@@ -1054,10 +1103,13 @@ export default function RPDashboard({ profile }: Props) {
       setShowServicePicker(true)
       return
     }
-    // ── Doublon ──────────────────────────────────────────────────
+    // ── Doublon : même nom ET même destination ───────────────────
     const existing = configVenues.map(parseVenueEntry)
-    if (existing.some(v => v.name.toLowerCase() === name.toLowerCase())) {
-      setAddVenueError(`"${name}" est déjà dans votre liste.`)
+    if (existing.some(v =>
+      v.name.toLowerCase() === name.toLowerCase() &&
+      v.destination === newVenueDest
+    )) {
+      setAddVenueError(`"${name}" existe déjà dans cette ville.`)
       return
     }
     const serialized = serializeVenueEntry({
@@ -1234,24 +1286,6 @@ ${profile.display_name}`
               </div>
             )
           })()}
-
-          {/* ── Profil ── */}
-          <div className="bg-[#141414] border border-white/5 p-5">
-            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-4">Profil public</p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-[8px] tracking-wider text-[#F5F5F3]/30 uppercase mb-1.5">Texte logo</label>
-                <input
-                  type="text"
-                  value={configLogoText}
-                  onChange={e => setConfigLogoText(e.target.value)}
-                  className="w-full bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-white/25 transition-colors"
-                  placeholder="ÉLITE"
-                />
-              </div>
-            </div>
-          </div>
 
           {/* ── Notifications WhatsApp ── */}
           <div className="bg-[#141414] border border-white/5 p-5">
@@ -1449,68 +1483,6 @@ ${profile.display_name}`
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* ── Connexions venue partenaires ── */}
-          <div className="bg-[#141414] border border-[#5B3DF5]/20 p-5">
-            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-1">Venues partenaires</p>
-            <p className="text-[#F5F5F3]/25 text-xs mb-4 leading-relaxed">
-              Connectez-vous à un restaurant ou venue partenaire grâce au code d'invitation qu'ils vous ont fourni. Vos réservations apparaîtront directement dans leur dashboard.
-            </p>
-
-            {/* Input code */}
-            <div className="flex gap-2 mb-3">
-              <input
-                type="text"
-                value={venueInviteInput}
-                onChange={e => setVenueInviteInput(e.target.value.toUpperCase())}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); connectToVenue() } }}
-                placeholder="Code d'invitation (ex: AB3X7K2M)"
-                maxLength={12}
-                className="flex-1 bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-[#5B3DF5]/40 transition-colors placeholder-[#F5F5F3]/20 font-mono tracking-wider uppercase"
-              />
-              <button
-                onClick={connectToVenue}
-                disabled={venueConnecting || !venueInviteInput.trim()}
-                className="px-4 py-2 border border-[#5B3DF5]/40 text-[#5B3DF5]/70 text-[10px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/8 transition-colors disabled:opacity-30 flex-shrink-0"
-              >
-                {venueConnecting ? '...' : 'Connecter'}
-              </button>
-            </div>
-
-            {venueConnectMsg && (
-              <div className={`text-[11px] px-3 py-2 mb-3 border ${
-                venueConnectMsg.type === 'success'
-                  ? 'text-emerald-400/80 border-emerald-400/20 bg-emerald-400/5'
-                  : 'text-red-400/80 border-red-400/20 bg-red-400/5'
-              }`}>
-                {venueConnectMsg.text}
-              </div>
-            )}
-
-            {/* List of connected venues */}
-            {connectedVenues.length > 0 && (
-              <div className="space-y-2 mt-4">
-                <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F5F3]/20 mb-2">Venues connectés ({connectedVenues.length})</p>
-                {connectedVenues.map(v => (
-                  <div key={v.venue_slug} className="flex items-center justify-between bg-[#0B0B0B] border border-white/5 px-3 py-2.5">
-                    <div>
-                      <p className="text-[#F5F5F3]/70 text-sm">{v.venue_name}</p>
-                      {v.created_at && (
-                        <p className="text-[#F5F5F3]/20 text-[9px] mt-0.5">
-                          depuis {new Date(v.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </p>
-                      )}
-                    </div>
-                    <span className="text-[9px] tracking-[0.15em] uppercase text-emerald-400/60 border border-emerald-400/20 px-2 py-0.5">✓</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {connectedVenuesLoaded && connectedVenues.length === 0 && (
-              <p className="text-[#F5F5F3]/15 text-[10px] text-center py-2">Aucun venue connecté pour l'instant.</p>
-            )}
           </div>
 
           {/* ── Restaurants & Venues ── */}
@@ -1730,6 +1702,68 @@ ${profile.display_name}`
               <p className="text-[#F5F5F3]/20 text-xs italic text-center py-4">
                 Aucun établissement configuré.
               </p>
+            )}
+          </div>
+
+          {/* ── Connexions venue partenaires ── */}
+          <div className="bg-[#141414] border border-[#5B3DF5]/20 p-5">
+            <p className="text-[9px] tracking-[0.3em] text-[#5B3DF5] uppercase mb-1">Venues partenaires</p>
+            <p className="text-[#F5F5F3]/25 text-xs mb-4 leading-relaxed">
+              Connectez-vous à un restaurant ou venue partenaire grâce au code d'invitation qu'ils vous ont fourni. Vos réservations apparaîtront directement dans leur dashboard.
+            </p>
+
+            {/* Input code */}
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={venueInviteInput}
+                onChange={e => setVenueInviteInput(e.target.value.toUpperCase())}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); connectToVenue() } }}
+                placeholder="Code d'invitation (ex: AB3X7K2M)"
+                maxLength={12}
+                className="flex-1 bg-[#0B0B0B] border border-white/10 text-[#F5F5F3] px-3 py-2.5 text-sm outline-none focus:border-[#5B3DF5]/40 transition-colors placeholder-[#F5F5F3]/20 font-mono tracking-wider uppercase"
+              />
+              <button
+                onClick={connectToVenue}
+                disabled={venueConnecting || !venueInviteInput.trim()}
+                className="px-4 py-2 border border-[#5B3DF5]/40 text-[#5B3DF5]/70 text-[10px] tracking-[0.2em] uppercase hover:bg-[#5B3DF5]/8 transition-colors disabled:opacity-30 flex-shrink-0"
+              >
+                {venueConnecting ? '...' : 'Connecter'}
+              </button>
+            </div>
+
+            {venueConnectMsg && (
+              <div className={`text-[11px] px-3 py-2 mb-3 border ${
+                venueConnectMsg.type === 'success'
+                  ? 'text-emerald-400/80 border-emerald-400/20 bg-emerald-400/5'
+                  : 'text-red-400/80 border-red-400/20 bg-red-400/5'
+              }`}>
+                {venueConnectMsg.text}
+              </div>
+            )}
+
+            {/* List of connected venues */}
+            {connectedVenues.length > 0 && (
+              <div className="space-y-2 mt-4">
+                <p className="text-[8px] tracking-[0.3em] uppercase text-[#F5F5F3]/20 mb-2">Venues connectés ({connectedVenues.length})</p>
+                {connectedVenues.map(v => (
+                  <div key={v.venue_slug} className="flex items-center justify-between bg-[#0B0B0B] border border-white/5 px-3 py-2.5">
+                    <div>
+                      <p className="text-[#F5F5F3]/70 text-sm">{v.venue_name}</p>
+                      {v.created_at && (
+                        <p className="text-[#F5F5F3]/20 text-[9px] mt-0.5">
+                          depuis {new Date(v.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-[9px] tracking-[0.15em] uppercase text-emerald-400/60 border border-emerald-400/20 px-2 py-0.5">✓</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {connectedVenuesLoaded && connectedVenues.length === 0 && (
+              <p className="text-[#F5F5F3]/15 text-[10px] text-center py-2">Aucun venue connecté pour l'instant.</p>
             )}
           </div>
 
@@ -2910,7 +2944,7 @@ ${profile.display_name}`
       <GlobalAccessModal
         rpSlug={profile.slug}
         rpPassword={password}
-        onClose={() => setShowNetwork(false)}
+        onClose={() => { setShowNetwork(false); fetchPendingCount() }}
       />
     )}
     <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
@@ -2970,8 +3004,17 @@ ${profile.display_name}`
           </button>
           <button
             onClick={() => setShowNetwork(true)}
-            className="flex flex-col items-center justify-center gap-1 text-white/70 hover:text-[#5B3DF5] transition-colors border border-white/15 hover:border-[#5B3DF5]/40 py-2.5 px-1 text-center"
+            className="relative flex flex-col items-center justify-center gap-1 transition-colors py-2.5 px-1 text-center"
+            style={{ color: 'rgba(201,168,76,0.75)', border: '1px solid rgba(201,168,76,0.25)' }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#C9A84C'; e.currentTarget.style.borderColor = 'rgba(201,168,76,0.55)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(201,168,76,0.75)'; e.currentTarget.style.borderColor = 'rgba(201,168,76,0.25)' }}
           >
+            {pendingCount > 0 && (
+              <span
+                className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center text-[9px] font-bold text-white rounded-full"
+                style={{ background: '#DC2626', boxShadow: '0 0 6px 2px rgba(220,38,38,0.5)' }}
+              >{pendingCount}</span>
+            )}
             <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
             <span className="text-[8px] tracking-wider uppercase leading-tight">Global Access</span>
           </button>
@@ -3010,9 +3053,18 @@ ${profile.display_name}`
           </button>
           <button
             onClick={() => setShowNetwork(true)}
-            className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase text-white/70 hover:text-[#5B3DF5] transition-colors border border-white/20 hover:border-[#5B3DF5]/40 px-3 py-2"
+            className="relative flex items-center gap-1.5 text-[10px] tracking-[0.2em] uppercase transition-colors px-3 py-2"
+            style={{ color: 'rgba(201,168,76,0.75)', border: '1px solid rgba(201,168,76,0.25)' }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#C9A84C'; e.currentTarget.style.borderColor = 'rgba(201,168,76,0.55)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(201,168,76,0.75)'; e.currentTarget.style.borderColor = 'rgba(201,168,76,0.25)' }}
           >
             🌐 Global Access
+            {pendingCount > 0 && (
+              <span
+                className="ml-1 min-w-[16px] h-4 px-1 flex items-center justify-center text-[9px] font-bold text-white rounded-full"
+                style={{ background: '#DC2626', boxShadow: '0 0 6px 2px rgba(220,38,38,0.5)' }}
+              >{pendingCount}</span>
+            )}
           </button>
         </div>
 
