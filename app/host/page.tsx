@@ -6,6 +6,26 @@ import { useRouter } from 'next/navigation'
 
 type View = 'login' | 'forgot'
 
+const DESTINATIONS = [
+  { slug: 'abu-dhabi', name: 'Abu Dhabi' },
+  { slug: 'aspen', name: 'Aspen' },
+  { slug: 'cannes', name: 'Cannes' },
+  { slug: 'cavalaire', name: 'Cavalaire-sur-Mer' },
+  { slug: 'courchevel', name: 'Courchevel' },
+  { slug: 'dubai', name: 'Dubai' },
+  { slug: 'ibiza', name: 'Ibiza' },
+  { slug: 'jeddah', name: 'Jeddah' },
+  { slug: 'maldives', name: 'Maldives' },
+  { slug: 'miami', name: 'Miami' },
+  { slug: 'milan', name: 'Milan' },
+  { slug: 'monaco', name: 'Monaco' },
+  { slug: 'mykonos', name: 'Mykonos' },
+  { slug: 'rome', name: 'Rome' },
+  { slug: 'saint-barth', name: 'Saint-Barthélemy' },
+  { slug: 'saint-tropez', name: 'Saint-Tropez' },
+  { slug: 'tulum', name: 'Tulum' },
+]
+
 export default function HostLoginPage() {
   const router = useRouter()
   const [view, setView] = useState<View>('login')
@@ -147,14 +167,17 @@ export default function HostLoginPage() {
                     <label className="block text-[9px] tracking-[0.3em] uppercase text-[#F5F7FA]/40 mb-2">
                       Ville
                     </label>
-                    <input
-                      type="text"
+                    <select
                       value={destination}
                       onChange={e => setDestination(e.target.value)}
-                      placeholder="ex: Saint-Tropez, Dubai, Mykonos..."
                       required
-                      className="w-full bg-[#0F1115] border border-white/10 text-[#F5F7FA] px-4 py-3 text-sm focus:border-white/25 outline-none placeholder-[#F5F7FA]/20 transition-colors"
-                    />
+                      className="w-full bg-[#0F1115] border border-white/10 text-[#F5F7FA] px-4 py-3 text-sm focus:border-white/25 outline-none transition-colors cursor-pointer"
+                    >
+                      <option value="" className="bg-[#0F1115]">Sélectionner une ville...</option>
+                      {DESTINATIONS.map(d => (
+                        <option key={d.slug} value={d.slug} className="bg-[#0F1115]">{d.name}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
@@ -252,14 +275,17 @@ export default function HostLoginPage() {
                       <label className="block text-[9px] tracking-[0.3em] uppercase text-[#F5F7FA]/40 mb-2">
                         Ville *
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={forgotDestination}
                         onChange={e => setForgotDestination(e.target.value)}
-                        placeholder="ex: Saint-Tropez, Dubai..."
                         required
-                        className="w-full bg-[#0F1115] border border-white/10 text-[#F5F7FA] px-4 py-3 text-sm focus:border-white/25 outline-none placeholder-[#F5F7FA]/20 transition-colors"
-                      />
+                        className="w-full bg-[#0F1115] border border-white/10 text-[#F5F7FA] px-4 py-3 text-sm focus:border-white/25 outline-none transition-colors cursor-pointer"
+                      >
+                        <option value="" className="bg-[#0F1115]">Sélectionner...</option>
+                        {DESTINATIONS.map(d => (
+                          <option key={d.slug} value={d.slug} className="bg-[#0F1115]">{d.name}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>

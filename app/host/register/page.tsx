@@ -3,6 +3,26 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+const DESTINATIONS = [
+  { slug: 'abu-dhabi', name: 'Abu Dhabi', country: 'Émirats Arabes Unis' },
+  { slug: 'aspen', name: 'Aspen', country: 'États-Unis' },
+  { slug: 'cannes', name: 'Cannes', country: 'France' },
+  { slug: 'cavalaire', name: 'Cavalaire-sur-Mer', country: 'France' },
+  { slug: 'courchevel', name: 'Courchevel', country: 'France' },
+  { slug: 'dubai', name: 'Dubai', country: 'Émirats Arabes Unis' },
+  { slug: 'ibiza', name: 'Ibiza', country: 'Espagne' },
+  { slug: 'jeddah', name: 'Jeddah', country: 'Arabie Saoudite' },
+  { slug: 'maldives', name: 'Maldives', country: 'Maldives' },
+  { slug: 'miami', name: 'Miami', country: 'États-Unis' },
+  { slug: 'milan', name: 'Milan', country: 'Italie' },
+  { slug: 'monaco', name: 'Monaco', country: 'Monaco' },
+  { slug: 'mykonos', name: 'Mykonos', country: 'Grèce' },
+  { slug: 'rome', name: 'Rome', country: 'Italie' },
+  { slug: 'saint-barth', name: 'Saint-Barthélemy', country: 'France' },
+  { slug: 'saint-tropez', name: 'Saint-Tropez', country: 'France' },
+  { slug: 'tulum', name: 'Tulum', country: 'Mexique' },
+]
+
 
 export default function HostRegisterPage() {
   const router = useRouter()
@@ -111,14 +131,19 @@ export default function HostRegisterPage() {
                 <label className="block text-[9px] tracking-[0.3em] uppercase text-[#F5F7FA]/40 mb-2">
                   Ville *
                 </label>
-                <input
-                  type="text"
+                <select
                   value={destination}
                   onChange={e => setDestination(e.target.value)}
-                  placeholder="ex: Saint-Tropez, Dubai, Mykonos..."
                   required
-                  className="w-full bg-[#0F1115] border border-white/10 text-[#F5F7FA] px-4 py-3 text-sm focus:border-[#6E5BFF]/40 outline-none placeholder-[#F5F7FA]/20 transition-colors"
-                />
+                  className="w-full bg-[#0F1115] border border-white/10 text-[#F5F7FA] px-4 py-3 text-sm focus:border-[#6E5BFF]/40 outline-none transition-colors cursor-pointer"
+                >
+                  <option value="" className="bg-[#0F1115]">Sélectionner une ville...</option>
+                  {DESTINATIONS.map(d => (
+                    <option key={d.slug} value={d.slug} className="bg-[#0F1115]">
+                      {d.name} — {d.country}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Category */}
