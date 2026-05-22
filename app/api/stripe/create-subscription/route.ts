@@ -8,7 +8,7 @@ import Stripe from 'stripe'
 // Returns: { clientSecret: string, subscriptionId: string }
 export async function POST(req: Request) {
   try {
-    const { plan, profileSlug } = await req.json()
+    const { plan, profileSlug, promoCode } = await req.json()
 
     if (!plan || !PRICE_IDS[plan as PlanType]) {
       return NextResponse.json({ error: 'Plan invalide.' }, { status: 400 })
@@ -105,6 +105,18 @@ export async function POST(req: Request) {
       }
     }
 
+    // ── Résoudre le code promo si fourni ────────────────────
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let discounts: any[] | undefined
+    if (promoCode) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const codes = await (stripe.promotionCodes as any).list({ code: promoCode, active: true, limit: 1 })
+      if (codes.data.length > 0) {
+        discounts = [{ promotion_code: codes.data[0].id }]
+      }
+      // Si code invalide on continue sans discount (pas bloquant ici, validé côté client)
+    }
+
     // ── Create subscription ──────────────────────────────────
     const subscription = await stripe.subscriptions.create({
       customer: customerId,
@@ -113,6 +125,7 @@ export async function POST(req: Request) {
       payment_settings: {
         save_default_payment_method: 'on_subscription',
       },
+      ...(discounts ? { discounts } : {}),
       metadata: { planType, profileSlug },
     })
 

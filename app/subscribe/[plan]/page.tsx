@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, Suspense } from 'react'
+import { useState, useCallback, Suspense } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
 import {
@@ -14,10 +14,11 @@ import {
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
 // ── Plan data ────────────────────────────────────────────────
-const PLAN_INFO: Record<string, { label: string; price: string; features: string[]; color: string }> = {
+const PLAN_INFO: Record<string, {
+  label: string; price: string; amount: number; currency: string; color: string; features: string[]
+}> = {
   rp: {
-    label: 'Itinera RP',
-    price: '19,90 €',
+    label: 'Itinera RP', price: '19,90 €', amount: 1990, currency: 'eur',
     color: '#6E5BFF',
     features: [
       'Réservations illimitées',
@@ -28,8 +29,7 @@ const PLAN_INFO: Record<string, { label: string; price: string; features: string
     ],
   },
   venue: {
-    label: 'Itinera Venue',
-    price: '49,90 €',
+    label: 'Itinera Venue', price: '49,90 €', amount: 4990, currency: 'eur',
     color: '#10B981',
     features: [
       'Réservations illimitées',
@@ -40,8 +40,7 @@ const PLAN_INFO: Record<string, { label: string; price: string; features: string
     ],
   },
   group: {
-    label: 'Itinera Group',
-    price: '149,90 €',
+    label: 'Itinera Group', price: '149,90 €', amount: 14990, currency: 'eur',
     color: '#F59E0B',
     features: [
       'Gestion multi-établissements illimitée',
@@ -55,36 +54,90 @@ const PLAN_INFO: Record<string, { label: string; price: string; features: string
 
 // ── Checkout Form ────────────────────────────────────────────
 function CheckoutForm({
-  plan,
-  slug,
-  planInfo,
+  plan, slug, planInfo,
 }: {
-  plan: string
-  slug: string
-  planInfo: (typeof PLAN_INFO)[string]
+  plan: string; slug: string; planInfo: (typeof PLAN_INFO)[string]
 }) {
   const stripe = useStripe()
   const elements = useElements()
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Promo code
+  const [promoInput, setPromoInput] = useState('')
+  const [promoApplied, setPromoApplied] = useState<{ code: string; label: string } | null>(null)
+  const [promoLoading, setPromoLoading] = useState(false)
+  const [promoError, setPromoError] = useState('')
+
+  const handleApplyPromo = async () => {
+    if (!promoInput.trim()) return
+    setPromoLoading(true)
+    setPromoError('')
+    setPromoApplied(null)
+    try {
+      const res = await fetch(`/api/stripe/validate-promo?code=${encodeURIComponent(promoInput.trim())}`)
+      const data = await res.json()
+      if (!res.ok) {
+        setPromoError(data.error || 'Code invalide.')
+      } else {
+        setPromoApplied({ code: promoInput.trim(), label: data.label })
+      }
+    } catch {
+      setPromoError('Erreur réseau.')
+    } finally {
+      setPromoLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!stripe || !elements) return
-
     setLoading(true)
     setError('')
 
+    // 1. Valider le formulaire Stripe
     const { error: submitError } = await elements.submit()
     if (submitError) {
-      setError(submitError.message || 'Erreur de paiement.')
+      setError(submitError.message || 'Erreur de validation.')
       setLoading(false)
       return
     }
 
+    // 2. Créer la subscription côté serveur (avec promo si applicable)
+    let clientSecret: string | null = null
+    try {
+      const res = await fetch('/api/stripe/create-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan,
+          profileSlug: slug,
+          promoCode: promoApplied?.code ?? null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || 'Erreur lors de la création de l\'abonnement.')
+        setLoading(false)
+        return
+      }
+      clientSecret = data.clientSecret
+    } catch {
+      setError('Erreur réseau. Veuillez réessayer.')
+      setLoading(false)
+      return
+    }
+
+    if (!clientSecret) {
+      setError('Impossible de créer le paiement.')
+      setLoading(false)
+      return
+    }
+
+    // 3. Confirmer le paiement
     const { error: confirmError } = await stripe.confirmPayment({
       elements,
+      clientSecret,
       confirmParams: {
         return_url: `${window.location.origin}/subscribe/success?plan=${plan}&slug=${slug}`,
       },
@@ -94,13 +147,45 @@ function CheckoutForm({
       setError(confirmError.message || 'Paiement refusé.')
       setLoading(false)
     }
-    // Si pas d'erreur → Stripe redirige vers return_url
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Payment Element */}
-      <div className="bg-[#0F1115] border border-white/10 p-5 rounded-sm">
+    <form onSubmit={handleSubmit} className="space-y-5">
+
+      {/* ── Code promo ── */}
+      <div>
+        <p className="text-[9px] tracking-[0.4em] uppercase text-white/30 mb-2">Code promo</p>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={promoInput}
+            onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); setPromoApplied(null) }}
+            placeholder="ITINERA6MOIS"
+            className="flex-1 bg-[#0F1115] border border-white/10 px-3 py-2.5 text-xs text-white placeholder-white/20 focus:outline-none focus:border-white/30"
+          />
+          <button
+            type="button"
+            onClick={handleApplyPromo}
+            disabled={promoLoading || !promoInput.trim()}
+            className="px-4 py-2.5 text-[10px] tracking-[0.2em] uppercase border border-white/15 text-white/50 hover:text-white hover:border-white/30 transition-colors disabled:opacity-30"
+          >
+            {promoLoading ? '…' : 'Appliquer'}
+          </button>
+        </div>
+
+        {promoError && (
+          <p className="mt-1.5 text-[11px] text-red-400">{promoError}</p>
+        )}
+        {promoApplied && (
+          <div className="mt-1.5 flex items-center gap-2 text-[11px] text-emerald-400">
+            <span>✓</span>
+            <span>Code <strong>{promoApplied.code}</strong> appliqué — {promoApplied.label}</span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Payment Element ── */}
+      <div className="bg-[#0F1115] border border-white/10 p-5">
         <p className="text-[9px] tracking-[0.4em] uppercase text-white/30 mb-4">Moyen de paiement</p>
         <PaymentElement
           options={{
@@ -122,10 +207,7 @@ function CheckoutForm({
         type="submit"
         disabled={!stripe || loading}
         className="w-full py-4 text-[10px] tracking-[0.4em] uppercase font-medium transition-all disabled:opacity-50"
-        style={{
-          backgroundColor: planInfo.color,
-          color: '#fff',
-        }}
+        style={{ backgroundColor: planInfo.color, color: '#fff' }}
       >
         {loading ? 'Traitement en cours…' : `Payer ${planInfo.price} / mois`}
       </button>
@@ -138,7 +220,7 @@ function CheckoutForm({
   )
 }
 
-// ── Inner component (uses useSearchParams) ───────────────────
+// ── Inner component ──────────────────────────────────────────
 function SubscribeContent() {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -148,43 +230,6 @@ function SubscribeContent() {
   const slug = searchParams.get('slug') || ''
   const planInfo = PLAN_INFO[plan]
 
-  const [clientSecret, setClientSecret] = useState<string | null>(null)
-  const [loadingSecret, setLoadingSecret] = useState(true)
-  const [initError, setInitError] = useState('')
-
-  const initSubscription = useCallback(async () => {
-    if (!planInfo || !slug) {
-      setInitError('Paramètres manquants.')
-      setLoadingSecret(false)
-      return
-    }
-
-    try {
-      const res = await fetch('/api/stripe/create-subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, profileSlug: slug }),
-      })
-      const data = await res.json()
-
-      if (!res.ok) {
-        setInitError(data.error || 'Impossible d\'initialiser le paiement.')
-        setLoadingSecret(false)
-        return
-      }
-
-      setClientSecret(data.clientSecret)
-    } catch {
-      setInitError('Erreur réseau. Veuillez réessayer.')
-    } finally {
-      setLoadingSecret(false)
-    }
-  }, [plan, slug, planInfo])
-
-  useEffect(() => {
-    initSubscription()
-  }, [initSubscription])
-
   if (!planInfo) {
     return (
       <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
@@ -193,7 +238,7 @@ function SubscribeContent() {
     )
   }
 
-  // Stripe Elements appearance (dark theme)
+  // Stripe Elements — mode deferred (pas besoin de client_secret au chargement)
   const appearance = {
     theme: 'night' as const,
     variables: {
@@ -206,28 +251,11 @@ function SubscribeContent() {
       fontSizeBase: '13px',
     },
     rules: {
-      '.Input': {
-        border: '1px solid rgba(255,255,255,0.1)',
-        backgroundColor: '#181C23',
-      },
-      '.Input:focus': {
-        border: `1px solid ${planInfo.color}`,
-        boxShadow: 'none',
-      },
-      '.Tab': {
-        border: '1px solid rgba(255,255,255,0.1)',
-        backgroundColor: '#181C23',
-      },
-      '.Tab--selected': {
-        border: `1px solid ${planInfo.color}`,
-        backgroundColor: '#181C23',
-      },
-      '.Label': {
-        color: 'rgba(255,255,255,0.4)',
-        fontSize: '10px',
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-      },
+      '.Input': { border: '1px solid rgba(255,255,255,0.1)', backgroundColor: '#181C23' },
+      '.Input:focus': { border: `1px solid ${planInfo.color}`, boxShadow: 'none' },
+      '.Tab': { border: '1px solid rgba(255,255,255,0.1)', backgroundColor: '#181C23' },
+      '.Tab--selected': { border: `1px solid ${planInfo.color}`, backgroundColor: '#181C23' },
+      '.Label': { color: 'rgba(255,255,255,0.4)', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' },
     },
   }
 
@@ -260,7 +288,6 @@ function SubscribeContent() {
             <span className="text-white/30 text-sm">/ mois</span>
           </div>
 
-          {/* Features */}
           <div className="space-y-3 mb-10">
             {planInfo.features.map((f) => (
               <div key={f} className="flex items-start gap-3">
@@ -270,7 +297,6 @@ function SubscribeContent() {
             ))}
           </div>
 
-          {/* Guarantee */}
           <div className="border border-white/8 bg-[#181C23] px-5 py-4">
             <p className="text-[9px] tracking-[0.3em] uppercase text-white/30 mb-1">Garantie</p>
             <p className="text-xs text-white/50 leading-relaxed">
@@ -284,40 +310,17 @@ function SubscribeContent() {
           <div className="bg-[#181C23] border border-white/8 p-7">
             <p className="text-[9px] tracking-[0.4em] uppercase text-white/30 mb-6">Paiement sécurisé</p>
 
-            {loadingSecret ? (
-              <div className="flex flex-col items-center py-12 gap-4">
-                <div
-                  className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
-                  style={{ borderColor: `${planInfo.color} transparent transparent transparent` }}
-                />
-                <p className="text-white/30 text-xs">Initialisation…</p>
-              </div>
-            ) : initError ? (
-              <div className="py-8">
-                <div className="bg-red-500/10 border border-red-500/30 px-4 py-3 text-red-400 text-xs mb-4">
-                  {initError}
-                </div>
-                {initError === 'Abonnement déjà actif.' ? (
-                  <p className="text-white/40 text-xs text-center">
-                    Votre abonnement est déjà actif. Retournez à votre dashboard.
-                  </p>
-                ) : (
-                  <button
-                    onClick={initSubscription}
-                    className="w-full py-3 text-[10px] tracking-[0.3em] uppercase border border-white/10 text-white/50 hover:text-white/80 hover:border-white/20 transition-colors"
-                  >
-                    Réessayer
-                  </button>
-                )}
-              </div>
-            ) : clientSecret ? (
-              <Elements
-                stripe={stripePromise}
-                options={{ clientSecret, appearance }}
-              >
-                <CheckoutForm plan={plan} slug={slug} planInfo={planInfo} />
-              </Elements>
-            ) : null}
+            <Elements
+              stripe={stripePromise}
+              options={{
+                mode: 'subscription',
+                amount: planInfo.amount,
+                currency: planInfo.currency,
+                appearance,
+              }}
+            >
+              <CheckoutForm plan={plan} slug={slug} planInfo={planInfo} />
+            </Elements>
           </div>
 
           {/* Security badges */}
@@ -342,7 +345,7 @@ function SubscribeContent() {
   )
 }
 
-// ── Default export with Suspense boundary ────────────────────
+// ── Default export with Suspense ─────────────────────────────
 export default function SubscribePage() {
   return (
     <Suspense
