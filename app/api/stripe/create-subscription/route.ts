@@ -123,6 +123,11 @@ export async function POST(req: Request) {
     // L'API Stripe 2026 a changé la structure — on teste plusieurs chemins
     let clientSecret: string | null = null
 
+    // Chemin 0 : client_secret directement sur la subscription (API 2025+/dahlia)
+    if (sub.client_secret) {
+      clientSecret = sub.client_secret
+    }
+
     // Chemin 1 : pending_setup_intent (premier paiement via SetupIntent)
     if (sub.pending_setup_intent) {
       const siId = typeof sub.pending_setup_intent === 'string'
