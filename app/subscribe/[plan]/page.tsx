@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useCallback, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
 import {
   Elements,
   PaymentElement,
+  ExpressCheckoutElement,
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js'
@@ -149,8 +150,52 @@ function CheckoutForm({
     }
   }
 
+  // Gestion Express Checkout (Apple Pay / Google Pay)
+  const handleExpressConfirm = async () => {
+    if (!stripe || !elements) return
+
+    const { error: submitError } = await elements.submit()
+    if (submitError) return
+
+    const res = await fetch('/api/stripe/create-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan, profileSlug: slug, promoCode: promoApplied?.code ?? null }),
+    })
+    const data = await res.json()
+    if (!res.ok || !data.clientSecret) return
+
+    await stripe.confirmPayment({
+      elements,
+      clientSecret: data.clientSecret,
+      confirmParams: {
+        return_url: `${window.location.origin}/subscribe/success?plan=${plan}&slug=${slug}`,
+      },
+      redirect: 'if_required',
+    })
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+
+      {/* ── Apple Pay / Google Pay ── */}
+      <div>
+        <ExpressCheckoutElement
+          onConfirm={handleExpressConfirm}
+          options={{
+            buttonTheme: { applePay: 'black', googlePay: 'black' },
+            buttonHeight: 48,
+            paymentMethods: { applePay: 'always', googlePay: 'always', link: 'never' },
+          }}
+        />
+      </div>
+
+      {/* Séparateur */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-white/10" />
+        <span className="text-[10px] text-white/25 uppercase tracking-widest">ou</span>
+        <div className="flex-1 h-px bg-white/10" />
+      </div>
 
       {/* ── Code promo ── */}
       <div>
