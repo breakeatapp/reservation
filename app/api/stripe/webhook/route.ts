@@ -40,21 +40,22 @@ export async function POST(req: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let event: any
 
-  if (webhookSecret && signature) {
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unknown error'
-      console.error('[webhook] Invalid signature:', msg)
-      return NextResponse.json({ error: `Webhook Error: ${msg}` }, { status: 400 })
-    }
-  } else {
-    // Dev / pas encore configuré
-    try {
-      event = JSON.parse(body)
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-    }
+  if (!webhookSecret) {
+    console.error('[webhook] STRIPE_WEBHOOK_SECRET non configuré')
+    return NextResponse.json({ error: 'Webhook non configuré.' }, { status: 500 })
+  }
+
+  if (!signature) {
+    console.error('[webhook] stripe-signature manquant')
+    return NextResponse.json({ error: 'Signature manquante.' }, { status: 400 })
+  }
+
+  try {
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    console.error('[webhook] Invalid signature:', msg)
+    return NextResponse.json({ error: `Webhook Error: ${msg}` }, { status: 400 })
   }
 
   // ── Handle events ──────────────────────────────────────────

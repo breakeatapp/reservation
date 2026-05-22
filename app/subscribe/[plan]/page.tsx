@@ -153,9 +153,15 @@ function CheckoutForm({
   // Gestion Express Checkout (Apple Pay / Google Pay)
   const handleExpressConfirm = async () => {
     if (!stripe || !elements) return
+    setLoading(true)
+    setError('')
 
     const { error: submitError } = await elements.submit()
-    if (submitError) return
+    if (submitError) {
+      setError(submitError.message || 'Erreur de validation.')
+      setLoading(false)
+      return
+    }
 
     const res = await fetch('/api/stripe/create-subscription', {
       method: 'POST',
@@ -163,9 +169,13 @@ function CheckoutForm({
       body: JSON.stringify({ plan, profileSlug: slug, promoCode: promoApplied?.code ?? null }),
     })
     const data = await res.json()
-    if (!res.ok || !data.clientSecret) return
+    if (!res.ok || !data.clientSecret) {
+      setError(data.error || 'Impossible de créer le paiement. Veuillez réessayer.')
+      setLoading(false)
+      return
+    }
 
-    await stripe.confirmPayment({
+    const { error: confirmError } = await stripe.confirmPayment({
       elements,
       clientSecret: data.clientSecret,
       confirmParams: {
@@ -173,6 +183,11 @@ function CheckoutForm({
       },
       redirect: 'if_required',
     })
+
+    if (confirmError) {
+      setError(confirmError.message || 'Paiement refusé.')
+    }
+    setLoading(false)
   }
 
   return (

@@ -100,9 +100,6 @@ export default function HostDashboardPage() {
   const [connectionsLoading, setConnectionsLoading] = useState(false)
   const [connectionsError, setConnectionsError] = useState('')
   const [codeCopied, setCodeCopied] = useState(false)
-  const [debugData, setDebugData] = useState<any>(null)
-  const [debugLoading, setDebugLoading] = useState(false)
-
   useEffect(() => {
     const storedSlug = localStorage.getItem('itinera_host_slug')
     const storedName = localStorage.getItem('itinera_host_name')
@@ -672,54 +669,6 @@ export default function HostDashboardPage() {
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-            </div>
-
-            {/* ── Diagnostic (temporaire) ───────────────────────────── */}
-            <div className="bg-[#181C23] border border-amber-500/15 p-5">
-              <p className="text-[9px] tracking-[0.3em] uppercase text-amber-400/70 mb-2">🔍 Diagnostic</p>
-              <p className="text-[#F5F7FA]/30 text-[10px] mb-3 leading-relaxed">
-                Si un concierge dit avoir ajouté votre code mais n'apparaît pas ci-dessus, cliquez pour voir ce que la base contient réellement pour votre venue.
-              </p>
-              <button
-                onClick={async () => {
-                  setDebugLoading(true)
-                  setDebugData(null)
-                  try {
-                    const r = await fetch(`/api/host/${slug}/debug`)
-                    const d = await r.json()
-                    setDebugData(d)
-                  } catch {
-                    setDebugData({ error: 'Erreur réseau' })
-                  } finally {
-                    setDebugLoading(false)
-                  }
-                }}
-                disabled={debugLoading}
-                className="w-full py-2.5 text-[10px] tracking-[0.25em] uppercase border border-amber-500/30 text-amber-400/80 hover:bg-amber-500/8 transition-colors disabled:opacity-40"
-              >
-                {debugLoading ? 'Analyse…' : 'Lancer le diagnostic'}
-              </button>
-              {debugData && (
-                <div className="mt-4 bg-[#0F1115] border border-amber-500/15 p-3 text-[10px] font-mono text-amber-400/70 overflow-x-auto">
-                  <p className="mb-1 text-[#F5F7FA]/40">Slug interrogé : <span className="text-amber-400">{debugData.queriedSlug}</span></p>
-                  <p className="mb-1 text-[#F5F7FA]/40">Venue trouvé : <span className="text-amber-400">{debugData.venue ? `OUI — ${debugData.venue.venue_name} (${debugData.venue.slug}, active=${debugData.venue.active})` : 'NON'}</span></p>
-                  <p className="mb-1 text-[#F5F7FA]/40">Connexions pour ce slug : <span className="text-amber-400">{debugData.connectionsMatchingThisSlug?.length ?? 0}</span></p>
-                  <p className="mb-2 text-[#F5F7FA]/40">Connexions dans la base (toutes) : <span className="text-amber-400">{debugData.last20ConnectionsInDB?.length ?? 0}</span></p>
-                  {debugData.last20ConnectionsInDB?.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-amber-500/15">
-                      <p className="text-[#F5F7FA]/40 mb-1">Toutes les connexions en base :</p>
-                      {debugData.last20ConnectionsInDB.map((c: any, i: number) => (
-                        <div key={i} className="ml-2 text-[9px]">
-                          → venue_slug: <span className="text-emerald-400">{c.venue_slug}</span> ← rp_slug: <span className="text-violet-400">{c.rp_slug}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {debugData.connectionsError && (
-                    <p className="mt-2 text-red-400">Erreur SQL : {debugData.connectionsError}</p>
-                  )}
                 </div>
               )}
             </div>

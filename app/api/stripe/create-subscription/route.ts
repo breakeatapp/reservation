@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { stripe, PRICE_IDS, PLAN_TABLE, PlanType } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import Stripe from 'stripe'
 
 // POST /api/stripe/create-subscription
 // Body: { plan: 'rp' | 'venue' | 'group', profileSlug: string }
@@ -142,7 +141,7 @@ export async function POST(req: Request) {
     }
 
     // Chemin 1 : pending_setup_intent (premier paiement via SetupIntent)
-    if (sub.pending_setup_intent) {
+    if (!clientSecret && sub.pending_setup_intent) {
       const siId = typeof sub.pending_setup_intent === 'string'
         ? sub.pending_setup_intent
         : sub.pending_setup_intent?.id
