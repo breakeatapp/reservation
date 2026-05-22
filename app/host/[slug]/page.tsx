@@ -246,6 +246,12 @@ export default function HostDashboardPage() {
               </button>
             )}
             <button
+              onClick={() => router.push(`/subscribe/venue?slug=${slug}`)}
+              className="text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+            >
+              ✦ Pro
+            </button>
+            <button
               onClick={logout}
               className="text-[10px] tracking-[0.2em] uppercase text-[#F5F7FA]/30 hover:text-[#F5F7FA]/60 transition-colors border border-white/8 hover:border-white/15 px-3 py-1.5"
             >

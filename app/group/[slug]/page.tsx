@@ -251,12 +251,20 @@ export default function GroupDashboardPage() {
           <span className="text-[8px] tracking-[0.5em] text-[#6E5BFF]/40 uppercase block">Hospitality Group</span>
           <span className="font-playfair text-lg text-[#F5F7FA] tracking-wide">{groupName}</span>
         </div>
-        <button
-          onClick={handleLogout}
-          className="text-[#F5F7FA]/25 text-[10px] tracking-[0.2em] uppercase hover:text-[#F5F7FA]/50 transition-colors"
-        >
-          Déconnexion
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push(`/subscribe/group?slug=${slug}`)}
+            className="text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 transition-colors"
+          >
+            ✦ Pro
+          </button>
+          <button
+            onClick={handleLogout}
+            className="text-[#F5F7FA]/25 text-[10px] tracking-[0.2em] uppercase hover:text-[#F5F7FA]/50 transition-colors"
+          >
+            Déconnexion
+          </button>
+        </div>
       </nav>
 
       <main className="max-w-4xl mx-auto px-5 py-10">

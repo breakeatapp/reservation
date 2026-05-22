@@ -2971,14 +2971,27 @@ ${profile.display_name}`
             <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase">Dashboard RP</p>
             <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-white/30 hover:text-red-400/70 transition-colors border border-white/8 hover:border-red-400/30 px-3 py-2"
-            title="Se déconnecter"
-          >
-            <span>⏻</span>
-            <span className="hidden sm:inline">Déconnexion</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const slug = typeof window !== 'undefined' ? localStorage.getItem('itinera_rp_slug') || profile.slug : profile.slug
+                window.location.href = `/subscribe/rp?slug=${slug}`
+              }}
+              className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-[#6E5BFF] border border-[#6E5BFF]/40 hover:bg-[#6E5BFF]/10 transition-colors px-3 py-2"
+              title="Passer à Itinera RP Pro"
+            >
+              <span>✦</span>
+              <span className="hidden sm:inline">Pro</span>
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-white/30 hover:text-red-400/70 transition-colors border border-white/8 hover:border-red-400/30 px-3 py-2"
+              title="Se déconnecter"
+            >
+              <span>⏻</span>
+              <span className="hidden sm:inline">Déconnexion</span>
+            </button>
+          </div>
         </div>
 
         {/* Ligne 2 : actions (pleine largeur sur mobile, inline sur desktop) */}
