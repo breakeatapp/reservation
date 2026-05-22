@@ -154,14 +154,15 @@ export async function POST(req: Request) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const inv = invoice as any
 
-        clientSecret =
-          inv?.payment_intent?.client_secret
-          ?? inv?.payments?.data?.[0]?.payment_intent?.client_secret
+        // API 2026-04-22.dahlia : le PI est dans payments.data[0].payment.payment_intent
+        const piId: string | null =
+          inv?.payments?.data?.[0]?.payment?.payment_intent
+          ?? inv?.payment_intent?.id
+          ?? (typeof inv?.payment_intent === 'string' ? inv.payment_intent : null)
           ?? null
 
-        // Si payment_intent est un ID string, on le récupère
-        if (!clientSecret && typeof inv?.payment_intent === 'string') {
-          const pi = await stripe.paymentIntents.retrieve(inv.payment_intent)
+        if (piId) {
+          const pi = await stripe.paymentIntents.retrieve(piId)
           clientSecret = (pi as any).client_secret ?? null
         }
       }
