@@ -3,41 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-const DESTINATIONS = [
-  { slug: 'abu-dhabi', name: 'Abu Dhabi', country: 'Émirats Arabes Unis' },
-  { slug: 'aspen', name: 'Aspen', country: 'États-Unis' },
-  { slug: 'cannes', name: 'Cannes', country: 'France' },
-  { slug: 'cavalaire', name: 'Cavalaire-sur-Mer', country: 'France' },
-  { slug: 'courchevel', name: 'Courchevel', country: 'France' },
-  { slug: 'dubai', name: 'Dubai', country: 'Émirats Arabes Unis' },
-  { slug: 'ibiza', name: 'Ibiza', country: 'Espagne' },
-  { slug: 'jeddah', name: 'Jeddah', country: 'Arabie Saoudite' },
-  { slug: 'maldives', name: 'Maldives', country: 'Maldives' },
-  { slug: 'miami', name: 'Miami', country: 'États-Unis' },
-  { slug: 'milan', name: 'Milan', country: 'Italie' },
-  { slug: 'monaco', name: 'Monaco', country: 'Monaco' },
-  { slug: 'mykonos', name: 'Mykonos', country: 'Grèce' },
-  { slug: 'rome', name: 'Rome', country: 'Italie' },
-  { slug: 'saint-barth', name: 'Saint-Barthélemy', country: 'France' },
-  { slug: 'saint-tropez', name: 'Saint-Tropez', country: 'France' },
-  { slug: 'tulum', name: 'Tulum', country: 'Mexique' },
-]
-
-const CATEGORIES = [
-  { value: 'restaurant', label: '🍽️ Restaurant' },
-  { value: 'beach_club', label: '🏖️ Beach Club' },
-  { value: 'night_club', label: '🎉 Night Club' },
-  { value: 'hotel', label: '🏨 Hôtel' },
-  { value: 'spa', label: '💆 Spa & Wellness' },
-  { value: 'yacht', label: '⛵ Yacht / Activité' },
-]
 
 export default function HostRegisterPage() {
   const router = useRouter()
 
   const [venueName, setVenueName] = useState('')
   const [destination, setDestination] = useState('')
-  const [category, setCategory] = useState('restaurant')
+  const [category, setCategory] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -139,42 +111,28 @@ export default function HostRegisterPage() {
                 <label className="block text-[9px] tracking-[0.3em] uppercase text-[#F5F7FA]/40 mb-2">
                   Ville *
                 </label>
-                <select
+                <input
+                  type="text"
                   value={destination}
                   onChange={e => setDestination(e.target.value)}
+                  placeholder="ex: Saint-Tropez, Dubai, Mykonos..."
                   required
-                  className="w-full bg-[#0F1115] border border-white/10 text-[#F5F7FA] px-4 py-3 text-sm focus:border-[#6E5BFF]/40 outline-none transition-colors cursor-pointer"
-                >
-                  <option value="" className="bg-[#0F1115]">Sélectionner une ville...</option>
-                  {DESTINATIONS.map(d => (
-                    <option key={d.slug} value={d.slug} className="bg-[#0F1115]">
-                      {d.name} — {d.country}
-                    </option>
-                  ))}
-                </select>
+                  className="w-full bg-[#0F1115] border border-white/10 text-[#F5F7FA] px-4 py-3 text-sm focus:border-[#6E5BFF]/40 outline-none placeholder-[#F5F7FA]/20 transition-colors"
+                />
               </div>
 
               {/* Category */}
               <div>
                 <label className="block text-[9px] tracking-[0.3em] uppercase text-[#F5F7FA]/40 mb-2">
-                  Catégorie *
+                  Type d'établissement <span className="text-[#F5F7FA]/20 normal-case tracking-normal">(optionnel)</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {CATEGORIES.map(cat => (
-                    <button
-                      key={cat.value}
-                      type="button"
-                      onClick={() => setCategory(cat.value)}
-                      className={`px-3 py-2.5 text-[10px] tracking-wide border transition-all text-left ${
-                        category === cat.value
-                          ? 'border-[#6E5BFF]/50 bg-[#6E5BFF]/10 text-[#F5F7FA]'
-                          : 'border-white/8 text-[#F5F7FA]/40 hover:border-white/15 hover:text-[#F5F7FA]/60'
-                      }`}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
+                <input
+                  type="text"
+                  value={category}
+                  onChange={e => setCategory(e.target.value)}
+                  placeholder="ex: Restaurant, Beach Club, Night Club..."
+                  className="w-full bg-[#0F1115] border border-white/10 text-[#F5F7FA] px-4 py-3 text-sm focus:border-[#6E5BFF]/40 outline-none placeholder-[#F5F7FA]/20 transition-colors"
+                />
               </div>
 
               {/* Email */}
