@@ -185,7 +185,13 @@ function CheckoutForm({
           options={{
             buttonTheme: { applePay: 'black', googlePay: 'black' },
             buttonHeight: 48,
-            paymentMethods: { applePay: 'always', googlePay: 'always', link: 'never' },
+            paymentMethods: {
+              applePay: 'always',
+              googlePay: 'always',
+              amazonPay: 'never',
+              paypal: 'never',
+              link: 'never',
+            },
           }}
         />
       </div>
