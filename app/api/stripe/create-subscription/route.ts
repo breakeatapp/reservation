@@ -112,22 +112,64 @@ export async function POST(req: Request) {
       payment_behavior: 'default_incomplete',
       payment_settings: {
         save_default_payment_method: 'on_subscription',
-        payment_method_types: ['card', 'link'],
       },
-      expand: ['latest_invoice.payment_intent'],
       metadata: { planType, profileSlug },
     })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const invoice = subscription.latest_invoice as any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const paymentIntent = invoice?.payment_intent as any
+    const sub = subscription as any
 
-    const clientSecret: string | null =
-      paymentIntent?.client_secret ?? null
+    // ── Chercher le clientSecret dans tous les endroits possibles ──
+    // L'API Stripe 2026 a changé la structure — on teste plusieurs chemins
+    let clientSecret: string | null = null
+
+    // Chemin 1 : pending_setup_intent (premier paiement via SetupIntent)
+    if (sub.pending_setup_intent) {
+      const siId = typeof sub.pending_setup_intent === 'string'
+        ? sub.pending_setup_intent
+        : sub.pending_setup_intent?.id
+      if (siId) {
+        const si = await stripe.setupIntents.retrieve(siId)
+        clientSecret = (si as any).client_secret ?? null
+      }
+    }
+
+    // Chemin 2 : latest_invoice → payment_intent
+    if (!clientSecret) {
+      const invoiceId: string | null =
+        typeof sub.latest_invoice === 'string'
+          ? sub.latest_invoice
+          : sub.latest_invoice?.id ?? null
+
+      if (invoiceId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const invoice = await (stripe.invoices as any).retrieve(invoiceId, {
+          expand: ['payment_intent', 'payments'],
+        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const inv = invoice as any
+
+        clientSecret =
+          inv?.payment_intent?.client_secret
+          ?? inv?.payments?.data?.[0]?.payment_intent?.client_secret
+          ?? null
+
+        // Si payment_intent est un ID string, on le récupère
+        if (!clientSecret && typeof inv?.payment_intent === 'string') {
+          const pi = await stripe.paymentIntents.retrieve(inv.payment_intent)
+          clientSecret = (pi as any).client_secret ?? null
+        }
+      }
+    }
 
     if (!clientSecret) {
-      return NextResponse.json({ error: 'Impossible de créer le paiement.' }, { status: 500 })
+      console.error('[stripe/create-subscription] clientSecret introuvable — sub:', {
+        id: sub.id,
+        status: sub.status,
+        hasPendingSetupIntent: !!sub.pending_setup_intent,
+        latestInvoice: sub.latest_invoice,
+      })
+      return NextResponse.json({ error: 'Impossible de créer le paiement. Contactez le support.' }, { status: 500 })
     }
 
     return NextResponse.json({
