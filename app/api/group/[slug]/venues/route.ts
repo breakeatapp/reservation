@@ -40,15 +40,21 @@ export async function GET(
 
     if (error) return Response.json({ error: error.message }, { status: 500 })
 
-    // Pour chaque venue, compter les réservations
+    // Pour chaque venue, compter les réservations via venue_slug (priorité) ou establishment (fallback)
     const venuesWithStats = await Promise.all(
       (venues ?? []).map(async (venue) => {
-        const { count } = await supabaseAdmin
+        const { count: countBySlug } = await supabaseAdmin
+          .from('reservations')
+          .select('id', { count: 'exact', head: true })
+          .eq('venue_slug', venue.slug)
+
+        const { count: countByName } = await supabaseAdmin
           .from('reservations')
           .select('id', { count: 'exact', head: true })
           .ilike('establishment', venue.venue_name)
+          .is('venue_slug', null)
 
-        return { ...venue, reservation_count: count ?? 0 }
+        return { ...venue, reservation_count: (countBySlug ?? 0) + (countByName ?? 0) }
       })
     )
 
@@ -72,6 +78,9 @@ export async function POST(
     }
     if (password.length < 6) {
       return Response.json({ error: 'Le mot de passe doit faire au moins 6 caractères.' }, { status: 400 })
+    }
+    if (!email?.trim()) {
+      return Response.json({ error: 'Un email de contact est requis pour cet établissement.' }, { status: 400 })
     }
 
     // Récupérer l'ID du groupe
@@ -119,6 +128,32 @@ export async function POST(
       })
 
     if (error) return Response.json({ error: error.message }, { status: 500 })
+
+    // Auto-connecter les RPs déjà partenaires du groupe au nouveau venue
+    const { data: groupRps } = await supabaseAdmin
+      .from('group_rp_connections')
+      .select('rp_slug, rp_display_name')
+      .eq('group_id', group.id)
+
+    if (groupRps && groupRps.length > 0) {
+      const venueName = capitalizeName(venue_name)
+      await Promise.all(groupRps.map(async (conn) => {
+        const { data: alreadyLinked } = await supabaseAdmin
+          .from('venue_rp_connections')
+          .select('venue_slug')
+          .eq('venue_slug', venueSlug)
+          .eq('rp_slug', conn.rp_slug)
+          .maybeSingle()
+        if (!alreadyLinked) {
+          await supabaseAdmin.from('venue_rp_connections').insert({
+            venue_slug: venueSlug,
+            rp_slug: conn.rp_slug,
+            venue_name: venueName,
+            rp_display_name: conn.rp_display_name,
+          })
+        }
+      }))
+    }
 
     return Response.json({ success: true, slug: venueSlug, venue_name: capitalizeName(venue_name), destination: destination.trim() })
   } catch (e) {

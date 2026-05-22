@@ -62,7 +62,11 @@ export default function LandingPage() {
     try {
       const res = await fetch(`/api/client/rps?email=${encodeURIComponent(trimmed)}`)
       const data = await res.json()
-      if (data.rps && data.rps.length >= 1) {
+      if (data.rps && data.rps.length > 1) {
+        // Plusieurs RPs → afficher le sélecteur
+        setRpPicker({ rps: data.rps, email: trimmed, firstName: data.firstName || '' })
+      } else if (data.rps && data.rps.length === 1) {
+        // Un seul RP → auto-login direct
         const rp = data.rps[0]
         localStorage.setItem('itinera_guest_email', trimmed)
         localStorage.setItem('itinera_guest_rp', rp.slug)
@@ -97,7 +101,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ── HERO ── */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden px-5">
+      <section className="relative min-h-screen flex items-center justify-center px-5">
 
         {/* Fond cinématique */}
         <div className="absolute inset-0">
@@ -114,22 +118,26 @@ export default function LandingPage() {
 
         <div className="relative z-10 w-full max-w-3xl mx-auto text-center pt-24 pb-8">
 
-          {/* Headline */}
-          <h1 className="font-playfair text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#F5F7FA] mb-5 text-center leading-snug tracking-wide px-4">
-            Structured hospitality,<br />
-            from WhatsApp chaos{' '}
-            <span style={{ color: '#6E5BFF' }}>to clarity.</span>
-          </h1>
+          {/* Headline — masqué quand un sous-écran est actif */}
+          {!showVenueChoice && !userType && !savedSession && !rpPicker && (
+            <>
+              <h1 className="font-playfair text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-[#F5F7FA] mb-5 text-center leading-snug tracking-wide px-4">
+                Structured hospitality,<br />
+                from WhatsApp chaos{' '}
+                <span style={{ color: '#6E5BFF' }}>to clarity.</span>
+              </h1>
 
-          {/* Sub */}
-          <p className="text-[10px] tracking-[0.2em] uppercase leading-relaxed mb-4 max-w-sm mx-auto" style={{ color: '#6E5BFF' }}>
-            From unstructured WhatsApp reservations<br />to organized hospitality.
-          </p>
+              {/* Sub */}
+              <p className="text-[10px] tracking-[0.2em] uppercase leading-relaxed mb-4 max-w-sm mx-auto" style={{ color: '#6E5BFF' }}>
+                From unstructured WhatsApp reservations<br />to organized hospitality.
+              </p>
 
-          {/* Body */}
-          <p className="text-[#F5F7FA]/50 text-sm leading-relaxed mb-10 max-w-md mx-auto">
-            Organize reservations, requests and guest planning<br />in one place.
-          </p>
+              {/* Body */}
+              <p className="text-[#F5F7FA]/50 text-sm leading-relaxed mb-10 max-w-md mx-auto">
+                Organize reservations, requests and guest planning<br />in one place.
+              </p>
+            </>
+          )}
 
           {/* ── Session active (guest connecté) ── */}
           {savedSession ? (
@@ -278,6 +286,43 @@ export default function LandingPage() {
               </button>
             </>
 
+          ) : showVenueChoice ? (
+            /* ── Choix Venue : Simple ou Group ── */
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
+                <button
+                  onClick={() => router.push('/host')}
+                  className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 text-center backdrop-blur-sm"
+                >
+                  <span className="font-playfair text-xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
+                    Simple Venue
+                  </span>
+                  <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
+                  <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
+                    Un seul<br />établissement
+                  </span>
+                </button>
+                <button
+                  onClick={() => router.push('/group')}
+                  className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-8 transition-all duration-300 flex flex-col items-center justify-center gap-4 text-center backdrop-blur-sm"
+                >
+                  <span className="font-playfair text-xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
+                    Hospitality Group
+                  </span>
+                  <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
+                  <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
+                    Plusieurs<br />établissements
+                  </span>
+                </button>
+              </div>
+              <button
+                onClick={() => setShowVenueChoice(false)}
+                className="text-[#F5F7FA]/25 text-[10px] hover:text-[#F5F7FA]/50 transition-colors mt-5 block mx-auto"
+              >
+                ← Retour
+              </button>
+            </>
+
           ) : (
             /* ── Choix initial GUEST / RP / VENUE ── */
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-2xl mx-auto">
@@ -311,46 +356,24 @@ export default function LandingPage() {
               </button>
 
               {/* VENUE */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowVenueChoice(v => !v)}
-                  className="group w-full border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-6 sm:p-10 transition-all duration-300 flex flex-col items-center justify-center gap-4 sm:gap-5 text-center backdrop-blur-sm"
-                >
-                  <span className="font-playfair text-xl sm:text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
-                    VENUE
-                  </span>
-                  <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
-                  <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
-                    Manage reservations<br />for your venue
-                  </span>
-                </button>
-
-                {/* Choix Simple Venue / Hospitality Group */}
-                {showVenueChoice && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-[#181C23] border border-[#6E5BFF]/30 z-50 shadow-2xl">
-                    <button
-                      onClick={() => { setShowVenueChoice(false); router.push('/host') }}
-                      className="w-full px-5 py-4 text-left hover:bg-[#6E5BFF]/10 transition-colors border-b border-white/5 group"
-                    >
-                      <p className="text-[10px] tracking-[0.25em] uppercase text-[#F5F7FA]/80 group-hover:text-white transition-colors">Simple Venue</p>
-                      <p className="text-[9px] text-[#F5F7FA]/30 mt-1">Un seul établissement</p>
-                    </button>
-                    <button
-                      onClick={() => { setShowVenueChoice(false); router.push('/group') }}
-                      className="w-full px-5 py-4 text-left hover:bg-[#6E5BFF]/10 transition-colors group"
-                    >
-                      <p className="text-[10px] tracking-[0.25em] uppercase text-[#F5F7FA]/80 group-hover:text-white transition-colors">Hospitality Group</p>
-                      <p className="text-[9px] text-[#F5F7FA]/30 mt-1">Plusieurs établissements</p>
-                    </button>
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={() => setShowVenueChoice(true)}
+                className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-6 sm:p-10 transition-all duration-300 flex flex-col items-center justify-center gap-4 sm:gap-5 text-center backdrop-blur-sm"
+              >
+                <span className="font-playfair text-xl sm:text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
+                  VENUE
+                </span>
+                <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
+                <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
+                  Manage reservations<br />for your venue
+                </span>
+              </button>
 
             </div>
           )}
 
           {/* Sign in hint — shown only on selection screen */}
-          {!userType && !savedSession && !rpPicker && (
+          {!userType && !savedSession && !rpPicker && !showVenueChoice && (
             <p className="mt-10 text-[10px] tracking-[0.3em] uppercase text-[#F5F7FA]/25">
               Already have an account?{' '}
               <button

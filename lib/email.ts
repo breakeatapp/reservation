@@ -1461,10 +1461,10 @@ export async function sendVenueStatusToClient(data: VenueStatusEmailData) {
   <div style="background:linear-gradient(135deg,#0a0a0a,#1e1e1e);padding:48px 40px;text-align:center;border-bottom:2px solid ${isConfirmed ? '#22c55e' : '#ef4444'};">
     <div style="font-size:32px;margin-bottom:16px;">${isConfirmed ? '✅' : '❌'}</div>
     <div style="color:${isConfirmed ? '#22c55e' : '#ef4444'};font-size:10px;letter-spacing:5px;text-transform:uppercase;margin-bottom:12px;">
-      ${isConfirmed ? 'Réservation confirmée' : 'Réservation déclinée'}
+      ${isConfirmed ? 'Demande acceptée' : 'Réservation déclinée'}
     </div>
     <h1 style="color:#f5f0e8;font-size:28px;margin:0;font-style:italic;font-weight:normal;">
-      ${isConfirmed ? 'Votre table est confirmée' : 'Demande non disponible'}
+      ${isConfirmed ? 'Votre demande est confirmée' : 'Demande non disponible'}
     </h1>
   </div>
 
@@ -1473,7 +1473,7 @@ export async function sendVenueStatusToClient(data: VenueStatusEmailData) {
     <p style="color:#d4d4d4;font-size:15px;line-height:1.8;margin-bottom:32px;">
       Bonjour <strong style="color:#f5f0e8;">${data.firstName}</strong>,<br><br>
       ${isConfirmed
-        ? `Nous avons le plaisir de vous confirmer votre réservation chez <strong style="color:#f5f0e8;">${data.establishment}</strong>. Votre table vous attend.`
+        ? `<strong style="color:#f5f0e8;">${data.establishment}</strong> a bien accepté votre demande de réservation.<br>L'établissement vous adressera prochainement sa confirmation officielle — elle peut inclure un lien de paiement ou des informations complémentaires via leur propre système.`
         : `Nous avons le regret de vous informer que votre demande chez <strong style="color:#f5f0e8;">${data.establishment}</strong> ne peut pas être honorée pour ce créneau. Votre concierge va vous recontacter pour trouver une alternative.`
       }
     </p>

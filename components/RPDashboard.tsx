@@ -1756,7 +1756,20 @@ ${profile.display_name}`
                         </p>
                       )}
                     </div>
-                    <span className="text-[9px] tracking-[0.15em] uppercase text-emerald-400/60 border border-emerald-400/20 px-2 py-0.5">✓</span>
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Déconnecter ${v.venue_name} ?`)) return
+                        await fetch('/api/rp/connect-venue', {
+                          method: 'DELETE',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ rpSlug: profile.slug, venueSlug: v.venue_slug }),
+                        })
+                        setConnectedVenues(prev => prev.filter(x => x.venue_slug !== v.venue_slug))
+                      }}
+                      className="text-[9px] tracking-[0.15em] uppercase text-red-400/40 hover:text-red-400/70 transition-colors ml-3"
+                    >
+                      Déconnecter
+                    </button>
                   </div>
                 ))}
               </div>
