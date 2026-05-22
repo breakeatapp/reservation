@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
 import {
@@ -138,8 +138,8 @@ function CheckoutForm({
   )
 }
 
-// ── Main page ────────────────────────────────────────────────
-export default function SubscribePage() {
+// ── Inner component (uses useSearchParams) ───────────────────
+function SubscribeContent() {
   const params = useParams()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -339,5 +339,20 @@ export default function SubscribePage() {
         </div>
       </main>
     </div>
+  )
+}
+
+// ── Default export with Suspense boundary ────────────────────
+export default function SubscribePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-[#6E5BFF] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <SubscribeContent />
+    </Suspense>
   )
 }

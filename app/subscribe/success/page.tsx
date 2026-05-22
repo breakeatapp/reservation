@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 
 const PLAN_INFO: Record<string, { label: string; color: string; dashboardPath: (slug: string) => string }> = {
   rp: {
@@ -21,7 +21,7 @@ const PLAN_INFO: Record<string, { label: string; color: string; dashboardPath: (
   },
 }
 
-export default function SubscribeSuccessPage() {
+function SuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -47,16 +47,16 @@ export default function SubscribeSuccessPage() {
 
   if (!planInfo) {
     return (
-      <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
+      <div className="flex flex-col items-center justify-center flex-1">
         <p className="text-white/40 text-sm">Page introuvable.</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0F1115] text-[#F5F7FA] flex flex-col items-center justify-center px-5">
+    <div className="flex flex-col items-center justify-center flex-1 px-5">
 
-      {/* Checkmark animé */}
+      {/* Checkmark */}
       <div
         className="w-20 h-20 rounded-full flex items-center justify-center mb-8"
         style={{ backgroundColor: `${planInfo.color}20`, border: `1px solid ${planInfo.color}40` }}
@@ -79,7 +79,7 @@ export default function SubscribeSuccessPage() {
           Toutes les fonctionnalités sont désormais disponibles.
         </p>
 
-        {/* Redirect countdown */}
+        {/* Countdown */}
         <div className="bg-[#181C23] border border-white/8 px-6 py-4 mb-6">
           <p className="text-white/30 text-xs">
             Redirection vers votre dashboard dans{' '}
@@ -87,7 +87,7 @@ export default function SubscribeSuccessPage() {
           </p>
         </div>
 
-        {/* Manual button */}
+        {/* Button */}
         <button
           onClick={() => router.push(planInfo.dashboardPath(slug))}
           className="w-full py-4 text-[10px] tracking-[0.4em] uppercase font-medium transition-opacity hover:opacity-80"
@@ -97,11 +97,35 @@ export default function SubscribeSuccessPage() {
         </button>
       </div>
 
-      {/* Footer note */}
+      {/* Footer */}
       <p className="mt-12 text-[10px] text-white/15 text-center max-w-xs leading-relaxed">
         Un reçu de paiement a été envoyé à votre adresse email par Stripe.<br />
         Pour gérer votre abonnement, rendez-vous dans les paramètres de votre dashboard.
       </p>
+    </div>
+  )
+}
+
+export default function SubscribeSuccessPage() {
+  return (
+    <div className="min-h-screen bg-[#0F1115] text-[#F5F7FA] flex flex-col">
+      {/* Nav */}
+      <nav className="px-6 py-5 border-b border-white/5">
+        <div>
+          <span className="text-[8px] tracking-[0.5em] text-white/20 uppercase block">Itinera</span>
+          <span className="text-lg text-white tracking-wide">ITINERA</span>
+        </div>
+      </nav>
+
+      <Suspense
+        fallback={
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-[#6E5BFF] border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
+        <SuccessContent />
+      </Suspense>
     </div>
   )
 }
