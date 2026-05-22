@@ -15,6 +15,9 @@ export default function LandingPage() {
   // Choix initial GUEST / RP (null = écran de choix)
   const [userType, setUserType] = useState<'guest' | null>(null)
 
+  // Choix Venue : simple ou groupe
+  const [showVenueChoice, setShowVenueChoice] = useState(false)
+
   // Formulaire code d'invitation
   const [showCodeForm, setShowCodeForm] = useState(false)
   const [inviteCode, setInviteCode] = useState('')
@@ -308,18 +311,40 @@ export default function LandingPage() {
               </button>
 
               {/* VENUE */}
-              <button
-                onClick={() => router.push('/host')}
-                className="group border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-6 sm:p-10 transition-all duration-300 flex flex-col items-center justify-center gap-4 sm:gap-5 text-center backdrop-blur-sm"
-              >
-                <span className="font-playfair text-xl sm:text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
-                  VENUE
-                </span>
-                <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
-                <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
-                  Manage reservations<br />for your venue
-                </span>
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowVenueChoice(v => !v)}
+                  className="group w-full border border-white/10 hover:border-[#6E5BFF]/50 bg-[#181C23]/80 hover:bg-[#6E5BFF]/8 p-6 sm:p-10 transition-all duration-300 flex flex-col items-center justify-center gap-4 sm:gap-5 text-center backdrop-blur-sm"
+                >
+                  <span className="font-playfair text-xl sm:text-2xl text-[#F5F7FA] tracking-widest group-hover:text-white transition-colors">
+                    VENUE
+                  </span>
+                  <span className="w-8 h-px bg-[#6E5BFF]/50 group-hover:bg-[#6E5BFF] transition-colors" />
+                  <span className="text-[9px] tracking-[0.2em] uppercase text-[#F5F7FA]/35 group-hover:text-[#F5F7FA]/60 transition-colors leading-relaxed">
+                    Manage reservations<br />for your venue
+                  </span>
+                </button>
+
+                {/* Choix Simple Venue / Hospitality Group */}
+                {showVenueChoice && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-[#181C23] border border-[#6E5BFF]/30 z-50 shadow-2xl">
+                    <button
+                      onClick={() => { setShowVenueChoice(false); router.push('/host') }}
+                      className="w-full px-5 py-4 text-left hover:bg-[#6E5BFF]/10 transition-colors border-b border-white/5 group"
+                    >
+                      <p className="text-[10px] tracking-[0.25em] uppercase text-[#F5F7FA]/80 group-hover:text-white transition-colors">Simple Venue</p>
+                      <p className="text-[9px] text-[#F5F7FA]/30 mt-1">Un seul établissement</p>
+                    </button>
+                    <button
+                      onClick={() => { setShowVenueChoice(false); router.push('/group') }}
+                      className="w-full px-5 py-4 text-left hover:bg-[#6E5BFF]/10 transition-colors group"
+                    >
+                      <p className="text-[10px] tracking-[0.25em] uppercase text-[#F5F7FA]/80 group-hover:text-white transition-colors">Hospitality Group</p>
+                      <p className="text-[9px] text-[#F5F7FA]/30 mt-1">Plusieurs établissements</p>
+                    </button>
+                  </div>
+                )}
+              </div>
 
             </div>
           )}
@@ -349,8 +374,8 @@ export default function LandingPage() {
           <span className="text-[9px] tracking-[0.45em] uppercase text-[#6E5BFF]/50">The Ecosystem</span>
         </div>
 
-        {/* Four roles */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-px bg-white/5">
+        {/* Five roles */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-px bg-white/5">
 
           {/* GUEST */}
           <div className="bg-[#0F1115] p-8 sm:p-10 group hover:bg-[#181C23] transition-colors duration-300">
@@ -447,6 +472,36 @@ export default function LandingPage() {
             </p>
           </div>
 
+          {/* HOSPITALITY GROUP */}
+          <div className="bg-[#0F1115] p-8 sm:p-10 group hover:bg-[#181C23] transition-colors duration-300 border-t border-white/5 md:border-t-0">
+            <p className="text-[8px] tracking-[0.5em] uppercase text-[#6E5BFF]/40 mb-5">04</p>
+            <h3 className="font-playfair text-2xl text-[#F5F7FA] tracking-wide mb-1">Itinera</h3>
+            <h3 className="font-playfair text-2xl text-[#6E5BFF] tracking-wide mb-5">Group</h3>
+            <span className="w-6 h-px bg-[#6E5BFF]/30 block mb-5 group-hover:bg-[#6E5BFF]/60 transition-colors" />
+            <p className="text-[#F5F7FA]/45 text-sm leading-relaxed mb-5">
+              For hospitality groups managing multiple venues across destinations.
+              One central dashboard to oversee all properties, create venue accounts
+              and monitor activity — while each venue operates independently.
+            </p>
+            <ul className="space-y-2.5 mb-5">
+              {[
+                'One group account for all your venues',
+                'Create and manage each venue individually',
+                'Each venue receives its own login credentials',
+                'Director dashboard: reservation volume & RP activity',
+                'Works across cities and countries',
+              ].map(f => (
+                <li key={f} className="flex items-start gap-2.5">
+                  <span className="text-[#6E5BFF]/50 mt-0.5 flex-shrink-0">–</span>
+                  <span className="text-[#F5F7FA]/30 text-[12px] leading-relaxed">{f}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-[10px] tracking-[0.2em] uppercase text-[#F5F7FA]/20 mt-6 border-t border-white/5 pt-5">
+              Multi-venue access
+            </p>
+          </div>
+
           {/* GLOBAL ACCESS */}
           <div
             className="p-8 sm:p-10 group transition-colors duration-300 border-t border-white/5 md:border-t-0"
@@ -454,7 +509,7 @@ export default function LandingPage() {
             onMouseEnter={e => (e.currentTarget.style.background = '#100f08')}
             onMouseLeave={e => (e.currentTarget.style.background = '#0F1115')}
           >
-            <p className="text-[8px] tracking-[0.5em] uppercase mb-5" style={{ color: 'rgba(201,168,76,0.4)' }}>04</p>
+            <p className="text-[8px] tracking-[0.5em] uppercase mb-5" style={{ color: 'rgba(201,168,76,0.4)' }}>05</p>
             <h3 className="font-playfair text-2xl text-[#F5F7FA] tracking-wide mb-1">Itinera</h3>
             <h3 className="font-playfair text-2xl tracking-wide mb-5" style={{ color: '#C9A84C' }}>Global Access</h3>
             <span
