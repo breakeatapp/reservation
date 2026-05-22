@@ -1,5 +1,19 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
+const PERSONAL_DOMAINS = [
+  'gmail.com','googlemail.com','yahoo.com','yahoo.fr','yahoo.co.uk',
+  'hotmail.com','hotmail.fr','hotmail.co.uk','outlook.com','outlook.fr',
+  'live.com','live.fr','msn.com','icloud.com','me.com','mac.com',
+  'aol.com','free.fr','orange.fr','sfr.fr','wanadoo.fr','laposte.net',
+  'bouyguestelecom.fr','numericable.fr','protonmail.com','proton.me',
+  'gmx.com','gmx.fr','mail.com','ymail.com','pm.me','tutanota.com',
+]
+
+function isProfessionalEmail(email: string): boolean {
+  const domain = email.trim().toLowerCase().split('@')[1] ?? ''
+  return domain.length > 0 && !PERSONAL_DOMAINS.includes(domain)
+}
+
 function capitalizeName(name: string): string {
   return name.trim().replace(/\b\w/g, l => l.toUpperCase())
 }
@@ -24,6 +38,16 @@ export async function POST(req: Request) {
 
     if (password.length < 6) {
       return Response.json({ error: 'Le mot de passe doit faire au moins 6 caractères.' }, { status: 400 })
+    }
+
+    if (!email?.trim()) {
+      return Response.json({ error: 'Un email professionnel est requis.' }, { status: 400 })
+    }
+
+    if (!isProfessionalEmail(email)) {
+      return Response.json({
+        error: 'Veuillez utiliser un email professionnel (adresse de votre établissement). Les adresses Gmail, Hotmail, Yahoo et similaires ne sont pas acceptées.',
+      }, { status: 400 })
     }
 
     // Check if table exists first

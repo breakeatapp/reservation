@@ -163,15 +163,17 @@ export default function HostRegisterPage() {
               {/* Email */}
               <div>
                 <label className="block text-[9px] tracking-[0.3em] uppercase text-[#F5F7FA]/40 mb-2">
-                  Email <span className="text-[#F5F7FA]/20 normal-case tracking-normal">(optionnel)</span>
+                  Email professionnel *
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="contact@votre-restaurant.com"
+                  required
                   className="w-full bg-[#0F1115] border border-white/10 text-[#F5F7FA] px-4 py-3 text-sm focus:border-[#6E5BFF]/40 outline-none placeholder-[#F5F7FA]/20 transition-colors"
                 />
+                <p className="text-[9px] text-[#F5F7FA]/20 mt-1.5">Adresse de votre établissement — Gmail, Hotmail, Yahoo non acceptés</p>
               </div>
 
               {/* Password */}
