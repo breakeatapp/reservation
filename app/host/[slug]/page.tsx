@@ -611,6 +611,7 @@ export default function HostDashboardPage() {
 
         {/* ── Partners tab ── */}
         {mainTab === 'partners' && (
+          <>
           <div className="space-y-6">
 
             {/* Explainer */}
@@ -717,6 +718,68 @@ export default function HostDashboardPage() {
             </div>
 
           </div>
+
+          {/* ── Mon abonnement ── */}
+          <div className="mt-6 border border-white/8 bg-[#181C23] p-5">
+            <p className="text-[9px] tracking-[0.4em] uppercase text-emerald-400/60 mb-4">Mon abonnement</p>
+
+            {subStatus === 'active' ? (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
+                    ✓ Actif
+                  </span>
+                </div>
+                <p className="text-[#F5F7FA] text-sm mt-2 mb-1">Itinera Venue — <span className="text-[#F5F7FA]/50">49,90 € / mois</span></p>
+                <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mb-5">
+                  Gérez votre abonnement, consultez vos factures ou résiliez depuis le portail Stripe sécurisé.
+                </p>
+                <button
+                  onClick={openPortal}
+                  disabled={portalLoading}
+                  className="w-full py-3 text-[10px] tracking-[0.3em] uppercase border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 transition-colors disabled:opacity-40"
+                >
+                  {portalLoading ? 'Chargement…' : '→ Gérer / Résilier l\'abonnement'}
+                </button>
+              </div>
+            ) : subStatus === 'past_due' ? (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                    ⚠ Paiement en attente
+                  </span>
+                </div>
+                <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mb-5">
+                  Un paiement a échoué. Mettez à jour votre carte pour éviter la suspension.
+                </p>
+                <button
+                  onClick={openPortal}
+                  disabled={portalLoading}
+                  className="w-full py-3 text-[10px] tracking-[0.3em] uppercase border border-amber-400/40 text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-40"
+                >
+                  {portalLoading ? 'Chargement…' : '→ Mettre à jour le paiement'}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-white/5 text-[#F5F7FA]/30 border border-white/8">
+                    Gratuit
+                  </span>
+                </div>
+                <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mb-5">
+                  Passez à Itinera Venue Pro pour débloquer toutes les fonctionnalités sans limite.
+                </p>
+                <button
+                  onClick={() => router.push(`/subscribe/venue?slug=${slug}`)}
+                  className="w-full py-3 text-[10px] tracking-[0.3em] uppercase border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                >
+                  ✦ Passer à Pro — 49,90 € / mois
+                </button>
+              </div>
+            )}
+          </div>
+          </>
         )}
 
       </main>

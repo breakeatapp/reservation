@@ -1812,6 +1812,71 @@ ${profile.display_name}`
             )}
           </div>
 
+          {/* ── Mon abonnement ── */}
+          <div className="border border-white/8 bg-[#141414] p-5">
+            <p className="text-[9px] tracking-[0.4em] uppercase text-[#5B3DF5]/70 mb-4">Mon abonnement</p>
+
+            {subStatus === 'active' ? (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
+                        ✓ Actif
+                      </span>
+                    </div>
+                    <p className="text-[#F5F5F3] text-sm mt-2">Itinera RP — <span className="text-[#F5F5F3]/50">19,90 € / mois</span></p>
+                  </div>
+                </div>
+                <p className="text-[#F5F5F3]/30 text-xs leading-relaxed mb-5">
+                  Gérez votre abonnement, consultez vos factures ou résiliez depuis le portail Stripe sécurisé.
+                </p>
+                <button
+                  onClick={openPortal}
+                  disabled={portalLoading}
+                  className="w-full py-3 text-[10px] tracking-[0.3em] uppercase border border-[#5B3DF5]/40 text-[#5B3DF5] hover:bg-[#5B3DF5]/10 transition-colors disabled:opacity-40"
+                >
+                  {portalLoading ? 'Chargement…' : '→ Gérer / Résilier l\'abonnement'}
+                </button>
+              </div>
+            ) : subStatus === 'past_due' ? (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                    ⚠ Paiement en attente
+                  </span>
+                </div>
+                <p className="text-[#F5F5F3]/30 text-xs leading-relaxed mb-5">
+                  Un paiement a échoué. Mettez à jour votre carte pour éviter la suspension.
+                </p>
+                <button
+                  onClick={openPortal}
+                  disabled={portalLoading}
+                  className="w-full py-3 text-[10px] tracking-[0.3em] uppercase border border-amber-400/40 text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-40"
+                >
+                  {portalLoading ? 'Chargement…' : '→ Mettre à jour le paiement'}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-white/5 text-[#F5F5F3]/30 border border-white/8">
+                    Gratuit
+                  </span>
+                </div>
+                <p className="text-[#F5F5F3]/30 text-xs leading-relaxed mb-5">
+                  Passez à Itinera RP Pro pour débloquer toutes les fonctionnalités sans limite.
+                </p>
+                <button
+                  onClick={() => window.location.href = `/subscribe/rp?slug=${profile.slug}`}
+                  className="w-full py-3 text-[10px] tracking-[0.3em] uppercase border border-[#5B3DF5]/40 text-[#5B3DF5] hover:bg-[#5B3DF5]/10 transition-colors"
+                >
+                  ✦ Passer à Pro — 19,90 € / mois
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* ── Zone dangereuse ── */}
           <div className="mt-10 border border-red-500/15 bg-red-500/5 p-5">
             <p className="text-[9px] tracking-[0.4em] uppercase text-red-400/50 mb-1">Zone dangereuse</p>
