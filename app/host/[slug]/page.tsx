@@ -100,6 +100,39 @@ export default function HostDashboardPage() {
   const [connectionsLoading, setConnectionsLoading] = useState(false)
   const [connectionsError, setConnectionsError] = useState('')
   const [codeCopied, setCodeCopied] = useState(false)
+
+  // Subscription
+  const [subStatus, setSubStatus] = useState<string>('free')
+  const [portalLoading, setPortalLoading] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/stripe/subscription-status?plan=venue&slug=${slug}`)
+      .then(r => r.json())
+      .then(d => { if (d.status) setSubStatus(d.status) })
+      .catch(() => {})
+  }, [slug])
+
+  const openPortal = async () => {
+    setPortalLoading(true)
+    try {
+      const res = await fetch('/api/stripe/customer-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: 'venue',
+          profileSlug: slug,
+          returnUrl: `${window.location.origin}/host/${slug}`,
+        }),
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+    } catch {
+      // silencieux
+    } finally {
+      setPortalLoading(false)
+    }
+  }
+
   useEffect(() => {
     const storedSlug = localStorage.getItem('itinera_host_slug')
     const storedName = localStorage.getItem('itinera_host_name')
@@ -242,12 +275,22 @@ export default function HostDashboardPage() {
                 ↻
               </button>
             )}
-            <button
-              onClick={() => router.push(`/subscribe/venue?slug=${slug}`)}
-              className="text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-            >
-              ✦ Pro
-            </button>
+            {subStatus === 'active' ? (
+              <button
+                onClick={openPortal}
+                disabled={portalLoading}
+                className="text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 transition-colors disabled:opacity-50"
+              >
+                {portalLoading ? '…' : '✦ Abonnement'}
+              </button>
+            ) : (
+              <button
+                onClick={() => router.push(`/subscribe/venue?slug=${slug}`)}
+                className="text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+              >
+                ✦ Pro
+              </button>
+            )}
             <button
               onClick={logout}
               className="text-[10px] tracking-[0.2em] uppercase text-[#F5F7FA]/30 hover:text-[#F5F7FA]/60 transition-colors border border-white/8 hover:border-white/15 px-3 py-1.5"

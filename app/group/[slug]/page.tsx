@@ -91,6 +91,38 @@ export default function GroupDashboardPage() {
   const [createError, setCreateError] = useState('')
   const [createSuccess, setCreateSuccess] = useState<{ venue_name: string; destination: string; slug: string } | null>(null)
 
+  // Subscription
+  const [subStatus, setSubStatus] = useState<string>('free')
+  const [portalLoading, setPortalLoading] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/stripe/subscription-status?plan=group&slug=${slug}`)
+      .then(r => r.json())
+      .then(d => { if (d.status) setSubStatus(d.status) })
+      .catch(() => {})
+  }, [slug])
+
+  const openPortal = async () => {
+    setPortalLoading(true)
+    try {
+      const res = await fetch('/api/stripe/customer-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: 'group',
+          profileSlug: slug,
+          returnUrl: `${window.location.origin}/group/${slug}`,
+        }),
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+    } catch {
+      // silencieux
+    } finally {
+      setPortalLoading(false)
+    }
+  }
+
   const fetchVenues = useCallback(async () => {
     setLoading(true)
     try {
@@ -252,12 +284,22 @@ export default function GroupDashboardPage() {
           <span className="font-playfair text-lg text-[#F5F7FA] tracking-wide">{groupName}</span>
         </div>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push(`/subscribe/group?slug=${slug}`)}
-            className="text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 transition-colors"
-          >
-            ✦ Pro
-          </button>
+          {subStatus === 'active' ? (
+            <button
+              onClick={openPortal}
+              disabled={portalLoading}
+              className="text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 transition-colors disabled:opacity-50"
+            >
+              {portalLoading ? '…' : '✦ Abonnement'}
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push(`/subscribe/group?slug=${slug}`)}
+              className="text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 transition-colors"
+            >
+              ✦ Pro
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className="text-[#F5F7FA]/25 text-[10px] tracking-[0.2em] uppercase hover:text-[#F5F7FA]/50 transition-colors"

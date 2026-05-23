@@ -307,6 +307,38 @@ export default function RPDashboard({ profile }: Props) {
   const [bfcTripSubmitting, setBfcTripSubmitting] = useState(false)
   const [bfcTripDone, setBfcTripDone] = useState<'success' | 'error' | null>(null)
 
+  // Subscription
+  const [subStatus, setSubStatus] = useState<string>('free')
+  const [portalLoading, setPortalLoading] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/stripe/subscription-status?plan=rp&slug=${profile.slug}`)
+      .then(r => r.json())
+      .then(d => { if (d.status) setSubStatus(d.status) })
+      .catch(() => {})
+  }, [profile.slug])
+
+  const openPortal = async () => {
+    setPortalLoading(true)
+    try {
+      const res = await fetch('/api/stripe/customer-portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: 'rp',
+          profileSlug: profile.slug,
+          returnUrl: `${window.location.origin}/${profile.slug}/dashboard`,
+        }),
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+    } catch {
+      // silencieux
+    } finally {
+      setPortalLoading(false)
+    }
+  }
+
   const fetchReservations = useCallback(async () => {
     setLoading(true)
     try {
@@ -2972,17 +3004,29 @@ ${profile.display_name}`
             <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                const slug = typeof window !== 'undefined' ? localStorage.getItem('itinera_rp_slug') || profile.slug : profile.slug
-                window.location.href = `/subscribe/rp?slug=${slug}`
-              }}
-              className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-[#6E5BFF] border border-[#6E5BFF]/40 hover:bg-[#6E5BFF]/10 transition-colors px-3 py-2"
-              title="Passer à Itinera RP Pro"
-            >
-              <span>✦</span>
-              <span className="hidden sm:inline">Pro</span>
-            </button>
+            {subStatus === 'active' ? (
+              <button
+                onClick={openPortal}
+                disabled={portalLoading}
+                className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-emerald-400 border border-emerald-400/40 hover:bg-emerald-400/10 transition-colors px-3 py-2 disabled:opacity-50"
+                title="Gérer mon abonnement"
+              >
+                <span>✦</span>
+                <span className="hidden sm:inline">{portalLoading ? '…' : 'Abonnement'}</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  const slug = typeof window !== 'undefined' ? localStorage.getItem('itinera_rp_slug') || profile.slug : profile.slug
+                  window.location.href = `/subscribe/rp?slug=${slug}`
+                }}
+                className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-[#6E5BFF] border border-[#6E5BFF]/40 hover:bg-[#6E5BFF]/10 transition-colors px-3 py-2"
+                title="Passer à Itinera RP Pro"
+              >
+                <span>✦</span>
+                <span className="hidden sm:inline">Pro</span>
+              </button>
+            )}
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-white/30 hover:text-red-400/70 transition-colors border border-white/8 hover:border-red-400/30 px-3 py-2"
