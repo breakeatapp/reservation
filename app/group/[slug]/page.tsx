@@ -309,6 +309,24 @@ export default function GroupDashboardPage() {
         </div>
       </nav>
 
+      {/* ── Bannière abonnement ── */}
+      {subStatus === 'active' && (
+        <div className="flex items-center justify-between px-6 py-2.5 bg-amber-500/8 border-b border-amber-500/20">
+          <span className="text-[9px] tracking-[0.2em] uppercase text-amber-400">✦ Itinera Group Pro · Abonnement actif</span>
+          <button onClick={openPortal} disabled={portalLoading} className="text-[9px] uppercase text-amber-400/70 hover:text-amber-400 transition-colors underline underline-offset-2">
+            {portalLoading ? '…' : 'Gérer / Résilier'}
+          </button>
+        </div>
+      )}
+      {subStatus === 'past_due' && (
+        <div className="flex items-center justify-between px-6 py-2.5 bg-red-500/8 border-b border-red-500/20">
+          <span className="text-[9px] tracking-[0.2em] uppercase text-red-400">⚠ Paiement en attente — mettez à jour votre carte</span>
+          <button onClick={openPortal} disabled={portalLoading} className="text-[9px] uppercase text-red-400/70 hover:text-red-400 transition-colors underline underline-offset-2">
+            {portalLoading ? '…' : 'Mettre à jour'}
+          </button>
+        </div>
+      )}
+
       <main className="max-w-4xl mx-auto px-5 py-10">
 
         {/* Stats rapides */}

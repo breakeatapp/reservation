@@ -1,8 +1,68 @@
 import { NextResponse } from 'next/server'
 import { stripe, PLAN_TABLE, PlanType } from '@/lib/stripe'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { Resend } from 'resend'
 
 export const dynamic = 'force-dynamic'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
+
+const PLAN_LABELS: Record<PlanType, string> = {
+  rp:    'Itinera RP — 19,90 € / mois',
+  venue: 'Itinera Venue — 49,90 € / mois',
+  group: 'Itinera Group — 149,90 € / mois',
+}
+
+async function notifyNewSubscription(planType: PlanType, profileSlug: string, customerEmail?: string) {
+  const managerEmail = process.env.MANAGER_EMAIL
+  if (!managerEmail || !process.env.RESEND_API_KEY) return
+  try {
+    await resend.emails.send({
+      from: 'Itinera <contact@itinera.click>',
+      to: managerEmail,
+      subject: `💳 Nouvel abonnement — ${PLAN_LABELS[planType]}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0F1115;color:#F5F7FA;padding:32px;border-radius:8px;">
+          <p style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:#6E5BFF;margin:0 0 8px">Itinera · Nouvel abonnement</p>
+          <h1 style="font-size:22px;font-weight:300;margin:0 0 24px">💳 Paiement reçu</h1>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <tr><td style="padding:8px 0;color:#999;border-bottom:1px solid #222">Plan</td><td style="padding:8px 0;border-bottom:1px solid #222"><strong>${PLAN_LABELS[planType]}</strong></td></tr>
+            <tr><td style="padding:8px 0;color:#999;border-bottom:1px solid #222">Profil</td><td style="padding:8px 0;border-bottom:1px solid #222;font-family:monospace">${profileSlug}</td></tr>
+            ${customerEmail ? `<tr><td style="padding:8px 0;color:#999">Email</td><td style="padding:8px 0">${customerEmail}</td></tr>` : ''}
+          </table>
+          <p style="margin-top:24px;font-size:11px;color:#555">Itinera · ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        </div>
+      `,
+    })
+  } catch (err) {
+    console.error('[webhook] notifyNewSubscription error:', err)
+  }
+}
+
+async function notifyPaymentFailed(planType: PlanType, profileSlug: string) {
+  const managerEmail = process.env.MANAGER_EMAIL
+  if (!managerEmail || !process.env.RESEND_API_KEY) return
+  try {
+    await resend.emails.send({
+      from: 'Itinera <contact@itinera.click>',
+      to: managerEmail,
+      subject: `⚠️ Paiement échoué — ${PLAN_LABELS[planType]}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0F1115;color:#F5F7FA;padding:32px;border-radius:8px;">
+          <p style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:#ef4444;margin:0 0 8px">Itinera · Alerte paiement</p>
+          <h1 style="font-size:22px;font-weight:300;margin:0 0 24px">⚠️ Paiement échoué</h1>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <tr><td style="padding:8px 0;color:#999;border-bottom:1px solid #222">Plan</td><td style="padding:8px 0;border-bottom:1px solid #222">${PLAN_LABELS[planType]}</td></tr>
+            <tr><td style="padding:8px 0;color:#999">Profil</td><td style="padding:8px 0;font-family:monospace">${profileSlug}</td></tr>
+          </table>
+          <p style="margin-top:24px;font-size:11px;color:#555">Itinera · ${new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        </div>
+      `,
+    })
+  } catch (err) {
+    console.error('[webhook] notifyPaymentFailed error:', err)
+  }
+}
 
 // Map Stripe subscription status → notre status
 function mapStatus(stripeStatus: string): string {
@@ -87,6 +147,10 @@ export async function POST(req: Request) {
           subscription_end_date: periodEnd,
           stripe_customer_id: sub.customer,
         })
+
+        // Notifier l'admin
+        const customerEmail = (event.data.object as any).customer_email ?? undefined
+        await notifyNewSubscription(planType, profileSlug, customerEmail)
         break
       }
 
@@ -108,6 +172,9 @@ export async function POST(req: Request) {
         await updateProfile(planType, profileSlug, {
           subscription_status: 'past_due',
         })
+
+        // Notifier l'admin
+        await notifyPaymentFailed(planType, profileSlug)
         break
       }
 

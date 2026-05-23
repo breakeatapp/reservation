@@ -320,6 +320,24 @@ export default function HostDashboardPage() {
         </div>
       </header>
 
+      {/* ── Bannière abonnement ── */}
+      {subStatus === 'active' && (
+        <div className="flex items-center justify-between px-5 py-2.5 bg-emerald-500/8 border-b border-emerald-500/20">
+          <span className="text-[9px] tracking-[0.2em] uppercase text-emerald-400">✦ Itinera Venue Pro · Abonnement actif</span>
+          <button onClick={openPortal} disabled={portalLoading} className="text-[9px] uppercase text-emerald-400/70 hover:text-emerald-400 transition-colors underline underline-offset-2">
+            {portalLoading ? '…' : 'Gérer / Résilier'}
+          </button>
+        </div>
+      )}
+      {subStatus === 'past_due' && (
+        <div className="flex items-center justify-between px-5 py-2.5 bg-amber-500/8 border-b border-amber-500/20">
+          <span className="text-[9px] tracking-[0.2em] uppercase text-amber-400">⚠ Paiement en attente — mettez à jour votre carte</span>
+          <button onClick={openPortal} disabled={portalLoading} className="text-[9px] uppercase text-amber-400/70 hover:text-amber-400 transition-colors underline underline-offset-2">
+            {portalLoading ? '…' : 'Mettre à jour'}
+          </button>
+        </div>
+      )}
+
       <main className="max-w-2xl mx-auto px-4 py-8">
 
         {/* ── Reservations tab ── */}
