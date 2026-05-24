@@ -33,15 +33,26 @@ function SuccessContent() {
   const [countdown, setCountdown] = useState(8)
 
   // ── Sync de sécurité ─────────────────────────────────────────
-  // Si le webhook n'a pas encore mis à jour Supabase, on le fait ici.
+  // 1. Essai via subscriptionId (si disponible) + 2. Fallback via slug (toujours)
   // Idempotent : n'envoie pas les emails si déjà synchronisé.
   useEffect(() => {
-    if (!sid || !plan || !slug) return
-    fetch('/api/stripe/sync-subscription', {
+    if (!plan || !slug) return
+
+    // Méthode principale : sync via slug (cherche le customer_id en base)
+    fetch('/api/stripe/sync-by-slug', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscriptionId: sid, plan, profileSlug: slug }),
+      body: JSON.stringify({ plan, profileSlug: slug }),
     }).catch(() => {/* silencieux */})
+
+    // Méthode secondaire : sync via subscriptionId si disponible
+    if (sid) {
+      fetch('/api/stripe/sync-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscriptionId: sid, plan, profileSlug: slug }),
+      }).catch(() => {/* silencieux */})
+    }
   }, [sid, plan, slug])
 
   useEffect(() => {

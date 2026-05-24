@@ -96,8 +96,10 @@ export default function GroupDashboardPage() {
   const [subEndDate, setSubEndDate] = useState<string | null>(null)
   const [portalLoading, setPortalLoading] = useState(false)
   const [justSubscribed, setJustSubscribed] = useState(false)
+  const [syncLoading, setSyncLoading] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
-  useEffect(() => {
+  const refreshSubStatus = () => {
     fetch(`/api/stripe/subscription-status?plan=group&slug=${slug}`)
       .then(r => r.json())
       .then(d => {
@@ -105,6 +107,38 @@ export default function GroupDashboardPage() {
         if (d.endDate) setSubEndDate(d.endDate)
       })
       .catch(() => {})
+  }
+
+  const forceSyncSubscription = async () => {
+    setSyncLoading(true)
+    setSyncMessage(null)
+    try {
+      const res = await fetch('/api/stripe/sync-by-slug', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'group', profileSlug: slug }),
+      })
+      const data = await res.json()
+      if (data.synced && (data.status === 'active' || data.alreadySynced)) {
+        setSyncMessage({ type: 'ok', text: 'Abonnement synchronisé. Statut mis à jour.' })
+        refreshSubStatus()
+      } else if (data.reason === 'no_customer') {
+        setSyncMessage({ type: 'err', text: 'Aucun compte Stripe trouvé. Avez-vous complété un paiement ?' })
+      } else if (data.reason === 'no_active_sub_in_stripe') {
+        setSyncMessage({ type: 'err', text: 'Aucun abonnement actif trouvé dans Stripe.' })
+      } else {
+        setSyncMessage({ type: 'err', text: data.error || 'Synchronisation impossible.' })
+      }
+    } catch {
+      setSyncMessage({ type: 'err', text: 'Erreur réseau. Réessayez.' })
+    } finally {
+      setSyncLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    refreshSubStatus()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug])
 
   useEffect(() => {
@@ -695,59 +729,82 @@ export default function GroupDashboardPage() {
         )}
 
         {/* ── Mon abonnement ── */}
-        <div className="mt-10 border border-white/8 bg-[#181C23] p-6">
-          <p className="text-[9px] tracking-[0.4em] uppercase text-amber-400/60 mb-4">Mon abonnement</p>
+        <div className="mt-10 border border-amber-500/20 bg-[#13100a] p-6">
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-[9px] tracking-[0.4em] uppercase text-amber-400 font-medium">✦ Mon abonnement</p>
+            {subStatus === 'active' ? (
+              <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">● Actif</span>
+            ) : subStatus === 'past_due' ? (
+              <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-amber-400/10 text-amber-400 border border-amber-400/20">⚠ Paiement en attente</span>
+            ) : (
+              <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-white/5 text-[#F5F7FA]/30 border border-white/8">Gratuit</span>
+            )}
+          </div>
 
           {subStatus === 'active' ? (
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">✓ Actif</span>
+            <div className="space-y-4">
+              <div className="bg-[#1a140a] border border-white/5 p-4">
+                <p className="text-[#F5F7FA] text-sm font-medium mb-0.5">Itinera Group Pro</p>
+                <p className="text-[#F5F7FA]/40 text-xs">149,90 € / mois · Toutes vos venues couvertes</p>
                 {subEndDate && (
-                  <span className="text-[9px] text-[#F5F7FA]/30">
+                  <p className="text-amber-400/60 text-[10px] mt-2">
                     Renouvellement le {new Date(subEndDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </span>
+                  </p>
                 )}
               </div>
-              <p className="text-[#F5F7FA] text-sm mb-1">Itinera Group Pro <span className="text-[#F5F7FA]/40">— 149,90 € / mois</span></p>
-              <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mb-5">
-                Toutes vos venues sont couvertes. Gérez ou résiliez votre abonnement à tout moment.
-              </p>
               <button
                 onClick={openPortal}
                 disabled={portalLoading}
-                className="w-full py-3 text-[10px] tracking-[0.3em] uppercase border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 transition-colors disabled:opacity-40"
+                className="w-full py-3 text-[10px] tracking-[0.3em] uppercase bg-amber-500/15 border border-amber-500/40 text-amber-400 hover:bg-amber-500/25 transition-colors disabled:opacity-40"
               >
-                {portalLoading ? 'Chargement…' : '→ Gérer / Résilier l\'abonnement'}
+                {portalLoading ? 'Chargement…' : '→ Gérer / Résilier mon abonnement'}
               </button>
             </div>
           ) : subStatus === 'past_due' ? (
-            <div>
-              <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-amber-400/10 text-amber-400 border border-amber-400/20">⚠ Paiement en attente</span>
-              <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mt-3 mb-5">
-                Un paiement a échoué. Mettez à jour votre carte pour éviter la suspension.
-              </p>
+            <div className="space-y-4">
+              <p className="text-[#F5F7FA]/40 text-xs leading-relaxed">Un paiement a échoué. Mettez à jour votre carte pour éviter la suspension.</p>
               <button
                 onClick={openPortal}
                 disabled={portalLoading}
                 className="w-full py-3 text-[10px] tracking-[0.3em] uppercase border border-amber-400/40 text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-40"
               >
-                {portalLoading ? 'Chargement…' : '→ Mettre à jour le paiement'}
+                {portalLoading ? 'Chargement…' : '→ Mettre à jour mon paiement'}
               </button>
             </div>
           ) : (
-            <div>
-              <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-white/5 text-[#F5F7FA]/30 border border-white/8">Plan gratuit</span>
-              <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mt-3 mb-5">
+            <div className="space-y-4">
+              <p className="text-[#F5F7FA]/40 text-xs leading-relaxed">
                 Passez à Itinera Group Pro pour gérer plusieurs établissements sans limite.
               </p>
               <button
                 onClick={() => router.push(`/subscribe/group?slug=${slug}`)}
-                className="w-full py-3 text-[10px] tracking-[0.3em] uppercase border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 transition-colors"
+                className="w-full py-3.5 text-[10px] tracking-[0.3em] uppercase bg-amber-500 text-white hover:bg-amber-600 transition-colors"
               >
                 ✦ Passer à Pro — 149,90 € / mois
               </button>
             </div>
           )}
+
+          {/* ── Synchronisation manuelle ── */}
+          <div className="mt-5 pt-4 border-t border-white/5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] text-[#F5F7FA]/25 leading-relaxed">
+                Vous avez payé mais votre statut n&apos;est pas à jour ?
+              </p>
+              <button
+                onClick={forceSyncSubscription}
+                disabled={syncLoading}
+                className="shrink-0 px-3 py-1.5 text-[9px] tracking-[0.2em] uppercase border border-white/10 text-[#F5F7FA]/30 hover:border-amber-500/40 hover:text-amber-400/70 transition-colors disabled:opacity-30"
+              >
+                {syncLoading ? '…' : '↻ Synchroniser'}
+              </button>
+            </div>
+            {syncMessage && (
+              <p className={`mt-2 text-[10px] ${syncMessage.type === 'ok' ? 'text-emerald-400' : 'text-red-400/70'}`}>
+                {syncMessage.text}
+              </p>
+            )}
+          </div>
         </div>
 
       </main>

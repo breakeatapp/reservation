@@ -108,8 +108,10 @@ export default function HostDashboardPage() {
   const [groupName, setGroupName] = useState<string>('')
   const [portalLoading, setPortalLoading] = useState(false)
   const [justSubscribed, setJustSubscribed] = useState(false)
+  const [syncLoading, setSyncLoading] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
-  useEffect(() => {
+  const refreshSubStatus = () => {
     fetch(`/api/stripe/subscription-status?plan=venue&slug=${slug}`)
       .then(r => r.json())
       .then(d => {
@@ -118,6 +120,38 @@ export default function HostDashboardPage() {
         if (d.coveredByGroup) { setCoveredByGroup(true); setGroupName(d.groupName ?? '') }
       })
       .catch(() => {})
+  }
+
+  const forceSyncSubscription = async () => {
+    setSyncLoading(true)
+    setSyncMessage(null)
+    try {
+      const res = await fetch('/api/stripe/sync-by-slug', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'venue', profileSlug: slug }),
+      })
+      const data = await res.json()
+      if (data.synced && (data.status === 'active' || data.alreadySynced)) {
+        setSyncMessage({ type: 'ok', text: 'Abonnement synchronisé. Statut mis à jour.' })
+        refreshSubStatus()
+      } else if (data.reason === 'no_customer') {
+        setSyncMessage({ type: 'err', text: 'Aucun compte Stripe trouvé. Avez-vous complété un paiement ?' })
+      } else if (data.reason === 'no_active_sub_in_stripe') {
+        setSyncMessage({ type: 'err', text: 'Aucun abonnement actif trouvé dans Stripe.' })
+      } else {
+        setSyncMessage({ type: 'err', text: data.error || 'Synchronisation impossible.' })
+      }
+    } catch {
+      setSyncMessage({ type: 'err', text: 'Erreur réseau. Réessayez.' })
+    } finally {
+      setSyncLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    refreshSubStatus()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug])
 
   useEffect(() => {
@@ -768,72 +802,92 @@ export default function HostDashboardPage() {
           </div>
 
           {/* ── Mon abonnement ── */}
-          <div className="mt-6 border border-white/8 bg-[#181C23] p-5">
-            <p className="text-[9px] tracking-[0.4em] uppercase text-emerald-400/60 mb-4">Mon abonnement</p>
+          <div className="mt-6 border border-emerald-500/20 bg-[#0a1510] p-5">
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-[9px] tracking-[0.4em] uppercase text-emerald-400 font-medium">✦ Mon abonnement</p>
+              {coveredByGroup ? (
+                <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-[#6E5BFF]/10 text-[#6E5BFF] border border-[#6E5BFF]/25">✦ Couvert par le groupe</span>
+              ) : subStatus === 'active' ? (
+                <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">● Actif</span>
+              ) : subStatus === 'past_due' ? (
+                <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-amber-400/10 text-amber-400 border border-amber-400/20">⚠ Paiement en attente</span>
+              ) : (
+                <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-white/5 text-[#F5F7FA]/30 border border-white/8">Gratuit</span>
+              )}
+            </div>
 
             {coveredByGroup ? (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-[#6E5BFF]/10 text-[#6E5BFF] border border-[#6E5BFF]/25">
-                    ✦ Couvert
-                  </span>
-                </div>
-                <p className="text-[#F5F7FA] text-sm mt-2 mb-1">
-                  Accès complet inclus
-                </p>
-                <p className="text-[#F5F7FA]/30 text-xs leading-relaxed">
-                  Votre établissement bénéficie de l'abonnement Group de <strong className="text-[#6E5BFF]/70">{groupName || 'votre groupe'}</strong>.
+              <div className="bg-[#141414] border border-white/5 p-4">
+                <p className="text-[#F5F7FA] text-sm mb-1">Accès complet inclus</p>
+                <p className="text-[#F5F7FA]/40 text-xs leading-relaxed">
+                  Votre établissement bénéficie de l&apos;abonnement Group de <strong className="text-[#6E5BFF]/70">{groupName || 'votre groupe'}</strong>.
                   Aucun abonnement individuel requis.
                 </p>
               </div>
             ) : subStatus === 'active' ? (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">✓ Actif</span>
+              <div className="space-y-4">
+                <div className="bg-[#141414] border border-white/5 p-4">
+                  <p className="text-[#F5F7FA] text-sm font-medium mb-0.5">Itinera Venue Pro</p>
+                  <p className="text-[#F5F7FA]/40 text-xs">49,90 € / mois · Accès complet</p>
                   {subEndDate && (
-                    <span className="text-[9px] text-[#F5F7FA]/30">
+                    <p className="text-emerald-400/60 text-[10px] mt-2">
                       Renouvellement le {new Date(subEndDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </span>
+                    </p>
                   )}
                 </div>
-                <p className="text-[#F5F7FA] text-sm mb-1">Itinera Venue Pro <span className="text-[#F5F7FA]/40">— 49,90 € / mois</span></p>
-                <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mb-5">
-                  Accès complet à toutes les fonctionnalités. Gérez votre abonnement ou résiliez à tout moment.
-                </p>
                 <button
                   onClick={openPortal}
                   disabled={portalLoading}
-                  className="w-full py-3 text-[10px] tracking-[0.3em] uppercase border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 transition-colors disabled:opacity-40"
+                  className="w-full py-3 text-[10px] tracking-[0.3em] uppercase bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25 transition-colors disabled:opacity-40"
                 >
-                  {portalLoading ? 'Chargement…' : '→ Gérer / Résilier l\'abonnement'}
+                  {portalLoading ? 'Chargement…' : '→ Gérer / Résilier mon abonnement'}
                 </button>
               </div>
             ) : subStatus === 'past_due' ? (
-              <div>
-                <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-amber-400/10 text-amber-400 border border-amber-400/20">⚠ Paiement en attente</span>
-                <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mt-3 mb-5">
-                  Un paiement a échoué. Mettez à jour votre carte pour éviter la suspension.
-                </p>
+              <div className="space-y-4">
+                <p className="text-[#F5F7FA]/40 text-xs leading-relaxed">Un paiement a échoué. Mettez à jour votre carte pour éviter la suspension.</p>
                 <button
                   onClick={openPortal}
                   disabled={portalLoading}
                   className="w-full py-3 text-[10px] tracking-[0.3em] uppercase border border-amber-400/40 text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-40"
                 >
-                  {portalLoading ? 'Chargement…' : '→ Mettre à jour le paiement'}
+                  {portalLoading ? 'Chargement…' : '→ Mettre à jour mon paiement'}
                 </button>
               </div>
             ) : (
-              <div>
-                <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-white/5 text-[#F5F7FA]/30 border border-white/8">Plan gratuit</span>
-                <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mt-3 mb-5">
+              <div className="space-y-4">
+                <p className="text-[#F5F7FA]/40 text-xs leading-relaxed">
                   Passez à Itinera Venue Pro pour débloquer toutes les fonctionnalités sans limite.
                 </p>
                 <button
                   onClick={() => router.push(`/subscribe/venue?slug=${slug}`)}
-                  className="w-full py-3 text-[10px] tracking-[0.3em] uppercase border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                  className="w-full py-3.5 text-[10px] tracking-[0.3em] uppercase bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
                 >
                   ✦ Passer à Pro — 49,90 € / mois
                 </button>
+              </div>
+            )}
+
+            {/* ── Synchronisation manuelle ── */}
+            {!coveredByGroup && (
+              <div className="mt-5 pt-4 border-t border-white/5">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[10px] text-[#F5F7FA]/25 leading-relaxed">
+                    Vous avez payé mais votre statut n&apos;est pas à jour ?
+                  </p>
+                  <button
+                    onClick={forceSyncSubscription}
+                    disabled={syncLoading}
+                    className="shrink-0 px-3 py-1.5 text-[9px] tracking-[0.2em] uppercase border border-white/10 text-[#F5F7FA]/30 hover:border-emerald-500/40 hover:text-emerald-400/70 transition-colors disabled:opacity-30"
+                  >
+                    {syncLoading ? '…' : '↻ Synchroniser'}
+                  </button>
+                </div>
+                {syncMessage && (
+                  <p className={`mt-2 text-[10px] ${syncMessage.type === 'ok' ? 'text-emerald-400' : 'text-red-400/70'}`}>
+                    {syncMessage.text}
+                  </p>
+                )}
               </div>
             )}
           </div>
