@@ -309,14 +309,27 @@ export default function RPDashboard({ profile }: Props) {
 
   // Subscription
   const [subStatus, setSubStatus] = useState<string>('free')
+  const [subEndDate, setSubEndDate] = useState<string | null>(null)
   const [portalLoading, setPortalLoading] = useState(false)
+  const [justSubscribed, setJustSubscribed] = useState(false)
 
   useEffect(() => {
     fetch(`/api/stripe/subscription-status?plan=rp&slug=${profile.slug}`)
       .then(r => r.json())
-      .then(d => { if (d.status) setSubStatus(d.status) })
+      .then(d => {
+        if (d.status) setSubStatus(d.status)
+        if (d.endDate) setSubEndDate(d.endDate)
+      })
       .catch(() => {})
   }, [profile.slug])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('subscribed=1')) {
+      setJustSubscribed(true)
+      // Nettoyer l'URL sans recharger la page
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
 
   const openPortal = async () => {
     setPortalLoading(true)
@@ -1818,18 +1831,17 @@ ${profile.display_name}`
 
             {subStatus === 'active' ? (
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
-                        ✓ Actif
-                      </span>
-                    </div>
-                    <p className="text-[#F5F5F3] text-sm mt-2">Itinera RP — <span className="text-[#F5F5F3]/50">19,90 € / mois</span></p>
-                  </div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">✓ Actif</span>
+                  {subEndDate && (
+                    <span className="text-[9px] text-[#F5F5F3]/30">
+                      Renouvellement le {new Date(subEndDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                  )}
                 </div>
+                <p className="text-[#F5F5F3] text-sm mb-1">Itinera RP Pro <span className="text-[#F5F5F3]/40">— 19,90 € / mois</span></p>
                 <p className="text-[#F5F5F3]/30 text-xs leading-relaxed mb-5">
-                  Gérez votre abonnement, consultez vos factures ou résiliez depuis le portail Stripe sécurisé.
+                  Accès complet à toutes les fonctionnalités. Gérez votre abonnement ou résiliez à tout moment depuis le portail sécurisé.
                 </p>
                 <button
                   onClick={openPortal}
@@ -1841,13 +1853,9 @@ ${profile.display_name}`
               </div>
             ) : subStatus === 'past_due' ? (
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-amber-400/10 text-amber-400 border border-amber-400/20">
-                    ⚠ Paiement en attente
-                  </span>
-                </div>
-                <p className="text-[#F5F5F3]/30 text-xs leading-relaxed mb-5">
-                  Un paiement a échoué. Mettez à jour votre carte pour éviter la suspension.
+                <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-amber-400/10 text-amber-400 border border-amber-400/20">⚠ Paiement en attente</span>
+                <p className="text-[#F5F5F3]/30 text-xs leading-relaxed mt-3 mb-5">
+                  Un paiement a échoué. Mettez à jour votre carte pour éviter la suspension de votre accès.
                 </p>
                 <button
                   onClick={openPortal}
@@ -1859,12 +1867,8 @@ ${profile.display_name}`
               </div>
             ) : (
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-white/5 text-[#F5F5F3]/30 border border-white/8">
-                    Gratuit
-                  </span>
-                </div>
-                <p className="text-[#F5F5F3]/30 text-xs leading-relaxed mb-5">
+                <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-white/5 text-[#F5F5F3]/30 border border-white/8">Plan gratuit</span>
+                <p className="text-[#F5F5F3]/30 text-xs leading-relaxed mt-3 mb-5">
                   Passez à Itinera RP Pro pour débloquer toutes les fonctionnalités sans limite.
                 </p>
                 <button
@@ -3205,8 +3209,18 @@ ${profile.display_name}`
 
       </div>
 
+      {/* ── Bannière confirmation abonnement ── */}
+      {justSubscribed && (
+        <div className="flex items-center justify-between px-4 py-3 bg-emerald-500/15 border-b border-emerald-500/30">
+          <span className="text-[10px] tracking-[0.15em] uppercase text-emerald-300 font-medium">
+            ✦ Abonnement activé — Bienvenue sur Itinera RP Pro !
+          </span>
+          <button onClick={() => setJustSubscribed(false)} className="text-emerald-400/50 hover:text-emerald-400 text-xs ml-4">✕</button>
+        </div>
+      )}
+
       {/* ── Bannière abonnement ── */}
-      {subStatus === 'active' && (
+      {subStatus === 'active' && !justSubscribed && (
         <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-500/8 border-b border-emerald-500/20">
           <div className="flex items-center gap-2">
             <span className="text-[9px] tracking-[0.2em] uppercase text-emerald-400">✦ Itinera RP Pro · Abonnement actif</span>

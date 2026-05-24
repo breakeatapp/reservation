@@ -103,19 +103,29 @@ export default function HostDashboardPage() {
 
   // Subscription
   const [subStatus, setSubStatus] = useState<string>('free')
+  const [subEndDate, setSubEndDate] = useState<string | null>(null)
   const [coveredByGroup, setCoveredByGroup] = useState(false)
   const [groupName, setGroupName] = useState<string>('')
   const [portalLoading, setPortalLoading] = useState(false)
+  const [justSubscribed, setJustSubscribed] = useState(false)
 
   useEffect(() => {
     fetch(`/api/stripe/subscription-status?plan=venue&slug=${slug}`)
       .then(r => r.json())
       .then(d => {
         if (d.status) setSubStatus(d.status)
+        if (d.endDate) setSubEndDate(d.endDate)
         if (d.coveredByGroup) { setCoveredByGroup(true); setGroupName(d.groupName ?? '') }
       })
       .catch(() => {})
   }, [slug])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('subscribed=1')) {
+      setJustSubscribed(true)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
 
   const openPortal = async () => {
     setPortalLoading(true)
@@ -325,6 +335,16 @@ export default function HostDashboardPage() {
         </div>
       </header>
 
+      {/* ── Bannière confirmation abonnement ── */}
+      {justSubscribed && (
+        <div className="flex items-center justify-between px-5 py-3 bg-emerald-500/15 border-b border-emerald-500/30">
+          <span className="text-[10px] tracking-[0.15em] uppercase text-emerald-300 font-medium">
+            ✦ Abonnement activé — Bienvenue sur Itinera Venue Pro !
+          </span>
+          <button onClick={() => setJustSubscribed(false)} className="text-emerald-400/50 hover:text-emerald-400 text-xs ml-4">✕</button>
+        </div>
+      )}
+
       {/* ── Bannière abonnement ── */}
       {coveredByGroup ? (
         <div className="flex items-center px-5 py-2.5 bg-[#6E5BFF]/8 border-b border-[#6E5BFF]/20">
@@ -332,7 +352,7 @@ export default function HostDashboardPage() {
             ✦ Couvert par {groupName || 'votre groupe'} · Accès complet inclus
           </span>
         </div>
-      ) : subStatus === 'active' ? (
+      ) : subStatus === 'active' && !justSubscribed ? (
         <div className="flex items-center justify-between px-5 py-2.5 bg-emerald-500/8 border-b border-emerald-500/20">
           <span className="text-[9px] tracking-[0.2em] uppercase text-emerald-400">✦ Itinera Venue Pro · Abonnement actif</span>
           <button onClick={openPortal} disabled={portalLoading} className="text-[9px] uppercase text-emerald-400/70 hover:text-emerald-400 transition-colors underline underline-offset-2">
@@ -768,14 +788,17 @@ export default function HostDashboardPage() {
               </div>
             ) : subStatus === 'active' ? (
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
-                    ✓ Actif
-                  </span>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">✓ Actif</span>
+                  {subEndDate && (
+                    <span className="text-[9px] text-[#F5F7FA]/30">
+                      Renouvellement le {new Date(subEndDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                  )}
                 </div>
-                <p className="text-[#F5F7FA] text-sm mt-2 mb-1">Itinera Venue — <span className="text-[#F5F7FA]/50">49,90 € / mois</span></p>
+                <p className="text-[#F5F7FA] text-sm mb-1">Itinera Venue Pro <span className="text-[#F5F7FA]/40">— 49,90 € / mois</span></p>
                 <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mb-5">
-                  Gérez votre abonnement, consultez vos factures ou résiliez depuis le portail Stripe sécurisé.
+                  Accès complet à toutes les fonctionnalités. Gérez votre abonnement ou résiliez à tout moment.
                 </p>
                 <button
                   onClick={openPortal}
@@ -787,12 +810,8 @@ export default function HostDashboardPage() {
               </div>
             ) : subStatus === 'past_due' ? (
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-amber-400/10 text-amber-400 border border-amber-400/20">
-                    ⚠ Paiement en attente
-                  </span>
-                </div>
-                <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mb-5">
+                <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-amber-400/10 text-amber-400 border border-amber-400/20">⚠ Paiement en attente</span>
+                <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mt-3 mb-5">
                   Un paiement a échoué. Mettez à jour votre carte pour éviter la suspension.
                 </p>
                 <button
@@ -805,12 +824,8 @@ export default function HostDashboardPage() {
               </div>
             ) : (
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-white/5 text-[#F5F7FA]/30 border border-white/8">
-                    Gratuit
-                  </span>
-                </div>
-                <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mb-5">
+                <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-white/5 text-[#F5F7FA]/30 border border-white/8">Plan gratuit</span>
+                <p className="text-[#F5F7FA]/30 text-xs leading-relaxed mt-3 mb-5">
                   Passez à Itinera Venue Pro pour débloquer toutes les fonctionnalités sans limite.
                 </p>
                 <button

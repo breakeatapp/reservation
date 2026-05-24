@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   if (plan === 'venue') {
     const { data: venue } = await supabaseAdmin
       .from('venues_profiles')
-      .select('subscription_status, stripe_customer_id, group_id')
+      .select('subscription_status, stripe_customer_id, group_id, subscription_end_date')
       .eq('slug', slug)
       .maybeSingle()
 
@@ -40,6 +40,7 @@ export async function GET(req: Request) {
           coveredByGroup: true,
           groupName: group.group_name,
           hasCustomer: false,
+          endDate: null,
         })
       }
     }
@@ -48,13 +49,14 @@ export async function GET(req: Request) {
       status: venue?.subscription_status ?? 'free',
       hasCustomer: !!venue?.stripe_customer_id,
       coveredByGroup: false,
+      endDate: venue?.subscription_end_date ?? null,
     })
   }
 
   // ── RP et Group : logique standard ──────────────────────────
   const { data } = await supabaseAdmin
     .from(table)
-    .select('subscription_status, stripe_customer_id')
+    .select('subscription_status, stripe_customer_id, subscription_end_date')
     .eq('slug', slug)
     .maybeSingle()
 
@@ -62,5 +64,6 @@ export async function GET(req: Request) {
     status: data?.subscription_status ?? 'free',
     hasCustomer: !!data?.stripe_customer_id,
     coveredByGroup: false,
+    endDate: data?.subscription_end_date ?? null,
   })
 }

@@ -50,7 +50,7 @@ function SuccessContent() {
       setCountdown((c) => {
         if (c <= 1) {
           clearInterval(timer)
-          router.push(planInfo.dashboardPath(slug))
+          router.push(planInfo.dashboardPath(slug) + '?subscribed=1')
         }
         return c - 1
       })
@@ -102,7 +102,7 @@ function SuccessContent() {
 
         {/* Button */}
         <button
-          onClick={() => router.push(planInfo.dashboardPath(slug))}
+          onClick={() => router.push(planInfo.dashboardPath(slug) + '?subscribed=1')}
           className="w-full py-4 text-[10px] tracking-[0.4em] uppercase font-medium transition-opacity hover:opacity-80"
           style={{ backgroundColor: planInfo.color, color: '#fff' }}
         >

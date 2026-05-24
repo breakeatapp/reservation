@@ -6,7 +6,6 @@ import { loadStripe } from '@stripe/stripe-js'
 import {
   Elements,
   PaymentElement,
-  ExpressCheckoutElement,
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js'
@@ -63,7 +62,6 @@ function CheckoutForm({
   const elements = useElements()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [step, setStep] = useState('')   // étape visible pendant Apple Pay
 
   // Promo code
   const [promoInput, setPromoInput] = useState('')
@@ -154,109 +152,8 @@ function CheckoutForm({
     }
   }
 
-  // Gestion Express Checkout (Apple Pay / Google Pay)
-  const handleExpressConfirm = async () => {
-    if (!stripe || !elements) return
-    setLoading(true)
-    setError('')
-    setStep('')
-
-    try {
-      // ── Étape 1 : valider les éléments ──────────────────────
-      setStep('Validation…')
-      const { error: submitError } = await elements.submit()
-      if (submitError) {
-        setError(`Erreur de validation : ${submitError.message || 'Données invalides.'}`)
-        setStep('')
-        setLoading(false)
-        return
-      }
-
-      // ── Étape 2 : créer l'abonnement ────────────────────────
-      setStep('Création de l\'abonnement…')
-      const res = await fetch('/api/stripe/create-subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, profileSlug: slug, promoCode: promoApplied?.code ?? null }),
-      })
-      const data = await res.json()
-      if (!res.ok || !data.clientSecret) {
-        setError(data.error || 'Impossible de créer l\'abonnement. Veuillez réessayer.')
-        setStep('')
-        setLoading(false)
-        return
-      }
-
-      const expressSubId: string | null = data.subscriptionId ?? null
-      const expressSuccessUrl = `${window.location.origin}/subscribe/success?plan=${plan}&slug=${slug}${expressSubId ? `&sid=${expressSubId}` : ''}`
-
-      // ── Étape 3 : confirmer le paiement ─────────────────────
-      setStep('Confirmation du paiement…')
-      const { error: confirmError } = await stripe.confirmPayment({
-        elements,
-        clientSecret: data.clientSecret,
-        confirmParams: { return_url: expressSuccessUrl },
-        redirect: 'if_required',
-      })
-
-      if (confirmError) {
-        setError(`Paiement refusé : ${confirmError.message || 'Contactez votre banque.'}`)
-        setStep('')
-        setLoading(false)
-        return
-      }
-
-      // ── Étape 4 : sync Supabase + emails ────────────────────
-      setStep('Activation de votre abonnement…')
-      if (expressSubId) {
-        try {
-          await fetch('/api/stripe/sync-subscription', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscriptionId: expressSubId, plan, profileSlug: slug }),
-          })
-        } catch { /* la page succès tentera aussi */ }
-      }
-
-      // ── Étape 5 : redirection ───────────────────────────────
-      setStep('Redirection…')
-      window.location.href = expressSuccessUrl
-
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erreur inattendue.'
-      setError(`Erreur : ${msg}`)
-      setStep('')
-      setLoading(false)
-    }
-  }
-
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-
-      {/* ── Apple Pay / Google Pay ── */}
-      <div>
-        <ExpressCheckoutElement
-          onConfirm={handleExpressConfirm}
-          options={{
-            buttonTheme: { applePay: 'black', googlePay: 'black' },
-            buttonHeight: 48,
-            paymentMethods: {
-              applePay: 'always',
-              googlePay: 'always',
-              amazonPay: 'never',
-              paypal: 'never',
-              link: 'never',
-            },
-          }}
-        />
-      </div>
-
-      {/* Séparateur */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-px bg-white/10" />
-        <span className="text-[10px] text-white/25 uppercase tracking-widest">ou</span>
-        <div className="flex-1 h-px bg-white/10" />
-      </div>
 
       {/* ── Code promo ── */}
       <div>
@@ -300,14 +197,6 @@ function CheckoutForm({
           }}
         />
       </div>
-
-      {/* Étape Apple Pay en cours */}
-      {step && (
-        <div className="flex items-center gap-3 bg-white/4 border border-white/10 px-4 py-3">
-          <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin flex-shrink-0" />
-          <span className="text-[11px] text-white/60 tracking-wide">{step}</span>
-        </div>
-      )}
 
       {/* Error — impossible à rater */}
       {error && (
