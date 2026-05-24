@@ -88,7 +88,7 @@ function buildWhatsAppMessage(
     .join('\n\n')
 }
 
-type MainView = 'list' | 'clients' | 'config' | 'book-for-client'
+type MainView = 'list' | 'clients' | 'config' | 'book-for-client' | 'subscription'
 
 type BookingSlot = {
   id: string
@@ -1966,6 +1966,128 @@ ${profile.display_name}`
     )
   }
 
+  // ── VUE ABONNEMENT ────────────────────────────────────────────
+  if (mainView === 'subscription') {
+    const fmtDate = subEndDate
+      ? new Date(subEndDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+      : null
+
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] text-[#F5F5F3]">
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-[#0B0B0B]/95 backdrop-blur-sm border-b border-white/5 px-4 py-4 flex items-center justify-between">
+          <div>
+            <p className="text-[9px] tracking-[0.4em] text-[#5B3DF5] uppercase">Mon abonnement</p>
+            <h1 className="font-playfair text-lg text-[#F5F5F3]">{profile.display_name}</h1>
+          </div>
+          <button
+            onClick={() => setMainView('list')}
+            className="text-[10px] tracking-[0.2em] uppercase text-white/30 hover:text-white/70 transition-colors border border-white/8 hover:border-white/20 px-3 py-2"
+          >
+            ← Retour
+          </button>
+        </div>
+
+        {/* Bannière confirmation */}
+        {justSubscribed && (
+          <div className="flex items-center justify-between px-4 py-3 bg-emerald-500/15 border-b border-emerald-500/30">
+            <span className="text-[10px] tracking-[0.15em] uppercase text-emerald-300 font-medium">
+              ✦ Abonnement activé — Bienvenue sur Itinera RP Pro !
+            </span>
+            <button onClick={() => setJustSubscribed(false)} className="text-emerald-400/50 hover:text-emerald-400 text-xs ml-4">✕</button>
+          </div>
+        )}
+
+        <div className="max-w-lg mx-auto px-4 py-8 space-y-4">
+
+          {subStatus === 'active' ? (<>
+
+            {/* Carte statut */}
+            <div className="bg-[#141414] border border-emerald-500/20 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-1 bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
+                  ✓ Abonnement actif
+                </span>
+                {fmtDate && (
+                  <span className="text-[9px] text-white/30">Renouvellement le {fmtDate}</span>
+                )}
+              </div>
+              <p className="text-white text-lg font-light mb-0.5">Itinera RP Pro</p>
+              <p className="text-white/40 text-sm">19,90 € / mois · Résiliable à tout moment</p>
+            </div>
+
+            {/* Actions */}
+            <div className="bg-[#141414] border border-white/8 p-5 space-y-3">
+              <p className="text-[9px] tracking-[0.3em] uppercase text-white/25 mb-4">Gérer mon abonnement</p>
+              <button
+                onClick={openPortal}
+                disabled={portalLoading}
+                className="w-full py-3.5 text-[10px] tracking-[0.3em] uppercase border border-[#5B3DF5]/40 text-[#5B3DF5] hover:bg-[#5B3DF5]/10 transition-colors disabled:opacity-40"
+              >
+                {portalLoading ? 'Chargement…' : '→ Portail de gestion (factures, carte, résiliation)'}
+              </button>
+              <p className="text-[10px] text-white/20 leading-relaxed text-center">
+                Le portail Stripe s'ouvre dans le navigateur. Tu peux y consulter tes factures, mettre à jour ta carte ou résilier ton abonnement.
+              </p>
+            </div>
+
+          </>) : subStatus === 'past_due' ? (<>
+
+            <div className="bg-[#141414] border border-amber-400/20 p-6">
+              <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-1 bg-amber-400/10 text-amber-400 border border-amber-400/20">⚠ Paiement en attente</span>
+              <p className="text-white/40 text-sm mt-4">Un paiement a échoué. Mettez à jour votre carte pour conserver votre accès.</p>
+            </div>
+            <button
+              onClick={openPortal}
+              disabled={portalLoading}
+              className="w-full py-3.5 text-[10px] tracking-[0.3em] uppercase border border-amber-400/40 text-amber-400 hover:bg-amber-400/10 transition-colors disabled:opacity-40"
+            >
+              {portalLoading ? 'Chargement…' : '→ Mettre à jour le paiement'}
+            </button>
+
+          </>) : (<>
+
+            {/* Plan gratuit */}
+            <div className="bg-[#141414] border border-white/8 p-6">
+              <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-1 bg-white/5 text-white/30 border border-white/8">Plan gratuit</span>
+              <p className="text-white/40 text-sm mt-4 leading-relaxed">
+                Passez à Itinera RP Pro pour débloquer toutes les fonctionnalités : réservations illimitées, page concierge personnalisée, gestion clients VIP et accès prioritaire.
+              </p>
+            </div>
+
+            {/* Fonctionnalités Pro */}
+            <div className="bg-[#141414] border border-[#5B3DF5]/15 p-5 space-y-2.5">
+              {[
+                'Réservations illimitées',
+                'Page concierge personnalisée',
+                'Gestion clients & notes VIP',
+                'Connexion aux établissements partenaires',
+                'Accès prioritaire aux nouvelles fonctionnalités',
+              ].map(f => (
+                <div key={f} className="flex items-center gap-3">
+                  <span className="text-[#5B3DF5]">✓</span>
+                  <span className="text-white/60 text-sm">{f}</span>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => window.location.href = `/subscribe/rp?slug=${profile.slug}`}
+              className="w-full py-4 text-[10px] tracking-[0.4em] uppercase font-medium bg-[#5B3DF5] text-white hover:bg-[#6E5BFF] transition-colors"
+            >
+              ✦ Passer à Pro — 19,90 € / mois
+            </button>
+            <p className="text-center text-[10px] text-white/20">
+              Abonnement mensuel · Résiliable à tout moment
+            </p>
+
+          </>)}
+
+        </div>
+      </div>
+    )
+  }
+
   // ── VUE CLIENTS ───────────────────────────────────────────────
   if (mainView === 'clients') {
     return (
@@ -3075,20 +3197,16 @@ ${profile.display_name}`
           <div className="flex items-center gap-2">
             {subStatus === 'active' ? (
               <button
-                onClick={openPortal}
-                disabled={portalLoading}
-                className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-emerald-400 border border-emerald-400/40 hover:bg-emerald-400/10 transition-colors px-3 py-2 disabled:opacity-50"
-                title="Gérer mon abonnement"
+                onClick={() => setMainView('subscription')}
+                className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-emerald-400 border border-emerald-400/40 hover:bg-emerald-400/10 transition-colors px-3 py-2"
+                title="Mon abonnement"
               >
                 <span>✦</span>
-                <span className="hidden sm:inline">{portalLoading ? '…' : 'Abonnement'}</span>
+                <span className="hidden sm:inline">Abonnement</span>
               </button>
             ) : (
               <button
-                onClick={() => {
-                  const slug = typeof window !== 'undefined' ? localStorage.getItem('itinera_rp_slug') || profile.slug : profile.slug
-                  window.location.href = `/subscribe/rp?slug=${slug}`
-                }}
+                onClick={() => setMainView('subscription')}
                 className="flex items-center gap-1.5 text-[10px] tracking-[0.15em] uppercase text-[#6E5BFF] border border-[#6E5BFF]/40 hover:bg-[#6E5BFF]/10 transition-colors px-3 py-2"
                 title="Passer à Itinera RP Pro"
               >
@@ -3108,7 +3226,7 @@ ${profile.display_name}`
         </div>
 
         {/* Ligne 2 : actions (pleine largeur sur mobile, inline sur desktop) */}
-        <div className="px-4 pb-3 grid grid-cols-4 gap-2 md:hidden">
+        <div className="px-4 pb-3 grid grid-cols-5 gap-1.5 md:hidden">
           <button
             onClick={() => {
               setBookForType(null); setBfcSelectedClient(null); setBfcUseManual(false)
@@ -3140,6 +3258,16 @@ ${profile.display_name}`
           >
             <span className="text-base">👤</span>
             <span className="text-[8px] tracking-wider uppercase leading-tight">Clients</span>
+          </button>
+          <button
+            onClick={() => setMainView('subscription')}
+            className="flex flex-col items-center justify-center gap-1 transition-colors border py-2.5 px-1 text-center"
+            style={subStatus === 'active'
+              ? { color: 'rgba(52,211,153,0.8)', borderColor: 'rgba(52,211,153,0.25)' }
+              : { color: 'rgba(110,91,255,0.7)', borderColor: 'rgba(110,91,255,0.25)' }}
+          >
+            <span className="text-base">✦</span>
+            <span className="text-[8px] tracking-wider uppercase leading-tight">Abo</span>
           </button>
           <button
             onClick={() => setShowNetwork(true)}
