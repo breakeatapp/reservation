@@ -27,9 +27,22 @@ function SuccessContent() {
 
   const plan = searchParams.get('plan') || ''
   const slug = searchParams.get('slug') || ''
+  const sid  = searchParams.get('sid')  || ''   // subscriptionId passé en param
   const planInfo = PLAN_INFO[plan]
 
   const [countdown, setCountdown] = useState(8)
+
+  // ── Sync de sécurité ─────────────────────────────────────────
+  // Si le webhook n'a pas encore mis à jour Supabase, on le fait ici.
+  // Idempotent : n'envoie pas les emails si déjà synchronisé.
+  useEffect(() => {
+    if (!sid || !plan || !slug) return
+    fetch('/api/stripe/sync-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscriptionId: sid, plan, profileSlug: slug }),
+    }).catch(() => {/* silencieux */})
+  }, [sid, plan, slug])
 
   useEffect(() => {
     if (!planInfo || !slug) return

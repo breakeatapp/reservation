@@ -106,6 +106,7 @@ function CheckoutForm({
 
     // 2. Créer la subscription côté serveur (avec promo si applicable)
     let clientSecret: string | null = null
+    let subscriptionId: string | null = null
     try {
       const res = await fetch('/api/stripe/create-subscription', {
         method: 'POST',
@@ -123,6 +124,7 @@ function CheckoutForm({
         return
       }
       clientSecret = data.clientSecret
+      subscriptionId = data.subscriptionId ?? null
     } catch {
       setError('Erreur réseau. Veuillez réessayer.')
       setLoading(false)
@@ -136,11 +138,12 @@ function CheckoutForm({
     }
 
     // 3. Confirmer le paiement
+    const successUrl = `${window.location.origin}/subscribe/success?plan=${plan}&slug=${slug}${subscriptionId ? `&sid=${subscriptionId}` : ''}`
     const { error: confirmError } = await stripe.confirmPayment({
       elements,
       clientSecret,
       confirmParams: {
-        return_url: `${window.location.origin}/subscribe/success?plan=${plan}&slug=${slug}`,
+        return_url: successUrl,
       },
     })
 
@@ -175,11 +178,14 @@ function CheckoutForm({
       return
     }
 
+    const expressSubId: string | null = data.subscriptionId ?? null
+    const expressSuccessUrl = `${window.location.origin}/subscribe/success?plan=${plan}&slug=${slug}${expressSubId ? `&sid=${expressSubId}` : ''}`
+
     const { error: confirmError } = await stripe.confirmPayment({
       elements,
       clientSecret: data.clientSecret,
       confirmParams: {
-        return_url: `${window.location.origin}/subscribe/success?plan=${plan}&slug=${slug}`,
+        return_url: expressSuccessUrl,
       },
       redirect: 'if_required',
     })
@@ -189,8 +195,17 @@ function CheckoutForm({
       setError(confirmError.message || 'Paiement refusé.')
       setLoading(false)
     } else {
-      // Paiement Apple Pay / Google Pay réussi → redirection vers succès
-      window.location.href = `${window.location.origin}/subscribe/success?plan=${plan}&slug=${slug}`
+      // Paiement Apple Pay / Google Pay réussi → sync immédiate puis redirection
+      if (expressSubId) {
+        try {
+          await fetch('/api/stripe/sync-subscription', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscriptionId: expressSubId, plan, profileSlug: slug }),
+          })
+        } catch { /* silencieux — la page succès tentera aussi */ }
+      }
+      window.location.href = expressSuccessUrl
     }
   }
 
