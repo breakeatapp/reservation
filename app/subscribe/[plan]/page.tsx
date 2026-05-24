@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
 import {
@@ -300,10 +300,75 @@ function SubscribeContent() {
   const slug = searchParams.get('slug') || ''
   const planInfo = PLAN_INFO[plan]
 
+  // ── Vérification couverture groupe (venue uniquement) ────────
+  const [groupCovered, setGroupCovered] = useState(false)
+  const [groupCoveredName, setGroupCoveredName] = useState('')
+  const [groupCheckDone, setGroupCheckDone] = useState(false)
+
+  useEffect(() => {
+    if (plan !== 'venue' || !slug) { setGroupCheckDone(true); return }
+    fetch(`/api/stripe/subscription-status?plan=venue&slug=${encodeURIComponent(slug)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.coveredByGroup) {
+          setGroupCovered(true)
+          setGroupCoveredName(d.groupName || '')
+        }
+      })
+      .catch(() => {/* silencieux */})
+      .finally(() => setGroupCheckDone(true))
+  }, [plan, slug])
+
   if (!planInfo) {
     return (
       <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
         <p className="text-white/40 text-sm">Plan introuvable.</p>
+      </div>
+    )
+  }
+
+  // Couverture groupe — on bloque l'accès au formulaire de paiement
+  if (groupCovered) {
+    return (
+      <div className="min-h-screen bg-[#0F1115] text-[#F5F7FA]">
+        <nav className="px-6 py-5 flex items-center justify-between border-b border-white/5">
+          <div>
+            <span className="text-[8px] tracking-[0.5em] text-white/20 uppercase block">Itinera</span>
+            <span className="text-lg text-white tracking-wide">ITINERA</span>
+          </div>
+          <button
+            onClick={() => router.back()}
+            className="text-white/30 text-[10px] tracking-[0.2em] uppercase hover:text-white/60 transition-colors"
+          >
+            ← Retour
+          </button>
+        </nav>
+        <div className="max-w-lg mx-auto px-5 py-20 text-center">
+          <p className="text-[9px] tracking-[0.5em] uppercase text-[#6E5BFF] mb-4">Accès inclus</p>
+          <h1 className="text-2xl font-light tracking-wide mb-4">Abonnement non requis</h1>
+          <p className="text-white/40 text-sm leading-relaxed mb-2">
+            Votre établissement est couvert par l'abonnement Group de{' '}
+            <strong className="text-[#6E5BFF]/80">{groupCoveredName || 'votre groupe'}</strong>.
+          </p>
+          <p className="text-white/25 text-xs leading-relaxed mb-10">
+            Toutes les fonctionnalités Venue Pro sont déjà accessibles sans abonnement individuel.
+          </p>
+          <button
+            onClick={() => router.back()}
+            className="px-8 py-3 text-[10px] tracking-[0.3em] uppercase border border-[#6E5BFF]/40 text-[#6E5BFF] hover:bg-[#6E5BFF]/10 transition-colors"
+          >
+            ← Retour au dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Attendre la vérification avant d'afficher le formulaire (évite un flash)
+  if (plan === 'venue' && !groupCheckDone) {
+    return (
+      <div className="min-h-screen bg-[#0F1115] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#10B981] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }

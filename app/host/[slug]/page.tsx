@@ -103,12 +103,17 @@ export default function HostDashboardPage() {
 
   // Subscription
   const [subStatus, setSubStatus] = useState<string>('free')
+  const [coveredByGroup, setCoveredByGroup] = useState(false)
+  const [groupName, setGroupName] = useState<string>('')
   const [portalLoading, setPortalLoading] = useState(false)
 
   useEffect(() => {
     fetch(`/api/stripe/subscription-status?plan=venue&slug=${slug}`)
       .then(r => r.json())
-      .then(d => { if (d.status) setSubStatus(d.status) })
+      .then(d => {
+        if (d.status) setSubStatus(d.status)
+        if (d.coveredByGroup) { setCoveredByGroup(true); setGroupName(d.groupName ?? '') }
+      })
       .catch(() => {})
   }, [slug])
 
@@ -275,7 +280,7 @@ export default function HostDashboardPage() {
                 ↻
               </button>
             )}
-            {subStatus === 'active' ? (
+            {coveredByGroup ? null : subStatus === 'active' ? (
               <button
                 onClick={openPortal}
                 disabled={portalLoading}
@@ -321,22 +326,27 @@ export default function HostDashboardPage() {
       </header>
 
       {/* ── Bannière abonnement ── */}
-      {subStatus === 'active' && (
+      {coveredByGroup ? (
+        <div className="flex items-center px-5 py-2.5 bg-[#6E5BFF]/8 border-b border-[#6E5BFF]/20">
+          <span className="text-[9px] tracking-[0.2em] uppercase text-[#6E5BFF]/80">
+            ✦ Couvert par {groupName || 'votre groupe'} · Accès complet inclus
+          </span>
+        </div>
+      ) : subStatus === 'active' ? (
         <div className="flex items-center justify-between px-5 py-2.5 bg-emerald-500/8 border-b border-emerald-500/20">
           <span className="text-[9px] tracking-[0.2em] uppercase text-emerald-400">✦ Itinera Venue Pro · Abonnement actif</span>
           <button onClick={openPortal} disabled={portalLoading} className="text-[9px] uppercase text-emerald-400/70 hover:text-emerald-400 transition-colors underline underline-offset-2">
             {portalLoading ? '…' : 'Gérer / Résilier'}
           </button>
         </div>
-      )}
-      {subStatus === 'past_due' && (
+      ) : subStatus === 'past_due' ? (
         <div className="flex items-center justify-between px-5 py-2.5 bg-amber-500/8 border-b border-amber-500/20">
           <span className="text-[9px] tracking-[0.2em] uppercase text-amber-400">⚠ Paiement en attente — mettez à jour votre carte</span>
           <button onClick={openPortal} disabled={portalLoading} className="text-[9px] uppercase text-amber-400/70 hover:text-amber-400 transition-colors underline underline-offset-2">
             {portalLoading ? '…' : 'Mettre à jour'}
           </button>
         </div>
-      )}
+      ) : null}
 
       <main className="max-w-2xl mx-auto px-4 py-8">
 
@@ -741,7 +751,22 @@ export default function HostDashboardPage() {
           <div className="mt-6 border border-white/8 bg-[#181C23] p-5">
             <p className="text-[9px] tracking-[0.4em] uppercase text-emerald-400/60 mb-4">Mon abonnement</p>
 
-            {subStatus === 'active' ? (
+            {coveredByGroup ? (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-[#6E5BFF]/10 text-[#6E5BFF] border border-[#6E5BFF]/25">
+                    ✦ Couvert
+                  </span>
+                </div>
+                <p className="text-[#F5F7FA] text-sm mt-2 mb-1">
+                  Accès complet inclus
+                </p>
+                <p className="text-[#F5F7FA]/30 text-xs leading-relaxed">
+                  Votre établissement bénéficie de l'abonnement Group de <strong className="text-[#6E5BFF]/70">{groupName || 'votre groupe'}</strong>.
+                  Aucun abonnement individuel requis.
+                </p>
+              </div>
+            ) : subStatus === 'active' ? (
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-[9px] tracking-[0.2em] uppercase px-2 py-0.5 bg-emerald-400/10 text-emerald-400 border border-emerald-400/20">
