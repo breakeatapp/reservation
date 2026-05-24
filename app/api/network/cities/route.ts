@@ -1,5 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
+export const dynamic = 'force-dynamic'
+
 // ── Convertit un slug JSON ou brut en slug plain ──────────────────────────────
 function parseDestSlug(raw: string): string {
   try {
