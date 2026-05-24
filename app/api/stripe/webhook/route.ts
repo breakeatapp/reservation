@@ -64,6 +64,122 @@ async function notifyPaymentFailed(planType: PlanType, profileSlug: string) {
   }
 }
 
+// Récupère l'email du profil depuis Supabase
+async function getProfileEmail(planType: PlanType, profileSlug: string): Promise<string | null> {
+  const table = PLAN_TABLE[planType]
+  const { data } = await supabaseAdmin
+    .from(table)
+    .select('email')
+    .eq('slug', profileSlug)
+    .maybeSingle()
+  return data?.email ?? null
+}
+
+// Email de bienvenue à l'abonné
+async function sendWelcomeEmail(subscriberEmail: string, planType: PlanType, profileSlug: string) {
+  if (!process.env.RESEND_API_KEY) return
+  const PLAN_COLORS: Record<PlanType, string> = { rp: '#6E5BFF', venue: '#10B981', group: '#F59E0B' }
+  const color = PLAN_COLORS[planType]
+  try {
+    await resend.emails.send({
+      from: 'Itinera <contact@itinera.click>',
+      to: subscriberEmail,
+      subject: `✦ Votre abonnement Itinera est actif`,
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0F1115;color:#F5F7FA;padding:32px;border-radius:8px;">
+          <p style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:${color};margin:0 0 8px">Itinera</p>
+          <h1 style="font-size:24px;font-weight:300;margin:0 0 8px">✦ Bienvenue</h1>
+          <p style="color:#999;font-size:13px;margin:0 0 24px">Votre abonnement est maintenant actif.</p>
+          <div style="background:#181C23;border:1px solid #2a2a2a;padding:16px;margin-bottom:24px;">
+            <p style="margin:0 0 8px;font-size:13px;color:#999">Plan souscrit</p>
+            <p style="margin:0;font-size:16px;font-weight:500;color:${color}">${PLAN_LABELS[planType]}</p>
+          </div>
+          <p style="font-size:13px;color:#999;line-height:1.6;margin:0 0 24px">
+            Toutes les fonctionnalités de votre plan sont désormais disponibles.<br>
+            Vous pouvez gérer ou résilier votre abonnement à tout moment depuis votre dashboard.
+          </p>
+          <a href="https://itinera.click" style="display:inline-block;background:${color};color:#fff;text-decoration:none;padding:12px 24px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;">
+            Accéder à mon dashboard →
+          </a>
+          <p style="margin-top:24px;font-size:11px;color:#444">
+            Un reçu de paiement vous a également été envoyé par Stripe.<br>
+            Questions ? Répondez à cet email.
+          </p>
+        </div>
+      `,
+    })
+  } catch (err) {
+    console.error('[webhook] sendWelcomeEmail error:', err)
+  }
+}
+
+// Notification admin + email abonné lors de la résiliation
+async function handleCancellation(planType: PlanType, profileSlug: string, subscriberEmail?: string) {
+  const managerEmail = process.env.MANAGER_EMAIL
+  if (!process.env.RESEND_API_KEY) return
+
+  const date = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  // 1. Email à l'admin
+  if (managerEmail) {
+    try {
+      await resend.emails.send({
+        from: 'Itinera <contact@itinera.click>',
+        to: managerEmail,
+        subject: `🔴 Résiliation — ${PLAN_LABELS[planType]}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0F1115;color:#F5F7FA;padding:32px;border-radius:8px;">
+            <p style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:#ef4444;margin:0 0 8px">Itinera · Résiliation</p>
+            <h1 style="font-size:22px;font-weight:300;margin:0 0 24px">🔴 Abonnement résilié</h1>
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+              <tr><td style="padding:8px 0;color:#999;border-bottom:1px solid #222">Plan</td><td style="padding:8px 0;border-bottom:1px solid #222">${PLAN_LABELS[planType]}</td></tr>
+              <tr><td style="padding:8px 0;color:#999;border-bottom:1px solid #222">Profil</td><td style="padding:8px 0;border-bottom:1px solid #222;font-family:monospace">${profileSlug}</td></tr>
+              ${subscriberEmail ? `<tr><td style="padding:8px 0;color:#999">Email</td><td style="padding:8px 0">${subscriberEmail}</td></tr>` : ''}
+            </table>
+            <p style="margin-top:24px;font-size:11px;color:#555">Itinera · ${date}</p>
+          </div>
+        `,
+      })
+    } catch (err) {
+      console.error('[webhook] handleCancellation admin email error:', err)
+    }
+  }
+
+  // 2. Email de confirmation à l'abonné
+  if (subscriberEmail) {
+    try {
+      await resend.emails.send({
+        from: 'Itinera <contact@itinera.click>',
+        to: subscriberEmail,
+        subject: `Votre abonnement Itinera a été résilié`,
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;background:#0F1115;color:#F5F7FA;padding:32px;border-radius:8px;">
+            <p style="font-size:11px;letter-spacing:0.3em;text-transform:uppercase;color:#999;margin:0 0 8px">Itinera</p>
+            <h1 style="font-size:22px;font-weight:300;margin:0 0 8px">Résiliation confirmée</h1>
+            <p style="color:#999;font-size:13px;margin:0 0 24px">Votre abonnement ${PLAN_LABELS[planType]} a bien été résilié.</p>
+            <div style="background:#181C23;border:1px solid #2a2a2a;padding:16px;margin-bottom:24px;">
+              <p style="margin:0;font-size:13px;color:#999;line-height:1.6;">
+                Votre accès reste actif jusqu'à la fin de la période en cours.<br>
+                Après cette date, votre compte passera en mode gratuit.
+              </p>
+            </div>
+            <p style="font-size:13px;color:#999;line-height:1.6;margin:0 0 24px">
+              Vous pouvez vous réabonner à tout moment depuis votre dashboard.<br>
+              Merci d'avoir utilisé Itinera.
+            </p>
+            <a href="https://itinera.click" style="display:inline-block;background:#1a1a1a;border:1px solid #333;color:#F5F7FA;text-decoration:none;padding:12px 24px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;">
+              Mon dashboard →
+            </a>
+            <p style="margin-top:24px;font-size:11px;color:#444">Itinera · ${date}</p>
+          </div>
+        `,
+      })
+    } catch (err) {
+      console.error('[webhook] handleCancellation subscriber email error:', err)
+    }
+  }
+}
+
 // Map Stripe subscription status → notre status
 function mapStatus(stripeStatus: string): string {
   switch (stripeStatus) {
@@ -148,9 +264,14 @@ export async function POST(req: Request) {
           stripe_customer_id: sub.customer,
         })
 
-        // Notifier l'admin
-        const customerEmail = (event.data.object as any).customer_email ?? undefined
-        await notifyNewSubscription(planType, profileSlug, customerEmail)
+        // Email admin + email de bienvenue à l'abonné
+        const customerEmail: string | undefined = (event.data.object as any).customer_email
+          ?? await getProfileEmail(planType, profileSlug)
+          ?? undefined
+        await Promise.all([
+          notifyNewSubscription(planType, profileSlug, customerEmail),
+          customerEmail ? sendWelcomeEmail(customerEmail, planType, profileSlug) : Promise.resolve(),
+        ])
         break
       }
 
@@ -208,11 +329,17 @@ export async function POST(req: Request) {
 
         if (!planType || !profileSlug) break
 
+        // Récupérer l'email avant de réinitialiser le profil
+        const cancelEmail = await getProfileEmail(planType, profileSlug)
+
         await updateProfile(planType, profileSlug, {
           subscription_status: 'canceled',
           subscription_tier: 'free',
           subscription_end_date: null,
         })
+
+        // Email admin + email de confirmation à l'abonné
+        await handleCancellation(planType, profileSlug, cancelEmail ?? undefined)
         break
       }
 
