@@ -63,6 +63,7 @@ function CheckoutForm({
   const elements = useElements()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [step, setStep] = useState('')   // étape visible pendant Apple Pay
 
   // Promo code
   const [promoInput, setPromoInput] = useState('')
@@ -158,44 +159,55 @@ function CheckoutForm({
     if (!stripe || !elements) return
     setLoading(true)
     setError('')
+    setStep('')
 
-    const { error: submitError } = await elements.submit()
-    if (submitError) {
-      setError(submitError.message || 'Erreur de validation.')
-      setLoading(false)
-      return
-    }
+    try {
+      // ── Étape 1 : valider les éléments ──────────────────────
+      setStep('Validation…')
+      const { error: submitError } = await elements.submit()
+      if (submitError) {
+        setError(`Erreur de validation : ${submitError.message || 'Données invalides.'}`)
+        setStep('')
+        setLoading(false)
+        return
+      }
 
-    const res = await fetch('/api/stripe/create-subscription', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ plan, profileSlug: slug, promoCode: promoApplied?.code ?? null }),
-    })
-    const data = await res.json()
-    if (!res.ok || !data.clientSecret) {
-      setError(data.error || 'Impossible de créer le paiement. Veuillez réessayer.')
-      setLoading(false)
-      return
-    }
+      // ── Étape 2 : créer l'abonnement ────────────────────────
+      setStep('Création de l\'abonnement…')
+      const res = await fetch('/api/stripe/create-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan, profileSlug: slug, promoCode: promoApplied?.code ?? null }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.clientSecret) {
+        setError(data.error || 'Impossible de créer l\'abonnement. Veuillez réessayer.')
+        setStep('')
+        setLoading(false)
+        return
+      }
 
-    const expressSubId: string | null = data.subscriptionId ?? null
-    const expressSuccessUrl = `${window.location.origin}/subscribe/success?plan=${plan}&slug=${slug}${expressSubId ? `&sid=${expressSubId}` : ''}`
+      const expressSubId: string | null = data.subscriptionId ?? null
+      const expressSuccessUrl = `${window.location.origin}/subscribe/success?plan=${plan}&slug=${slug}${expressSubId ? `&sid=${expressSubId}` : ''}`
 
-    const { error: confirmError } = await stripe.confirmPayment({
-      elements,
-      clientSecret: data.clientSecret,
-      confirmParams: {
-        return_url: expressSuccessUrl,
-      },
-      redirect: 'if_required',
-    })
+      // ── Étape 3 : confirmer le paiement ─────────────────────
+      setStep('Confirmation du paiement…')
+      const { error: confirmError } = await stripe.confirmPayment({
+        elements,
+        clientSecret: data.clientSecret,
+        confirmParams: { return_url: expressSuccessUrl },
+        redirect: 'if_required',
+      })
 
-    if (confirmError) {
-      // Paiement refusé
-      setError(confirmError.message || 'Paiement refusé.')
-      setLoading(false)
-    } else {
-      // Paiement Apple Pay / Google Pay réussi → sync immédiate puis redirection
+      if (confirmError) {
+        setError(`Paiement refusé : ${confirmError.message || 'Contactez votre banque.'}`)
+        setStep('')
+        setLoading(false)
+        return
+      }
+
+      // ── Étape 4 : sync Supabase + emails ────────────────────
+      setStep('Activation de votre abonnement…')
       if (expressSubId) {
         try {
           await fetch('/api/stripe/sync-subscription', {
@@ -203,9 +215,18 @@ function CheckoutForm({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ subscriptionId: expressSubId, plan, profileSlug: slug }),
           })
-        } catch { /* silencieux — la page succès tentera aussi */ }
+        } catch { /* la page succès tentera aussi */ }
       }
+
+      // ── Étape 5 : redirection ───────────────────────────────
+      setStep('Redirection…')
       window.location.href = expressSuccessUrl
+
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur inattendue.'
+      setError(`Erreur : ${msg}`)
+      setStep('')
+      setLoading(false)
     }
   }
 
@@ -280,10 +301,19 @@ function CheckoutForm({
         />
       </div>
 
-      {/* Error */}
+      {/* Étape Apple Pay en cours */}
+      {step && (
+        <div className="flex items-center gap-3 bg-white/4 border border-white/10 px-4 py-3">
+          <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin flex-shrink-0" />
+          <span className="text-[11px] text-white/60 tracking-wide">{step}</span>
+        </div>
+      )}
+
+      {/* Error — impossible à rater */}
       {error && (
-        <div className="bg-red-500/10 border border-red-500/30 px-4 py-3 text-red-400 text-xs">
-          {error}
+        <div className="bg-red-500/15 border-2 border-red-500/50 px-4 py-4 text-red-300 text-sm leading-relaxed">
+          <p className="font-medium mb-1 text-red-400">Paiement non finalisé</p>
+          <p className="text-xs">{error}</p>
         </div>
       )}
 
