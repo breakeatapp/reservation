@@ -185,9 +185,13 @@ function CheckoutForm({
     })
 
     if (confirmError) {
+      // Paiement refusé
       setError(confirmError.message || 'Paiement refusé.')
+      setLoading(false)
+    } else {
+      // Paiement Apple Pay / Google Pay réussi → redirection vers succès
+      window.location.href = `${window.location.origin}/subscribe/success?plan=${plan}&slug=${slug}`
     }
-    setLoading(false)
   }
 
   return (
